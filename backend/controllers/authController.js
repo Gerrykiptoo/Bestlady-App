@@ -1,0 +1,102 @@
+const bcrypt = require('bcryptjs');
+const { User } = require('../models');
+const { generateToken, generateRefreshToken } = require('../utils/jwt');
+
+const register = async (req, res) => {
+  try {
+    const { username, email, password, phone, business_name, business_type } = req.body;
+
+    // Check if user exists
+    const userExists = await User.findOne({ where: { email } });
+    if (userExists) {
+      return res.status(400).json({ message: 'User already exists' });
+    }
+
+    // Hash password
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+
+    // Assign tier based on business type
+    const wholesaleTypes = ['mall', 'large_supermarket', 'chain_store', 'distributor', 'exporter', 'institution'];
+    const tier = wholesaleTypes.includes(business_type) ? 'wholesale' : 'retail';
+
+    // Create user
+    const user = await User.create({
+      username,
+      email,
+      password: hashedPassword,
+      phone,
+      business_name,
+      business_type,
+      tier,
+      kyc_status: 'pending',
+      wallet_balance: 0,
+      credit_limit: 0
+    });
+
+    const accessToken = generateToken(user.id);
+    const refreshToken = generateRefreshToken(user.id);
+
+    res.status(201).json({
+      user: {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        tier: user.tier
+      },
+      accessToken,
+      refreshToken
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+const login = async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    const user = await User.findOne({ where: { email } });
+    if (!user) {
+      return res.status(401).json({ message: 'Invalid credentials' });
+    }
+
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      return res.status(401).json({ message: 'Invalid credentials' });
+    }
+
+    const accessToken = generateToken(user.id);
+    const refreshToken = generateRefreshToken(user.id);
+
+    res.json({
+      user: {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        tier: user.tier
+      },
+      accessToken,
+      refreshToken
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+const getMe = async (req, res) => {
+  try {
+    const user = await User.findByPk(req.user.id, {
+      attributes: { exclude: ['password'] }
+    });
+    res.json(user);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+module.exports = {
+  register,
+  login,
+  getMe
+};
