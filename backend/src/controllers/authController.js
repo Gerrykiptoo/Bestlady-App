@@ -12,11 +12,7 @@ const register = async (req, res) => {
       return res.status(400).json({ message: 'User already exists' });
     }
 
-    // Hash password
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
-
-    // Assign tier based on business type
+    // Let User model hooks handle password hashing
     const wholesaleTypes = ['mall', 'large_supermarket', 'chain_store', 'distributor', 'exporter', 'institution'];
     const tier = wholesaleTypes.includes(business_type) ? 'wholesale' : 'retail';
 
@@ -24,7 +20,7 @@ const register = async (req, res) => {
     const user = await User.create({
       username,
       email,
-      password: hashedPassword,
+      password,
       phone,
       business_name,
       business_type,

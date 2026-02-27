@@ -1,5 +1,6 @@
 const { Order, OrderItem, Product, User, sequelize } = require('../models');
-const { initiateSTKPush } = require('../utils/mpesa');
+const mpesaService = require('../services/mpesaService'); // ✅ use the service
+const { generateQR } = require('../utils/qrGenerator');   // optional – if you need QR after payment
 const { v4: uuidv4 } = require('uuid');
 
 const createOrder = async (req, res) => {
@@ -16,7 +17,6 @@ const createOrder = async (req, res) => {
       if (!product) {
         throw new Error(`Product ${item.product_id} not found`);
       }
-
       if (product.current_stock < item.quantity) {
         throw new Error(`Insufficient stock for ${product.name}`);
       }
@@ -32,8 +32,11 @@ const createOrder = async (req, res) => {
         subtotal: itemSubtotal
       });
 
-      // Update stock
-      await product.update({ current_stock: product.current_stock - item.quantity }, { transaction: t });
+      // Reserve stock (you may prefer to deduct only after payment)
+      await product.update(
+        { current_stock: product.current_stock - item.quantity },
+        { transaction: t }
+      );
     }
 
     const tax = subtotal * 0.16; // 16% VAT
@@ -52,6 +55,7 @@ const createOrder = async (req, res) => {
       payment_method,
       payment_status: 'pending',
       delivery_channel,
+      // Generate OTP upfront (or move to after payment)
       otp_code: Math.floor(100000 + Math.random() * 900000).toString(),
       otp_secret: uuidv4()
     }, { transaction: t });
@@ -98,23 +102,21 @@ const getOrderById = async (req, res) => {
   }
 };
 
+// (Optional) Update order status – can be used by admin
 const updateOrderStatus = async (req, res) => {
   try {
     const order = await Order.findByPk(req.params.id);
     if (!order) {
       return res.status(404).json({ message: 'Order not found' });
     }
-
     const { status } = req.body;
     await order.update({ status });
 
     // AI Logistics Agent logic
     if (status === 'paid' && order.delivery_channel !== 'pickup') {
       const logistics_provider = order.total_amount < 5000 ? 'Private Rider' : 'Company Fleet';
-      // In a real system, we'd trigger a logistics task here
       console.log(`Order ${order.order_number} assigned to ${logistics_provider}`);
     }
-
     res.json(order);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -129,7 +131,12 @@ const payOrder = async (req, res) => {
     }
 
     if (order.payment_method === 'mpesa') {
-      const response = await initiateSTKPush(req.user.phone, order.total_amount, order.order_number);
+      // Use mpesaService to initiate STK push
+      const response = await mpesaService.initiateSTKPush(
+        req.user.phone,
+        order.total_amount,
+        order.order_number
+      );
       res.json({ message: 'STK Push initiated', data: response });
     } else if (order.payment_method === 'wallet') {
       const user = await User.findByPk(req.user.id);
@@ -138,15 +145,26 @@ const payOrder = async (req, res) => {
       }
 
       await sequelize.transaction(async (t) => {
-        await user.update({ wallet_balance: user.wallet_balance - order.total_amount }, { transaction: t });
-        await order.update({ payment_status: 'paid', status: 'paid' }, { transaction: t });
+        await user.update(
+          { wallet_balance: user.wallet_balance - order.total_amount },
+          { transaction: t }
+        );
+        await order.update(
+          { payment_status: 'paid', status: 'paid' },
+          { transaction: t }
+        );
       });
+
+      // Generate QR code for pickup (optional – you can also do this earlier)
+      // const qrData = await generateQR(order.order_number);
+      // await order.update({ qr_code: qrData });
 
       res.json({ message: 'Payment successful via wallet' });
     } else {
       res.status(400).json({ message: 'Unsupported payment method' });
     }
   } catch (error) {
+    console.error('Payment error:', error);
     res.status(500).json({ message: error.message });
   }
 };
