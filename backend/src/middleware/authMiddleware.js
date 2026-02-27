@@ -1,6 +1,9 @@
 const { verifyToken } = require('../utils/jwt');
 const { User } = require('../models');
 
+/**
+ * Protect routes – verifies JWT and attaches user to request
+ */
 const protect = async (req, res, next) => {
   let token;
 
@@ -9,34 +12,38 @@ const protect = async (req, res, next) => {
       token = req.headers.authorization.split(' ')[1];
       const decoded = verifyToken(token);
 
-      req.user = await User.findByPk(decoded.id, {
+      // Fetch user from database (exclude password)
+      const user = await User.findByPk(decoded.id, {
         attributes: { exclude: ['password'] }
       });
 
-      if (!req.user) {
+      if (!user) {
         return res.status(401).json({ message: 'User not found' });
       }
 
-      next();
+      req.user = user;
+      return next(); // ✅ ensure we return after next()
     } catch (error) {
-      res.status(401).json({ message: 'Not authorized, token failed' });
+      console.error('Auth error:', error);
+      return res.status(401).json({ message: 'Not authorized, token failed' });
     }
   }
 
   if (!token) {
-    res.status(401).json({ message: 'Not authorized, no token' });
+    return res.status(401).json({ message: 'Not authorized, no token' });
   }
 };
 
+/**
+ * Admin middleware – checks if the authenticated user is an admin
+ * Note: Assumes the User model has an `is_admin` boolean field.
+ *       If you haven't added it yet, add it to the model (default false).
+ */
 const admin = (req, res, next) => {
-  if (req.user && (req.user.role === 'admin' || req.user.username === 'admin')) {
-    // Note: I should probably add a 'role' field to the User model if I need explicit roles
-    // For now I'll just check username or assume we add role later.
-    // Based on requirements, there are admin users.
-    next();
-  } else {
-    res.status(403).json({ message: 'Not authorized as an admin' });
+  if (req.user && req.user.is_admin === true) {
+    return next();
   }
+  return res.status(403).json({ message: 'Not authorized as an admin' });
 };
 
 module.exports = { protect, admin };

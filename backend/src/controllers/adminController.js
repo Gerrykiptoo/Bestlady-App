@@ -1,4 +1,4 @@
-const { User, Order, Product, Category, sequelize } = require('../models');
+const { User, Order, Product, Category, OrderItem, sequelize } = require('../models'); // 👈 added OrderItem
 const { Op } = require('sequelize');
 
 // @desc    Get all users with pagination
@@ -13,7 +13,7 @@ const getUsers = async (req, res) => {
       [Op.or]: [
         { username: { [Op.iLike]: `%${search}%` } },
         { email: { [Op.iLike]: `%${search}%` } },
-        { businessName: { [Op.iLike]: `%${search}%` } }
+        { business_name: { [Op.iLike]: `%${search}%` } } // 👈 fixed field name
       ]
     } : {};
 
@@ -149,7 +149,7 @@ const getInventoryHealth = async (req, res) => {
       order: [['current_stock', 'ASC']]
     });
 
-    // Top selling products (using Sequelize instead of raw SQL)
+    // Top selling products
     const topSelling = await Product.findAll({
       attributes: [
         'id',
@@ -158,7 +158,7 @@ const getInventoryHealth = async (req, res) => {
         [sequelize.fn('SUM', sequelize.col('OrderItems.quantity')), 'totalSold']
       ],
       include: [{
-        model: OrderItem,
+        model: OrderItem,          // 👈 now OrderItem is defined
         attributes: [],
         required: true,
         include: [{
@@ -168,7 +168,7 @@ const getInventoryHealth = async (req, res) => {
         }]
       }],
       group: ['Product.id'],
-      order: [[sequelize.literal('"totalSold"'), 'DESC']],
+      order: [[sequelize.col('totalSold'), 'DESC']], // safer than literal
       limit: 10
     });
 
