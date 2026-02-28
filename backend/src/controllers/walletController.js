@@ -1,5 +1,5 @@
 const { WalletTransaction, User, sequelize } = require('../models');
-const { initiateSTKPush } = require('../utils/mpesa');
+const { initiateSTKPush } = require('../services/mpesaService');
 
 const getBalance = async (req, res) => {
   try {

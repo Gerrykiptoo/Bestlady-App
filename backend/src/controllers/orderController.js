@@ -173,5 +173,6 @@ module.exports = {
   createOrder,
   getOrders,
   getOrderById,
-  payOrder
+  payOrder,
+  updateOrderStatus
 };
