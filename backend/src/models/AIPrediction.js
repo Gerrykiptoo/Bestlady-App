@@ -1,5 +1,6 @@
-const { Model, DataTypes } = require('sequelize');
-module.exports = (sequelize) => {
+const { Model } = require('sequelize');
+
+module.exports = (sequelize, DataTypes) => {
   class AIPrediction extends Model {
     static associate(models) {
       AIPrediction.belongsTo(models.Product, { foreignKey: 'product_id' });
