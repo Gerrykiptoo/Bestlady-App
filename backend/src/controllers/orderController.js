@@ -112,6 +112,16 @@ const updateOrderStatus = async (req, res) => {
     const { status } = req.body;
     await order.update({ status });
 
+    // Emit Socket.io notification to the user
+    const io = req.app.get('io');
+    if (io) {
+      io.to(order.user_id).emit('orderUpdate', {
+        orderId: order.id,
+        orderNumber: order.order_number,
+        status: status
+      });
+    }
+
     // AI Logistics Agent logic
     if (status === 'paid' && order.delivery_channel !== 'pickup') {
       const logistics_provider = order.total_amount < 5000 ? 'Private Rider' : 'Company Fleet';

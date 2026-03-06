@@ -1,105 +1,69 @@
-const { Product, OrderItem, Order, AIPrediction, sequelize } = require('../models');
+const { UserInventory, Product, AIPrediction, Order, sequelize } = require('../models');
 const { Op } = require('sequelize');
 
-const getRestockPrediction = async (req, res) => {
+const getUserDashboardData = async (req, res) => {
   try {
-    const { productId } = req.params;
-    const product = await Product.findByPk(productId);
-    if (!product) {
-      return res.status(404).json({ message: 'Product not found' });
-    }
+    const userId = req.user.id;
 
-    // Calculate 7-day sales velocity
-    const sevenDaysAgo = new Date();
-    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-
-    const sales = await OrderItem.findAll({
+    // 1. Low Stock Alerts from UserInventory
+    const stockAlerts = await UserInventory.findAll({
       where: {
-        product_id: productId,
-        createdAt: { [Op.gte]: sevenDaysAgo }
+        user_id: userId,
+        current_stock: { [Op.lte]: sequelize.col('reorder_point') }
       },
-      include: [{
-        model: Order,
-        where: { payment_status: 'paid' }
-      }]
+      include: [{ model: Product, attributes: ['id', 'name', 'image_url'] }]
     });
 
-    const totalSold = sales.reduce((acc, item) => acc + item.quantity, 0);
-    const velocity = totalSold / 7;
+    // 2. Global Demand Insights (AIPredictions)
+    const demandInsights = await AIPrediction.findAll({
+      where: { prediction_type: 'demand' },
+      include: [{ model: Product, attributes: ['id', 'name'] }],
+      limit: 5,
+      order: [['confidence', 'DESC']]
+    });
 
-    if (velocity === 0) {
-      return res.json({
-        productId,
-        velocity: 0,
-        predictedRestockDate: 'Unknown (No sales)',
-        daysRemaining: Infinity
-      });
-    }
+    // 3. Spending Analytics (Simplified: total spent this month)
+    const startOfMonth = new Date();
+    startOfMonth.setDate(1);
+    startOfMonth.setHours(0, 0, 0, 0);
 
-    const daysRemaining = product.current_stock / velocity;
-    const restockDate = new Date();
-    restockDate.setDate(restockDate.getDate() + daysRemaining);
+    const totalSpent = await Order.sum('total_amount', {
+      where: {
+        user_id: userId,
+        payment_status: 'paid',
+        createdAt: { [Op.gte]: startOfMonth }
+      }
+    });
 
     res.json({
-      productId,
-      velocity,
-      currentStock: product.current_stock,
-      daysRemaining: Math.round(daysRemaining),
-      predictedRestockDate: restockDate.toISOString().split('T')[0]
+      stockAlerts,
+      demandInsights,
+      spendingAnalytics: {
+        totalSpent: totalSpent || 0,
+        month: startOfMonth.toLocaleString('default', { month: 'long' })
+      }
     });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error('AI Dashboard error:', error);
+    res.status(500).json({ message: 'Error fetching AI dashboard data' });
   }
 };
 
-const getDemandForecast = async (req, res) => {
+const getAdminForecast = async (req, res) => {
   try {
-    // Simple demand forecast logic
-    // In a real system, we'd use TensorFlow.js or a more complex model
-    const products = await Product.findAll({
-      where: { is_active: true }
+    const predictions = await AIPrediction.findAll({
+      where: { prediction_type: 'demand' },
+      include: [{ model: Product, attributes: ['id', 'name', 'sku'] }],
+      order: [['predicted_value', 'DESC']]
     });
 
-    const forecasts = [];
-
-    for (const product of products) {
-      // Get last 30 days of sales
-      const thirtyDaysAgo = new Date();
-      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-
-      const sales = await OrderItem.findAll({
-        where: {
-          product_id: product.id,
-          createdAt: { [Op.gte]: thirtyDaysAgo }
-        },
-        include: [{
-          model: Order,
-          where: { payment_status: 'paid' }
-        }]
-      });
-
-      const totalSold = sales.reduce((acc, item) => acc + item.quantity, 0);
-      const averageDailyDemand = totalSold / 30;
-
-      // Predict next 30 days
-      const predictedDemand = averageDailyDemand * 30;
-
-      forecasts.push({
-        productId: product.id,
-        name: product.name,
-        averageDailyDemand,
-        predictedDemandNext30Days: Math.round(predictedDemand),
-        confidence: 0.8 // Dummy confidence value
-      });
-    }
-
-    res.json(forecasts);
+    res.json(predictions);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ message: 'Error fetching admin forecasts' });
   }
 };
 
 module.exports = {
-  getRestockPrediction,
-  getDemandForecast
+  getUserDashboardData,
+  getAdminForecast
 };

@@ -37,7 +37,7 @@ module.exports = (sequelize, DataTypes) => {
       allowNull: false
     },
     order_type: {
-      type: DataTypes.ENUM('retail', 'wholesale'),
+      type: DataTypes.STRING(50),
       allowNull: false
     },
     subtotal: {
@@ -61,11 +61,11 @@ module.exports = (sequelize, DataTypes) => {
       validate: { min: 0 }
     },
     payment_method: {
-      type: DataTypes.ENUM('mpesa', 'wallet', 'credit'),
+      type: DataTypes.STRING(50),
       allowNull: false
     },
     payment_status: {
-      type: DataTypes.STRING,
+      type: DataTypes.STRING(50),
       defaultValue: 'pending'
     },
     mpesa_code: {
@@ -73,7 +73,7 @@ module.exports = (sequelize, DataTypes) => {
       allowNull: true
     },
     delivery_channel: {
-      type: DataTypes.ENUM('private_rider', 'company_fleet', 'pickup'),
+      type: DataTypes.STRING(50),
       allowNull: true
     },
     qr_code: {

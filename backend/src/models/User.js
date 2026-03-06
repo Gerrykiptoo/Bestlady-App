@@ -41,20 +41,16 @@ module.exports = (sequelize, DataTypes) => {
       allowNull: false,
       unique: true
     },
-    is_admin: {
-      type: DataTypes.BOOLEAN,
-      defaultValue: false
+    role: {
+      type: DataTypes.ENUM('admin', 'user', 'staff', 'agent'),
+      defaultValue: 'user'
     },
     business_name: {
       type: DataTypes.STRING,
       allowNull: false
     },
     business_type: {
-      type: DataTypes.ENUM(
-        'salon', 'mini_supermarket', 'beauty_shop', 'freelance',
-        'mall', 'large_supermarket', 'chain_store', 'distributor',
-        'exporter', 'institution'
-      ),
+      type: DataTypes.STRING(100),
       allowNull: false
     },
     tier: {

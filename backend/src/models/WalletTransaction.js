@@ -23,7 +23,7 @@ module.exports = (sequelize, DataTypes) => {
       }
     },
     transaction_type: {
-      type: DataTypes.ENUM('deposit', 'payment', 'refund', 'withdrawal'),
+      type: DataTypes.STRING(50),
       allowNull: false
     },
     amount: {

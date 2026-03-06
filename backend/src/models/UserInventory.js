@@ -1,5 +1,6 @@
 'use strict';
 const { Model } = require('sequelize');
+
 module.exports = (sequelize, DataTypes) => {
   class UserInventory extends Model {
     static associate(models) {
@@ -7,6 +8,7 @@ module.exports = (sequelize, DataTypes) => {
       UserInventory.belongsTo(models.Product, { foreignKey: 'product_id' });
     }
   }
+
   UserInventory.init({
     id: {
       type: DataTypes.UUID,
@@ -38,12 +40,13 @@ module.exports = (sequelize, DataTypes) => {
       defaultValue: 10
     },
     last_ordered: {
-      type: DataTypes.DATE,
-      allowNull: true
+      type: DataTypes.DATE
     }
   }, {
     sequelize,
     modelName: 'UserInventory',
+    tableName: 'UserInventory',
+    timestamps: true,
     indexes: [
       {
         unique: true,
@@ -51,5 +54,6 @@ module.exports = (sequelize, DataTypes) => {
       }
     ]
   });
+
   return UserInventory;
 };

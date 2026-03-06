@@ -23,7 +23,7 @@ module.exports = (sequelize, DataTypes) => {
       }
     },
     alert_type: {
-      type: DataTypes.ENUM('low_stock', 'reorder'),
+      type: DataTypes.STRING(50),
       allowNull: false
     },
     message: {

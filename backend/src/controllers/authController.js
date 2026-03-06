@@ -4,7 +4,7 @@ const { generateToken, generateRefreshToken } = require('../utils/jwt');
 
 const register = async (req, res) => {
   try {
-    const { username, email, password, phone, business_name, business_type } = req.body;
+    const { username, email, password, phone, business_name, business_type, role } = req.body;
 
     // Check if user exists
     const userExists = await User.findOne({ where: { email } });
@@ -25,6 +25,7 @@ const register = async (req, res) => {
       business_name,
       business_type,
       tier,
+      role: role || 'user',
       kyc_status: 'pending',
       wallet_balance: 0,
       credit_limit: 0
@@ -38,7 +39,8 @@ const register = async (req, res) => {
         id: user.id,
         username: user.username,
         email: user.email,
-        tier: user.tier
+        tier: user.tier,
+        role: user.role
       },
       accessToken,
       refreshToken
@@ -70,7 +72,8 @@ const login = async (req, res) => {
         id: user.id,
         username: user.username,
         email: user.email,
-        tier: user.tier
+        tier: user.tier,
+        role: user.role
       },
       accessToken,
       refreshToken
