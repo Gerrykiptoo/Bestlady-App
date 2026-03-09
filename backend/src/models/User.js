@@ -68,12 +68,16 @@ module.exports = (sequelize, DataTypes) => {
     wallet_balance: {
       type: DataTypes.DECIMAL(10, 2),
       defaultValue: 0.00
+    },
+    avatar_url: {
+      type: DataTypes.TEXT,
+      allowNull: true
     }
   }, {
     sequelize,
     modelName: 'User',
-    tableName: 'Users',           // optional: explicitly set table name
-    timestamps: true,             // adds createdAt & updatedAt
+    tableName: 'Users',
+    timestamps: true,
     hooks: {
       beforeCreate: async (user) => {
         if (user.password) {
