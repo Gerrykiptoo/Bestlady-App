@@ -12,7 +12,7 @@ const register = async (req, res) => {
       return res.status(400).json({ message: 'User already exists' });
     }
 
-    // Let User model hooks handle password hashing
+    // Determine tier based on business type
     const wholesaleTypes = ['mall', 'large_supermarket', 'chain_store', 'distributor', 'exporter', 'institution'];
     const tier = wholesaleTypes.includes(business_type) ? 'wholesale' : 'retail';
 
@@ -46,7 +46,8 @@ const register = async (req, res) => {
       refreshToken
     });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error('❌ Registration error:', error);  // <-- this prints the full error in your terminal
+    res.status(500).json({ message: 'Server error' });
   }
 };
 
@@ -79,7 +80,8 @@ const login = async (req, res) => {
       refreshToken
     });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error('❌ Login error:', error);
+    res.status(500).json({ message: 'Server error' });
   }
 };
 
@@ -90,7 +92,8 @@ const getMe = async (req, res) => {
     });
     res.json(user);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error('❌ GetMe error:', error);
+    res.status(500).json({ message: 'Server error' });
   }
 };
 
