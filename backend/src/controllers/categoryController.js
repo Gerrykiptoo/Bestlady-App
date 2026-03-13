@@ -1,4 +1,5 @@
 const { Category, Product } = require('../models');
+const sequelize = require('../config/database');
 
 // @desc    Get all categories
 // @route   GET /api/categories
