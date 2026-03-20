@@ -1,4 +1,4 @@
-const { User, Order, Product, Category, OrderItem, sequelize } = require('../models'); // 👈 added OrderItem
+const { User, Order, Product, Category, OrderItem, sequelize } = require('../models');
 const { Op } = require('sequelize');
 
 // @desc    Get all users with pagination
@@ -13,7 +13,7 @@ const getUsers = async (req, res) => {
       [Op.or]: [
         { username: { [Op.iLike]: `%${search}%` } },
         { email: { [Op.iLike]: `%${search}%` } },
-        { business_name: { [Op.iLike]: `%${search}%` } } // 👈 fixed field name
+        { business_name: { [Op.iLike]: `%${search}%` } }
       ]
     } : {};
 
@@ -138,7 +138,7 @@ const getInventoryHealth = async (req, res) => {
     const { page = 1, limit = 20 } = req.query;
     const offset = (page - 1) * limit;
 
-    // Low stock products (current stock <= reorder point)
+    // 1. Low stock products (current stock <= reorder point)
     const lowStock = await Product.findAndCountAll({
       where: {
         current_stock: { [Op.lte]: sequelize.col('reorder_point') }
@@ -149,30 +149,38 @@ const getInventoryHealth = async (req, res) => {
       order: [['current_stock', 'ASC']]
     });
 
-    // Top selling products
-    const topSelling = await Product.findAll({
-      attributes: [
-        'id',
-        'name',
-        'sku',
-        [sequelize.fn('SUM', sequelize.col('OrderItems.quantity')), 'totalSold']
-      ],
-      include: [{
-        model: OrderItem,          // 👈 now OrderItem is defined
-        attributes: [],
-        required: true,
-        include: [{
-          model: Order,
-          attributes: [],
-          where: { payment_status: 'paid' }
-        }]
-      }],
-      group: ['Product.id'],
-      order: [[sequelize.col('totalSold'), 'DESC']], // safer than literal
-      limit: 10
+    // 2. Top selling products - simplified approach
+    const topSellingRaw = await sequelize.query(`
+      SELECT 
+        oi.product_id,
+        SUM(oi.quantity) as total_sold
+      FROM "OrderItems" oi
+      INNER JOIN "Orders" o ON oi.order_id = o.id
+      WHERE o.payment_status = 'paid'
+      GROUP BY oi.product_id
+      ORDER BY total_sold DESC
+      LIMIT 10
+    `, {
+      type: sequelize.QueryTypes.SELECT
     });
 
-    // Total products count
+    // Get product details for top selling products
+    const topSellingProducts = [];
+    for (const item of topSellingRaw) {
+      const product = await Product.findByPk(item.product_id, {
+        attributes: ['id', 'name', 'sku']
+      });
+      if (product) {
+        topSellingProducts.push({
+          id: product.id,
+          name: product.name,
+          sku: product.sku,
+          total_sold: parseInt(item.total_sold)
+        });
+      }
+    }
+
+    // 3. Total products count
     const totalProducts = await Product.count();
 
     res.json({
@@ -182,12 +190,13 @@ const getInventoryHealth = async (req, res) => {
         page: parseInt(page),
         totalPages: Math.ceil(lowStock.count / limit)
       },
-      topSelling,
+      topSelling: topSellingProducts,
       totalProducts
     });
+
   } catch (error) {
     console.error('Error in getInventoryHealth:', error);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: 'Server error', error: error.message });
   }
 };
 
