@@ -2,21 +2,11 @@ import { createRouter, createWebHistory } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
 
 const routes = [
+  // Public Routes
   {
     path: '/',
     name: 'Home',
     component: () => import('@/views/Home.vue')
-  },
-  {
-    path: '/login',
-    name: 'Login',
-    component: () => import('@/views/Login.vue')
-  },
-  {
-    path: '/dashboard',
-    name: 'Dashboard',
-    component: () => import('@/views/Dashboard.vue'),
-    meta: { requiresAuth: true }
   },
   {
     path: '/products',
@@ -24,9 +14,33 @@ const routes = [
     component: () => import('@/views/ProductCatalog.vue')
   },
   {
+    path: '/products/:id',
+    name: 'ProductDetail',
+    component: () => import('@/views/ProductDetail.vue')
+  },
+  {
+    path: '/login',
+    name: 'Login',
+    component: () => import('@/views/Login.vue')
+  },
+  {
+    path: '/register',
+    name: 'Register',
+    component: () => import('@/views/Register.vue')
+  },
+  
+  // Protected Routes (require authentication)
+  {
+    path: '/dashboard',
+    name: 'Dashboard',
+    component: () => import('@/views/Dashboard.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
     path: '/cart',
     name: 'Cart',
-    component: () => import('@/views/Cart.vue')
+    component: () => import('@/views/Cart.vue'),
+    meta: { requiresAuth: true }
   },
   {
     path: '/checkout',
@@ -35,22 +49,42 @@ const routes = [
     meta: { requiresAuth: true }
   },
   {
+    path: '/orders',
+    name: 'OrderHistory',
+    component: () => import('@/views/OrderHistory.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/orders/:id',
+    name: 'OrderDetail',
+    component: () => import('@/views/OrderDetail.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/wallet',
+    name: 'Wallet',
+    component: () => import('@/views/Wallet.vue'),
+    meta: { requiresAuth: true }
+  },
+  
+  // Role-Based Dashboards
+  {
     path: '/admin',
     name: 'AdminDashboard',
     component: () => import('@/views/Admin/AdminDashboard.vue'),
     meta: { requiresAuth: true, roles: ['admin'] }
   },
   {
-    path: '/user/dashboard',
+    path: '/retail',
     name: 'RetailDashboard',
     component: () => import('@/views/Retail/RetailDashboard.vue'),
-    meta: { requiresAuth: true, roles: ['user'] }
+    meta: { requiresAuth: true, roles: ['user', 'admin'] }  // users with retail tier
   },
   {
     path: '/wholesale',
     name: 'WholesaleDashboard',
     component: () => import('@/views/Wholesale/WholesaleDashboard.vue'),
-    meta: { requiresAuth: true, roles: ['wholesale'] }
+    meta: { requiresAuth: true, roles: ['user', 'admin'] }  // users with wholesale tier
   },
   {
     path: '/staff',
@@ -71,16 +105,43 @@ const router = createRouter({
   routes
 });
 
+// Navigation Guard
 router.beforeEach((to, from, next) => {
   const auth = useAuthStore();
   
+  // Check if route requires authentication
   if (to.meta.requiresAuth && !auth.isAuthenticated) {
     next('/login');
-  } else if (to.meta.roles && !to.meta.roles.includes(auth.role)) {
-    next('/');
-  } else {
-    next();
+    return;
   }
+  
+  // Check if route has role restrictions
+  if (to.meta.roles && auth.isAuthenticated) {
+    // Admin can access everything
+    if (auth.role === 'admin') {
+      next();
+      return;
+    }
+    
+    // Check if user's role is allowed
+    if (!to.meta.roles.includes(auth.role)) {
+      next('/');
+      return;
+    }
+  }
+  
+  // Special handling for retail/wholesale dashboards - also check tier
+  if (to.path === '/retail' && auth.user?.tier !== 'retail' && auth.role !== 'admin') {
+    next('/');
+    return;
+  }
+  
+  if (to.path === '/wholesale' && auth.user?.tier !== 'wholesale' && auth.role !== 'admin') {
+    next('/');
+    return;
+  }
+  
+  next();
 });
 
 export default router;

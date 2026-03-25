@@ -1,4 +1,4 @@
-const { io } = require('socket.io-client');
+import { io } from 'socket.io-client';
 import { useToast } from 'vue-toast-notification';
 
 let socket = null;

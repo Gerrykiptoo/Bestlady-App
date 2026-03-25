@@ -1,3 +1,70 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-gray-50 text-gray-900 antialiased;
+  }
+}
+
+@layer components {
+  .container-custom {
+    @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+  }
+  
+  .btn-primary {
+    @apply bg-primary-600 text-white px-6 py-3 rounded-xl font-semibold 
+           hover:bg-primary-700 transform hover:scale-105 transition-all duration-300 
+           focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2
+           disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none
+           shadow-lg hover:shadow-xl;
+  }
+  
+  .btn-secondary {
+    @apply bg-white text-primary-600 border-2 border-primary-600 px-6 py-3 rounded-xl font-semibold 
+           hover:bg-primary-50 transform hover:scale-105 transition-all duration-300
+           focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2;
+  }
+  
+  .card {
+    @apply bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden 
+           hover:shadow-2xl transition-all duration-300 hover:-translate-y-1;
+  }
+  
+  .input {
+    @apply w-full px-4 py-3 border border-gray-300 rounded-xl 
+           focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent
+           transition-all duration-200 bg-white;
+  }
+}
+
+/* Custom animations */
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+}
+
+@keyframes pulse-slow {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.8; }
+}
+
+@keyframes shimmer {
+  0% { background-position: -1000px 0; }
+  100% { background-position: 1000px 0; }
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+.animate-pulse-slow {
+  animation: pulse-slow 2s ease-in-out infinite;
+}
+
+.shimmer {
+  background: linear-gradient(90deg, #990505 25%, #157a72 50%, #f0f0f0 75%);
+  background-size: 1000px 100%;
+  animation: shimmer 2s infinite;
+}

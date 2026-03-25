@@ -14,16 +14,19 @@
     "@heroicons/vue": "^2.2.0",
     "@hookform/resolvers": "^5.2.2",
     "@vitejs/plugin-vue": "^5.2.4",
+    "@vueuse/core": "^14.2.1",
     "axios": "^1.13.6",
     "chart.js": "^4.5.1",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
+    "lucide-vue-next": "^1.0.0",
     "pinia": "^3.0.4",
     "pinia-plugin-persistedstate": "^4.7.1",
     "react-chartjs-2": "^5.3.1",
     "react-hook-form": "^7.71.2",
     "socket.io-client": "^4.8.3",
     "tailwind-merge": "^3.5.0",
+    "tailwindcss": "^3.4.19",
     "toastify-js": "^1.12.0",
     "vue": "^3.5.29",
     "vue-chartjs": "^5.3.3",
@@ -33,11 +36,10 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.25.0",
-    "autoprefixer": "^10.4.24",
+    "autoprefixer": "^10.4.27",
     "eslint": "^9.25.0",
     "globals": "^16.0.0",
-    "postcss": "^8.5.6",
-    "tailwindcss": "^4.2.1",
+    "postcss": "^8.5.8",
     "vite": "^6.3.5"
   }
 }
