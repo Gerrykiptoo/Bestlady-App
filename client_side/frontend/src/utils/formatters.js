@@ -1,6 +1,9 @@
 export const formatPrice = (price) => {
-  if (!price && price !== 0) return '0.00'
-  return Number(price).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+  // Handle null, undefined, empty string, or NaN
+  if (price === null || price === undefined || price === '' || isNaN(price)) return '0.00'
+  const numPrice = Number(price)
+  if (isNaN(numPrice)) return '0.00'
+  return numPrice.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')
 }
 
 export const formatDate = (date) => {

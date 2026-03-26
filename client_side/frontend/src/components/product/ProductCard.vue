@@ -125,22 +125,41 @@
         </p>
       </div>
       
-      <!-- Add to Cart Button with Animation -->
-      <button 
-        @click.stop="addToCart"
-        :disabled="product.current_stock === 0"
-        class="w-full py-3 rounded-xl font-semibold transition-all duration-300 flex items-center justify-center gap-2 group/btn relative overflow-hidden"
-        :class="[
-          product.current_stock === 0 ? 'bg-gray-300 text-gray-500 cursor-not-allowed' :
-          'bg-gradient-to-r from-primary-600 to-primary-700 text-white hover:shadow-lg transform hover:scale-105 active:scale-95'
-        ]"
-      >
-        <span class="absolute inset-0 bg-white/20 translate-x-[-100%] group-hover/btn:translate-x-[100%] transition-transform duration-500"></span>
-        <svg class="h-5 w-5 group-hover/btn:animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
-        </svg>
-        {{ product.current_stock === 0 ? 'Out of Stock' : 'Add to Cart' }}
-      </button>
+      <!-- Action Buttons -->
+      <div class="grid grid-cols-2 gap-2">
+        <!-- Add to Cart Button -->
+        <button
+          @click.stop="addToCart"
+          :disabled="product.current_stock === 0"
+          class="py-3 rounded-xl font-semibold transition-all duration-300 flex items-center justify-center gap-2 group/btn relative overflow-hidden"
+          :class="[
+            product.current_stock === 0 ? 'bg-gray-300 text-gray-500 cursor-not-allowed' :
+            'bg-gradient-to-r from-gray-600 to-gray-700 text-white hover:shadow-lg transform hover:scale-105 active:scale-95'
+          ]"
+        >
+          <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+          </svg>
+          Add
+        </button>
+        
+        <!-- Buy Now Button -->
+        <button
+          @click.stop="buyNow"
+          :disabled="product.current_stock === 0"
+          class="py-3 rounded-xl font-semibold transition-all duration-300 flex items-center justify-center gap-2 group/btn relative overflow-hidden"
+          :class="[
+            product.current_stock === 0 ? 'bg-gray-300 text-gray-500 cursor-not-allowed' :
+            'bg-gradient-to-r from-primary-600 to-primary-700 text-white hover:shadow-lg transform hover:scale-105 active:scale-95'
+          ]"
+        >
+          <span class="absolute inset-0 bg-white/20 translate-x-[-100%] group-hover/btn:translate-x-[100%] transition-transform duration-500"></span>
+          <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+          </svg>
+          Buy Now
+        </button>
+      </div>
       
       <!-- Express Delivery Badge -->
       <div v-if="product.expressDelivery" class="mt-3 flex items-center justify-center gap-1 text-xs text-green-600">
@@ -215,7 +234,7 @@ const addToCart = () => {
     price: displayPrice.value,
     image_url: props.product.image_url,
     quantity: 1
-  })
+  }, displayPrice.value)
   
   toast.success(`${props.product.name} added to cart!`, {
     duration: 2000,
@@ -223,6 +242,30 @@ const addToCart = () => {
   })
   
   emit('add-to-cart', props.product)
+}
+
+const buyNow = () => {
+  if (!auth.isAuthenticated) {
+    router.push('/login')
+    return
+  }
+  
+  if (props.product.current_stock === 0) {
+    toast.error('Sorry, this product is out of stock')
+    return
+  }
+  
+  // Add to cart first
+  cart.addItem({
+    id: props.product.id,
+    name: props.product.name,
+    price: displayPrice.value,
+    image_url: props.product.image_url,
+    quantity: 1
+  }, displayPrice.value)
+  
+  // Then redirect to checkout
+  router.push('/checkout')
 }
 
 const quickView = () => {

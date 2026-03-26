@@ -73,6 +73,7 @@ import api from '@/services/api';
 import { useAuthStore } from '@/stores/auth';
 import { useCartStore } from '@/stores/cart';
 import { useToast } from 'vue-toast-notification';
+import { formatPrice } from '@/utils/formatters';
 
 const auth = useAuthStore();
 const cart = useCartStore();
@@ -87,11 +88,14 @@ const filteredProducts = computed(() => {
 });
 
 const getPrice = (product) => {
-  return auth.user?.tier === 'wholesale' ? product.wholesale_price : product.retail_price;
+  const price = auth.user?.tier === 'wholesale' ? product.wholesale_price : product.retail_price;
+  return formatPrice(price);
 };
 
 const addToCart = (product) => {
-  cart.addItem(product, getPrice(product));
+  const price = auth.user?.tier === 'wholesale' ? product.wholesale_price : product.retail_price;
+  const numPrice = Number(price) || 0;
+  cart.addItem(product, numPrice);
   toast.success(`${product.name} added to cart!`);
 };
 

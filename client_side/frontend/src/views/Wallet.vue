@@ -80,7 +80,10 @@ const topUpWallet = async () => {
   try {
     const { data } = await api.post('/wallet/topup', { amount: topUpAmount.value })
     toast.success('Wallet topped up successfully!')
-    auth.user.wallet_balance = data.balance
+    
+    // Update auth store with new balance and persist to localStorage
+    auth.updateUser({ wallet_balance: data.balance })
+    
     showTopUp.value = false
     topUpAmount.value = ''
     fetchTransactions()

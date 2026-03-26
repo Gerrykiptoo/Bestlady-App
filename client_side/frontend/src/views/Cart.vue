@@ -16,14 +16,14 @@
           </div>
           <div class="flex-1">
             <h3 class="font-bold text-gray-800">{{ item.name }}</h3>
-            <p class="text-xs text-gray-500">KES {{ item.price }} / unit</p>
+            <p class="text-xs text-gray-500">KES {{ formatPrice(item.price) }} / unit</p>
           </div>
           <div class="flex items-center gap-3">
             <button @click="cart.updateQuantity(item.product_id, item.quantity - 1)" class="w-8 h-8 rounded-full border">-</button>
             <span class="font-bold">{{ item.quantity }}</span>
             <button @click="cart.updateQuantity(item.product_id, item.quantity + 1)" class="w-8 h-8 rounded-full border">+</button>
           </div>
-          <div class="font-black text-gray-900 w-24 text-right">KES {{ item.price * item.quantity }}</div>
+          <div class="font-black text-gray-900 w-24 text-right">KES {{ formatPrice(item.price * item.quantity) }}</div>
           <button @click="cart.removeItem(item.product_id)" class="text-red-500 ml-2">✕</button>
         </div>
 
@@ -47,19 +47,19 @@
         <div class="space-y-3 text-sm">
           <div class="flex justify-between">
             <span class="text-gray-500">Subtotal</span>
-            <span>KES {{ cart.subtotal }}</span>
+            <span>KES {{ formatPrice(cart.subtotal) }}</span>
           </div>
           <div class="flex justify-between">
             <span class="text-gray-500">Tax (VAT 16%)</span>
-            <span>KES {{ cart.tax }}</span>
+            <span>KES {{ formatPrice(cart.tax) }}</span>
           </div>
           <div class="flex justify-between">
             <span class="text-gray-500">Delivery Fee</span>
-            <span>KES 250</span>
+            <span>KES 250.00</span>
           </div>
           <div class="border-t pt-4 flex justify-between font-black text-lg">
             <span>Total</span>
-            <span class="text-primary">KES {{ cart.total }}</span>
+            <span class="text-primary">KES {{ formatPrice(cart.total) }}</span>
           </div>
         </div>
         <button @click="router.push('/checkout')" :disabled="cart.items.length === 0" class="w-full mt-8 py-4 bg-primary text-white rounded-xl font-bold hover:opacity-90 transition disabled:opacity-50">
@@ -73,6 +73,7 @@
 <script setup>
 import { useRouter } from 'vue-router';
 import { useCartStore } from '@/stores/cart';
+import { formatPrice } from '@/utils/formatters';
 
 const cart = useCartStore();
 const router = useRouter();

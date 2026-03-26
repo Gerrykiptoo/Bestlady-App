@@ -5,12 +5,29 @@ export const useCartStore = defineStore('cart', {
     items: JSON.parse(localStorage.getItem('cart')) || []
   }),
   getters: {
-    totalItems: (state) => state.items.reduce((acc, item) => acc + item.quantity, 0),
-    subtotal: (state) => state.items.reduce((acc, item) => acc + (item.price * item.quantity), 0),
-    tax: (state) => state.items.reduce((acc, item) => acc + (item.price * item.quantity), 0) * 0.16,
+    totalItems: (state) => state.items.reduce((acc, item) => acc + (Number(item.quantity) || 0), 0),
+    subtotal: (state) => state.items.reduce((acc, item) => {
+      const price = Number(item.price) || 0;
+      const quantity = Number(item.quantity) || 0;
+      return acc + (price * quantity);
+    }, 0),
+    tax: (state) => {
+      const sub = state.items.reduce((acc, item) => {
+        const price = Number(item.price) || 0;
+        const quantity = Number(item.quantity) || 0;
+        return acc + (price * quantity);
+      }, 0);
+      return sub * 0.16;
+    },
     total: (state) => {
-      const sub = state.items.reduce((acc, item) => acc + (item.price * item.quantity), 0);
-      return sub + (sub * 0.16) + (sub > 0 ? 250 : 0); // 250 flat delivery if not empty
+      const sub = state.items.reduce((acc, item) => {
+        const price = Number(item.price) || 0;
+        const quantity = Number(item.quantity) || 0;
+        return acc + (price * quantity);
+      }, 0);
+      const tax = sub * 0.16;
+      const delivery = sub > 0 ? 250 : 0;
+      return sub + tax + delivery;
     }
   },
   actions: {

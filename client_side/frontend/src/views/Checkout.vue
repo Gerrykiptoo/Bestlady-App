@@ -32,7 +32,7 @@
           <div @click="payment = 'wallet'" :class="payment === 'wallet' ? 'border-blue-600 bg-blue-50' : 'border-gray-200'" class="flex items-center justify-between p-4 border-2 rounded-xl cursor-pointer transition">
             <div class="flex items-center gap-3">
               <div class="w-8 h-8 bg-blue-600 rounded flex items-center justify-center text-white font-bold text-xs">W</div>
-              <span class="font-bold text-gray-800">Digital Wallet (KES {{ auth.user?.wallet_balance || 0 }})</span>
+              <span class="font-bold text-gray-800">Digital Wallet (KES {{ formatPrice(auth.user?.wallet_balance || 0) }})</span>
             </div>
             <span v-if="payment === 'wallet'" class="text-blue-600 font-bold">✓</span>
           </div>
@@ -43,7 +43,7 @@
       <section class="bg-white p-6 rounded-xl shadow-sm border">
         <div class="flex justify-between items-center mb-6">
           <span class="text-gray-500 font-medium">Grand Total</span>
-          <span class="text-2xl font-black text-primary">KES {{ cart.total }}</span>
+          <span class="text-2xl font-black text-primary">KES {{ formatPrice(cart.total) }}</span>
         </div>
         <button @click="placeOrder" :disabled="loading" class="w-full py-4 bg-primary text-white rounded-xl font-bold text-lg hover:opacity-90 disabled:opacity-50 transition">
           {{ loading ? 'Processing Order...' : 'Confirm & Place Order' }}
@@ -60,6 +60,7 @@ import { useCartStore } from '@/stores/cart';
 import { useAuthStore } from '@/stores/auth';
 import api from '@/services/api';
 import { useToast } from 'vue-toast-notification';
+import { formatPrice } from '@/utils/formatters';
 
 const cart = useCartStore();
 const auth = useAuthStore();
