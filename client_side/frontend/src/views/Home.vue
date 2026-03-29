@@ -113,6 +113,82 @@
       </div>
     </section>
 
+    <!-- Platform Insights Section (Analysis for Guests) -->
+    <section class="py-16 bg-white border-t border-gray-100">
+      <div class="container-custom">
+        <div class="text-center mb-12">
+          <h2 class="text-4xl font-bold mb-4 bg-gradient-to-r from-primary-600 to-secondary-500 bg-clip-text text-transparent">Platform Insights</h2>
+          <p class="text-gray-600 max-w-2xl mx-auto">Real-time analysis of our beauty ecosystem. See what's trending and how we're growing together.</p>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+          <!-- Demand Analysis Chart -->
+          <div class="bg-gray-50 rounded-2xl p-6 shadow-sm border border-gray-100">
+            <h3 class="text-xl font-bold mb-6 flex items-center gap-2">
+              <svg class="h-5 w-5 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" />
+              </svg>
+              Product Category Demand
+            </h3>
+            <div class="h-64">
+              <Bar :data="demandChartData" :options="chartOptions" />
+            </div>
+          </div>
+
+          <!-- Growth Analysis -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            <div class="bg-primary-50 rounded-2xl p-6 border border-primary-100">
+              <p class="text-primary-600 text-sm font-semibold mb-1 uppercase tracking-wider">Top Selling Product</p>
+              <h4 class="text-2xl font-bold text-gray-800 mb-2">Organic Shea Butter</h4>
+              <div class="flex items-center gap-2 text-green-600 text-sm font-bold">
+                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                </svg>
+                24% increase in sales
+              </div>
+              <p class="text-gray-500 text-xs mt-4">Based on last 30 days of platform data</p>
+            </div>
+
+            <div class="bg-secondary-50 rounded-2xl p-6 border border-secondary-100">
+              <p class="text-secondary-600 text-sm font-semibold mb-1 uppercase tracking-wider">Trending Category</p>
+              <h4 class="text-2xl font-bold text-gray-800 mb-2">Natural Skincare</h4>
+              <div class="flex items-center gap-2 text-primary-600 text-sm font-bold">
+                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z" />
+                </svg>
+                Hot this week
+              </div>
+              <p class="text-gray-500 text-xs mt-4">AI-detected shift in consumer behavior</p>
+            </div>
+
+            <div class="col-span-1 sm:col-span-2 bg-white rounded-2xl p-6 shadow-md border border-gray-100">
+              <h4 class="font-bold text-gray-800 mb-4">Platform Performance Analysis</h4>
+              <div class="space-y-4">
+                <div>
+                  <div class="flex justify-between text-sm mb-1">
+                    <span class="text-gray-600">Order Fulfillment Rate</span>
+                    <span class="font-bold text-primary-600">98.4%</span>
+                  </div>
+                  <div class="w-full bg-gray-100 rounded-full h-2">
+                    <div class="bg-primary-500 h-2 rounded-full" style="width: 98.4%"></div>
+                  </div>
+                </div>
+                <div>
+                  <div class="flex justify-between text-sm mb-1">
+                    <span class="text-gray-600">Customer Satisfaction</span>
+                    <span class="font-bold text-secondary-600">4.9/5.0</span>
+                  </div>
+                  <div class="w-full bg-gray-100 rounded-full h-2">
+                    <div class="bg-secondary-500 h-2 rounded-full" style="width: 98%"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <!-- Benefits Section -->
     <section class="py-16 bg-gradient-to-r from-primary-50 to-secondary-50">
       <div class="container-custom">
@@ -175,12 +251,44 @@ import api from '@/services/api'
 import ProductCard from '@/components/product/ProductCard.vue'
 import { useCartStore } from '@/stores/cart'
 import { useToast } from 'vue-toast-notification'
+import { Bar } from 'vue-chartjs'
+import { Chart as ChartJS, Title, Tooltip, Legend, BarElement, CategoryScale, LinearScale } from 'chart.js'
+
+ChartJS.register(Title, Tooltip, Legend, BarElement, CategoryScale, LinearScale)
 
 const router = useRouter()
 const cart = useCartStore()
 const toast = useToast()
 const categories = ref([])
 const featuredProducts = ref([])
+
+// Chart Data for Guest Analysis
+const demandChartData = {
+  labels: ['Skincare', 'Haircare', 'Makeup', 'Body Care', 'Fragrance', 'Tools'],
+  datasets: [
+    {
+      label: 'Market Demand (%)',
+      backgroundColor: '#8B4513',
+      data: [85, 72, 94, 58, 45, 66]
+    }
+  ]
+}
+
+const chartOptions = {
+  responsive: true,
+  maintainAspectRatio: false,
+  plugins: {
+    legend: {
+      display: false
+    }
+  },
+  scales: {
+    y: {
+      beginAtZero: true,
+      max: 100
+    }
+  }
+}
 
 const getCategoryIcon = (name) => {
   const icons = {

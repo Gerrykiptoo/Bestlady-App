@@ -182,6 +182,9 @@ const mpesaCallback = async (req, res) => {
         notes: `M-Pesa payment for order ${order.order_number}`
       }, { transaction: t });
 
+      // Get updated user with wallet balance
+      const user = await User.findByPk(order.user_id, { transaction: t });
+
       // Emit socket event for real-time notification
       const io = req.app.get('io');
       if (io) {
@@ -190,6 +193,16 @@ const mpesaCallback = async (req, res) => {
           orderNumber: order.order_number,
           status: 'paid',
           message: 'Payment received successfully!'
+        });
+        
+        // Emit wallet balance update
+        io.to(order.user_id).emit('walletUpdate', {
+          balance: user.wallet_balance,
+          transaction: {
+            type: 'payment',
+            amount: amount || order.total_amount,
+            reference: order.order_number
+          }
         });
       }
 
@@ -257,8 +270,111 @@ const queryPaymentStatus = async (req, res) => {
   }
 };
 
+/**
+ * Wallet topup callback webhook
+ * @route POST /api/payment/wallet-callback
+ * @access Public (called by Safaricom)
+ */
+const walletTopupCallback = async (req, res) => {
+  const t = await sequelize.transaction();
+  
+  try {
+    console.log('📞 Wallet Topup Callback received:', JSON.stringify(req.body, null, 2));
+
+    const { Body } = req.body;
+    
+    if (!Body || !Body.stkCallback) {
+      await t.rollback();
+      return res.status(400).json({ ResultCode: 1, ResultDesc: 'Invalid callback data' });
+    }
+
+    const { stkCallback } = Body;
+    const { 
+      CheckoutRequestID, 
+      ResultCode, 
+      ResultDesc,
+      CallbackMetadata 
+    } = stkCallback;
+
+    // Find wallet transaction by reference
+    const walletTx = await WalletTransaction.findOne({ 
+      where: { reference_id: CheckoutRequestID },
+      transaction: t
+    });
+
+    if (!walletTx) {
+      console.error('❌ Wallet transaction not found for CheckoutRequestID:', CheckoutRequestID);
+      await t.rollback();
+      return res.json({ ResultCode: 1, ResultDesc: 'Transaction not found' });
+    }
+
+    if (ResultCode === 0) {
+      // Topup successful
+      console.log('✅ Wallet topup successful');
+
+      // Extract payment details
+      let mpesaReceipt = '', amount = 0;
+      
+      if (CallbackMetadata && CallbackMetadata.Item) {
+        CallbackMetadata.Item.forEach(item => {
+          if (item.Name === 'MpesaReceiptNumber') mpesaReceipt = item.Value;
+          if (item.Name === 'Amount') amount = item.Value;
+        });
+      }
+
+      // Update wallet transaction
+      await walletTx.update({
+        status: 'completed',
+        mpesa_code: mpesaReceipt || CheckoutRequestID
+      }, { transaction: t });
+
+      // Update user wallet balance
+      const user = await User.findByPk(walletTx.user_id, { transaction: t });
+      await user.update({
+        wallet_balance: parseFloat(user.wallet_balance) + parseFloat(amount || walletTx.amount)
+      }, { transaction: t });
+
+      // Emit socket event for real-time wallet update
+      const io = req.app.get('io');
+      if (io) {
+        io.to(walletTx.user_id).emit('walletUpdate', {
+          balance: user.wallet_balance,
+          transaction: {
+            type: 'topup',
+            amount: amount || walletTx.amount,
+            reference: mpesaReceipt,
+            status: 'completed'
+          },
+          message: `Wallet topped up with KES ${amount || walletTx.amount}`
+        });
+      }
+
+      console.log(`✅ Wallet topup completed for user ${walletTx.user_id}`);
+
+    } else {
+      // Topup failed
+      console.log(`❌ Wallet topup failed: ${ResultDesc}`);
+      await walletTx.update({
+        status: 'failed'
+      }, { transaction: t });
+    }
+
+    await t.commit();
+    res.json({ ResultCode: 0, ResultDesc: 'Success' });
+
+  } catch (error) {
+    await t.rollback();
+    console.error('❌ Wallet callback processing error:', error);
+    res.status(500).json({ 
+      ResultCode: 1, 
+      ResultDesc: 'Error processing callback: ' + error.message 
+    });
+  }
+};
+
 module.exports = {
   initiatePayment,
   mpesaCallback,
-  queryPaymentStatus
+  queryPaymentStatus,
+  walletTopupCallback
 };

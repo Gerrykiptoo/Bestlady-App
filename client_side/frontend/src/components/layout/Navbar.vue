@@ -181,4 +181,5 @@ const logout = () => {
   transform: translateY(-100%);
   opacity: 0;
 }
-</style>
+</style><!-- Add this inside the nav links section -->
+<router-link to="/analytics" class="text-slate-600 hover:text-primary px-3 py-2 text-sm font-bold transition">Analytics</router-link>

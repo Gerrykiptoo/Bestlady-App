@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { initiatePayment, mpesaCallback } = require('../controllers/paymentController');
+const { initiatePayment, mpesaCallback, walletTopupCallback } = require('../controllers/paymentController');
 const { protect } = require('../middleware/authMiddleware');
 
 /**
@@ -16,5 +16,12 @@ router.post('/stkpush', protect, initiatePayment);
  * @access  Public (M-Pesa calls this)
  */
 router.post('/callback', mpesaCallback);
+
+/**
+ * @route   POST /api/payment/wallet-callback
+ * @desc    M-Pesa wallet topup callback URL (webhook)
+ * @access  Public (M-Pesa calls this)
+ */
+router.post('/wallet-callback', walletTopupCallback);
 
 module.exports = router;

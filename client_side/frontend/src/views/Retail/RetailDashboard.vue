@@ -95,9 +95,47 @@
 
     <!-- Main Content Grid -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-      <!-- Left Column: AI Assistant -->
-      <div class="lg:col-span-2">
+      <!-- Left Column: AI Assistant & Analysis -->
+      <div class="lg:col-span-2 space-y-8">
         <AIAssistantWidget />
+
+        <!-- Regional Demand Forecast (Shared from Wholesale) -->
+        <div class="bg-white rounded-2xl shadow-md p-6">
+          <div class="flex items-center justify-between mb-6">
+            <div class="flex items-center gap-3">
+              <div class="p-2 bg-purple-100 rounded-lg text-purple-600">
+                <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>
+              </div>
+              <div>
+                <h3 class="font-bold text-lg text-gray-800">Regional Demand Forecast</h3>
+                <p class="text-xs text-gray-500">Market analysis for your branch location</p>
+              </div>
+            </div>
+          </div>
+          
+          <div class="space-y-4">
+            <div v-for="region in regionalDemand" :key="region.code" class="p-4 bg-gray-50 rounded-xl">
+              <div class="flex items-center justify-between mb-2">
+                <span class="font-medium text-gray-700">{{ region.name }}</span>
+                <span :class="[
+                  'text-xs px-2 py-1 rounded-full font-bold',
+                  region.trend === 'up' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                ]">
+                  {{ region.trend === 'up' ? '↑' : '↓' }} {{ region.change }}%
+                </span>
+              </div>
+              <div class="w-full bg-gray-200 rounded-full h-2">
+                <div 
+                  class="h-2 rounded-full transition-all duration-500" 
+                  :class="region.trend === 'up' ? 'bg-green-500' : 'bg-red-500'"
+                  :style="{ width: region.percentage + '%' }"
+                ></div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- Right Column: Quick Actions & Tips -->
@@ -233,6 +271,13 @@ const lowStockCount = ref(0)
 const monthlySpending = ref(0)
 const monthlySpendingTrend = ref(0)
 const recentOrders = ref([])
+
+// Regional Demand Data (Mocked from wholesale)
+const regionalDemand = ref([
+  { code: 'NBO', name: 'Nairobi Region', trend: 'up', change: 18, percentage: 85 },
+  { code: 'MBS', name: 'Mombasa Region', trend: 'up', change: 12, percentage: 65 },
+  { code: 'KSM', name: 'Kisumu Region', trend: 'down', change: 5, percentage: 30 }
+]);
 
 // AI Tip based on user activity
 const aiTip = computed(() => {

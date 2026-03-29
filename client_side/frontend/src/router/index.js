@@ -1,3 +1,4 @@
+cat > src/router/index.js << 'EOF'
 import { createRouter, createWebHistory } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
 
@@ -7,6 +8,11 @@ const routes = [
     path: '/',
     name: 'Home',
     component: () => import('@/views/Home.vue')
+  },
+  {
+    path: '/analytics',
+    name: 'Analytics',
+    component: () => import('@/views/Analytics.vue')
   },
   {
     path: '/products',
@@ -78,13 +84,13 @@ const routes = [
     path: '/retail',
     name: 'RetailDashboard',
     component: () => import('@/views/Retail/RetailDashboard.vue'),
-    meta: { requiresAuth: true, roles: ['user', 'admin'] }  // users with retail tier
+    meta: { requiresAuth: true, roles: ['user', 'admin'] }
   },
   {
     path: '/wholesale',
     name: 'WholesaleDashboard',
     component: () => import('@/views/Wholesale/WholesaleDashboard.vue'),
-    meta: { requiresAuth: true, roles: ['user', 'admin'] }  // users with wholesale tier
+    meta: { requiresAuth: true, roles: ['user', 'admin'] }
   },
   {
     path: '/staff',
@@ -145,3 +151,4 @@ router.beforeEach((to, from, next) => {
 });
 
 export default router;
+EOF

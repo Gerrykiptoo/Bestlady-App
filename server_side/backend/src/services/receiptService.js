@@ -25,6 +25,7 @@ const generateReceipt = async (order, user, items) => {
   doc.font('Helvetica');
   let y = startY + 20;
 
+  // List all commodities with details
   items.forEach(item => {
     doc.text(item.product?.name || 'Unknown', 50, y, { width: 180, ellipsis: true });
     doc.text(item.quantity.toString(), 250, y);
@@ -45,11 +46,42 @@ const generateReceipt = async (order, user, items) => {
   doc.fontSize(12).text(`Total: KES ${order.total_amount}`, 350, y, { align: 'right' });
   y += 30;
 
-  // QR Code if available
-  if (order.qr_code) {
+  // Payment Status
+  doc.fontSize(10).font('Helvetica-Bold');
+  const paymentStatus = order.payment_status === 'paid' ? 'PAID ✓' : 'PENDING PAYMENT';
+  const statusColor = order.payment_status === 'paid' ? 'green' : 'red';
+  doc.fillColor(statusColor).text(`Payment Status: ${paymentStatus}`, 50, y);
+  doc.fillColor('black');
+  y += 30;
+
+  // Enhanced QR Code with payment info
+  if (order.qr_code || order.id) {
     try {
-      const qrBuffer = await QRCode.toBuffer(order.qr_code);
-      doc.image(qrBuffer, 50, y, { width: 100 });
+      // Create comprehensive QR data
+      const qrData = JSON.stringify({
+        orderId: order.id,
+        orderNumber: order.orderNumber,
+        paymentStatus: order.payment_status,
+        totalAmount: order.total_amount,
+        items: items.map(item => ({
+          name: item.product?.name || 'Unknown',
+          quantity: item.quantity,
+          price: item.unit_price,
+          subtotal: item.subtotal
+        })),
+        customer: user.business_name,
+        date: order.createdAt,
+        payNowUrl: order.payment_status !== 'paid' ? `${process.env.FRONTEND_URL}/orders/${order.id}/pay` : null
+      });
+      
+      const qrBuffer = await QRCode.toBuffer(qrData);
+      doc.image(qrBuffer, 50, y, { width: 120 });
+      
+      // QR Code instructions
+      doc.fontSize(8).font('Helvetica').text('Scan QR code to view order details', 180, y);
+      if (order.payment_status !== 'paid') {
+        doc.text('and complete payment', 180, y + 12);
+      }
     } catch (err) {
       console.error('QR generation error:', err);
     }
