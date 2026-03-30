@@ -5,10 +5,10 @@
         <!-- Logo with Animation -->
         <router-link to="/" class="flex items-center space-x-2 group">
           <div class="relative">
-            <span class="text-3xl font-black bg-gradient-to-r from-primary-600 to-secondary-500 bg-clip-text text-transparent">BestLady</span>
+            <span class="text-3xl font-black bg-gradient-to-r from-primary-600 to-primary-400 bg-clip-text text-transparent">BestLady</span>
             <span class="absolute -top-1 -right-6 text-xs bg-primary-100 text-primary-600 px-2 py-0.5 rounded-full animate-pulse-slow">AI</span>
           </div>
-          <span class="text-xs bg-gradient-to-r from-primary-100 to-secondary-100 text-primary-700 px-2 py-1 rounded-full animate-float">✨ AI-Powered</span>
+          <span class="text-xs bg-gradient-to-r from-primary-100 to-primary-50 text-primary-700 px-2 py-1 rounded-full animate-float">✨ AI-Powered</span>
         </router-link>
 
         <!-- Search Bar with Animation -->
@@ -27,8 +27,8 @@
           </div>
         </div>
 
-        <!-- Navigation Icons with Badges -->
-        <div class="flex items-center space-x-6">
+        <!-- Navigation Links (Desktop) -->
+        <div class="hidden lg:flex items-center space-x-6">
           <router-link to="/" class="text-gray-600 hover:text-primary-600 transition-colors duration-300 font-medium flex items-center gap-1">
             <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
@@ -49,14 +49,17 @@
             </svg>
             Analysis
           </router-link>
-          
+        </div>
+
+        <!-- Action Icons & Profile -->
+        <div class="flex items-center space-x-4">
           <!-- Cart with Animation -->
           <router-link to="/cart" class="relative group">
-            <div class="relative">
+            <div class="relative p-2">
               <svg class="h-7 w-7 text-gray-600 group-hover:text-primary-600 transition-all duration-300 group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
               </svg>
-              <span v-if="cartTotal > 0" class="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center animate-pulse">
+              <span v-if="cartTotal > 0" class="absolute top-0 right-0 bg-red-500 text-white text-[10px] font-bold rounded-full h-5 w-5 flex items-center justify-center animate-pulse border-2 border-white">
                 {{ cartTotal > 99 ? '99+' : cartTotal }}
               </span>
             </div>
@@ -64,12 +67,12 @@
 
           <!-- User Menu with Avatar -->
           <div v-if="auth.isAuthenticated" class="relative">
-            <button @click="showMenu = !showMenu" class="flex items-center space-x-3 group">
-              <div class="w-10 h-10 bg-gradient-to-r from-primary-500 to-secondary-500 rounded-full flex items-center justify-center text-white font-bold shadow-md group-hover:scale-110 transition-transform">
+            <button @click="showMenu = !showMenu" class="flex items-center space-x-2 group">
+              <div class="w-10 h-10 bg-gradient-to-r from-primary-500 to-primary-400 rounded-full flex items-center justify-center text-white font-bold shadow-md group-hover:scale-110 transition-transform">
                 {{ auth.user?.username?.charAt(0).toUpperCase() || 'U' }}
               </div>
-              <span class="hidden md:inline text-sm font-medium text-gray-700">{{ auth.user?.username }}</span>
-              <svg class="h-4 w-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <span class="hidden xl:inline text-sm font-medium text-gray-700">{{ auth.user?.username }}</span>
+              <svg class="h-4 w-4 text-gray-500 transition-transform" :class="{ 'rotate-180': showMenu }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
               </svg>
             </button>
@@ -111,27 +114,40 @@
           </div>
           
           <div v-else class="flex space-x-3">
-            <router-link to="/login" class="px-5 py-2 border-2 border-primary-600 text-primary-600 rounded-full hover:bg-primary-50 transition-all duration-300 font-medium">
+            <router-link to="/login" class="px-5 py-2 border-2 border-primary-600 text-primary-600 rounded-full hover:bg-primary-50 transition-all duration-300 font-medium text-sm">
               Login
             </router-link>
-            <router-link to="/register" class="px-5 py-2 bg-gradient-to-r from-primary-600 to-primary-700 text-white rounded-full hover:shadow-lg transform hover:scale-105 transition-all duration-300 font-medium">
-              Sign Up Free
+            <router-link to="/register" class="px-5 py-2 bg-gradient-to-r from-primary-600 to-primary-700 text-white rounded-full hover:shadow-lg transform hover:scale-105 transition-all duration-300 font-medium text-sm">
+              Sign Up
             </router-link>
           </div>
+
+          <!-- Mobile Menu Toggle -->
+          <button @click="mobileMenuOpen = !mobileMenuOpen" class="lg:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors">
+            <svg v-if="!mobileMenuOpen" class="h-6 w-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7" />
+            </svg>
+            <svg v-else class="h-6 w-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
         </div>
       </div>
     </div>
     
     <!-- Mobile Menu -->
     <transition name="slide-down">
-      <div v-if="mobileMenuOpen" class="md:hidden bg-white border-t">
+      <div v-if="mobileMenuOpen" class="lg:hidden bg-white border-t shadow-inner overflow-hidden">
         <div class="px-4 py-3 space-y-2">
-          <router-link to="/products" class="block px-3 py-2 rounded-lg hover:bg-gray-50">Products</router-link>
-          <router-link to="/cart" class="block px-3 py-2 rounded-lg hover:bg-gray-50">Cart</router-link>
-          <router-link to="/dashboard" class="block px-3 py-2 rounded-lg hover:bg-gray-50">Dashboard</router-link>
-          <hr>
-          <router-link to="/login" class="block px-3 py-2 text-primary-600 font-semibold">Login</router-link>
-          <router-link to="/register" class="block px-3 py-2 bg-primary-600 text-white rounded-lg text-center">Sign Up</router-link>
+          <router-link to="/" class="block px-3 py-2 rounded-lg hover:bg-primary-50 hover:text-primary-600 transition-colors">Home</router-link>
+          <router-link to="/products" class="block px-3 py-2 rounded-lg hover:bg-primary-50 hover:text-primary-600 transition-colors">Products</router-link>
+          <router-link to="/dashboard" class="block px-3 py-2 rounded-lg hover:bg-primary-50 hover:text-primary-600 transition-colors">Analysis</router-link>
+          <router-link to="/cart" class="block px-3 py-2 rounded-lg hover:bg-primary-50 hover:text-primary-600 transition-colors">Cart</router-link>
+          <hr v-if="!auth.isAuthenticated">
+          <div v-if="!auth.isAuthenticated" class="grid grid-cols-2 gap-3 pt-2">
+            <router-link to="/login" class="px-4 py-2 border border-primary-600 text-primary-600 rounded-lg text-center font-medium">Login</router-link>
+            <router-link to="/register" class="px-4 py-2 bg-primary-600 text-white rounded-lg text-center font-medium">Sign Up</router-link>
+          </div>
         </div>
       </div>
     </transition>
@@ -175,11 +191,11 @@ const logout = () => {
   opacity: 0;
 }
 .slide-down-enter-active, .slide-down-leave-active {
-  transition: all 0.3s ease;
+  transition: all 0.3s ease-out;
+  max-height: 400px;
 }
 .slide-down-enter-from, .slide-down-leave-to {
-  transform: translateY(-100%);
+  max-height: 0;
   opacity: 0;
 }
-</style><!-- Add this inside the nav links section -->
-<router-link to="/analytics" class="text-slate-600 hover:text-primary px-3 py-2 text-sm font-bold transition">Analytics</router-link>
+</style>

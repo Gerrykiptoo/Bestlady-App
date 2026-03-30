@@ -1,4 +1,3 @@
-cat > src/router/index.js << 'EOF'
 import { createRouter, createWebHistory } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
 
@@ -151,4 +150,3 @@ router.beforeEach((to, from, next) => {
 });
 
 export default router;
-EOF

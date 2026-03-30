@@ -319,10 +319,9 @@ const reorderFavorites = async () => {
 // Fetch dashboard data
 const fetchDashboardData = async () => {
   try {
-    const [ordersRes, alertsRes, spendingRes] = await Promise.all([
+    const [ordersRes, alertsRes] = await Promise.all([
       api.get('/orders?limit=5'),
-      api.get('/ai/user/dashboard'),
-      api.get('/wallet/transactions?type=payment&limit=30')
+      api.get('/ai/user/dashboard')
     ])
     
     recentOrders.value = ordersRes.data || []
