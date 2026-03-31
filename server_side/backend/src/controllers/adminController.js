@@ -1,4 +1,150 @@
-// Add these new functions to existing adminController.js
+const { User, Product, Order, Category, WalletTransaction, sequelize } = require('../models');
+const { Op } = require('sequelize');
+
+// @desc    Get all users
+// @route   GET /api/admin/users
+// @access  Private/Admin
+const getUsers = async (req, res) => {
+  try {
+    const users = await User.findAll({
+      attributes: { exclude: ['password'] },
+      order: [['createdAt', 'DESC']]
+    });
+    res.json({ users, total: users.length });
+  } catch (error) {
+    console.error('Get users error:', error);
+    res.status(500).json({ message: 'Failed to fetch users' });
+  }
+};
+
+// @desc    Get sales analytics
+// @route   GET /api/admin/analytics/sales
+// @access  Private/Admin
+const getSalesAnalytics = async (req, res) => {
+  try {
+    // Get daily sales for last 30 days
+    const dailySales = await Order.findAll({
+      attributes: [
+        [sequelize.fn('DATE', sequelize.col('createdAt')), 'date'],
+        [sequelize.fn('SUM', sequelize.col('total_amount')), 'totalRevenue'],
+        [sequelize.fn('COUNT', sequelize.col('id')), 'orderCount']
+      ],
+      where: {
+        payment_status: 'completed'
+      },
+      group: [sequelize.fn('DATE', sequelize.col('createdAt'))],
+      order: [[sequelize.fn('DATE', sequelize.col('createdAt')), 'DESC']],
+      limit: 30
+    });
+
+    // Get revenue by tier
+    const revenueByTier = await Order.findAll({
+      attributes: [
+        'order_type',
+        [sequelize.fn('SUM', sequelize.col('total_amount')), 'revenue']
+      ],
+      where: {
+        payment_status: 'completed'
+      },
+      group: ['order_type']
+    });
+
+    // Get totals
+    const totals = await Order.findAll({
+      attributes: [
+        [sequelize.fn('SUM', sequelize.col('total_amount')), 'totalRevenue'],
+        [sequelize.fn('COUNT', sequelize.col('id')), 'totalOrders']
+      ],
+      where: {
+        payment_status: 'completed'
+      }
+    });
+
+    res.json({
+      dailySales,
+      revenueByTier,
+      totals: totals[0] || { totalRevenue: 0, totalOrders: 0 }
+    });
+  } catch (error) {
+    console.error('Get sales analytics error:', error);
+    res.status(500).json({ message: 'Failed to fetch sales analytics' });
+  }
+};
+
+// @desc    Get inventory health
+// @route   GET /api/admin/analytics/inventory
+// @access  Private/Admin
+const getInventoryHealth = async (req, res) => {
+  try {
+    // Low stock items
+    const lowStock = await Product.findAndCountAll({
+      where: {
+        current_stock: {
+          [Op.lte]: sequelize.col('reorder_point')
+        },
+        is_active: true
+      }
+    });
+
+    // Top selling products
+    const topSelling = await Order.findAll({
+      attributes: [
+        [sequelize.fn('SUM', sequelize.col('OrderItems.quantity')), 'totalSold']
+      ],
+      include: [{
+        model: Product,
+        as: 'items',
+        attributes: ['id', 'name', 'sku', 'image_url', 'retail_price']
+      }],
+      where: {
+        payment_status: 'completed'
+      },
+      group: ['OrderItems.product_id', 'OrderItems->Product.id'],
+      order: [[sequelize.literal('totalSold'), 'DESC']],
+      limit: 10
+    });
+
+    // Total products count
+    const totalProducts = await Product.count({ where: { is_active: true } });
+
+    res.json({
+      lowStock: { total: lowStock.count, items: lowStock.rows },
+      topSelling: topSelling,
+      totalProducts
+    });
+  } catch (error) {
+    console.error('Get inventory health error:', error);
+    res.status(500).json({ message: 'Failed to fetch inventory health' });
+  }
+};
+
+// @desc    Update user KYC status
+// @route   PUT /api/admin/users/:id/kyc
+// @access  Private/Admin
+const updateKYC = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { kyc_status } = req.body;
+    
+    if (!['pending', 'verified', 'rejected'].includes(kyc_status)) {
+      return res.status(400).json({ message: 'Invalid KYC status' });
+    }
+    
+    const user = await User.findByPk(id);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    
+    user.kyc_status = kyc_status;
+    await user.save();
+    
+    const { password, ...userData } = user.toJSON();
+    res.json(userData);
+  } catch (error) {
+    console.error('Update KYC error:', error);
+    res.status(500).json({ message: 'Failed to update KYC status' });
+  }
+};
 
 // @desc    Create new user (admin only)
 // @route   POST /api/admin/users
@@ -8,8 +154,8 @@ const createUser = async (req, res) => {
     const { username, email, password, phone, business_name, business_type, role, tier, kyc_status } = req.body;
 
     // Validate admin-only roles
-    const adminRoles = ['user', 'staff', 'agent'];
-    if (!adminRoles.includes(role)) {
+    const allowedRoles = ['user', 'staff', 'agent'];
+    if (!allowedRoles.includes(role)) {
       return res.status(400).json({ message: 'Invalid role for user creation' });
     }
 
@@ -17,6 +163,10 @@ const createUser = async (req, res) => {
     if (userExists) {
       return res.status(400).json({ message: 'User already exists' });
     }
+
+    // Determine tier based on business type
+    const wholesaleTypes = ['mall', 'large_supermarket', 'chain_store', 'distributor', 'exporter', 'institution'];
+    const finalTier = tier || (wholesaleTypes.includes(business_type) ? 'wholesale' : 'retail');
 
     const user = await User.create({
       username,
@@ -26,10 +176,10 @@ const createUser = async (req, res) => {
       business_name,
       business_type,
       role,
-      tier: tier || (['mall', 'large_supermarket', 'chain_store', 'distributor', 'exporter', 'institution'].includes(business_type) ? 'wholesale' : 'retail'),
+      tier: finalTier,
       kyc_status: kyc_status || 'pending',
       wallet_balance: 0,
-      credit_limit: 0
+      credit_limit: finalTier === 'wholesale' ? 50000 : 0
     });
 
     const { password: _, ...userData } = user.toJSON();
@@ -40,23 +190,24 @@ const createUser = async (req, res) => {
   }
 };
 
-// @desc    Update user (role, tier, KYC, etc)
+// @desc    Update user
 // @route   PUT /api/admin/users/:id
 // @access  Private/Admin
 const updateUser = async (req, res) => {
   try {
-    const { role, tier, kyc_status, credit_limit, active } = req.body;
+    const { role, tier, kyc_status, credit_limit, is_active } = req.body;
     const user = await User.findByPk(req.params.id);
+    
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
-
+    
     const updateData = {};
     if (role && ['user', 'staff', 'agent'].includes(role)) updateData.role = role;
     if (tier && ['retail', 'wholesale'].includes(tier)) updateData.tier = tier;
     if (kyc_status && ['pending', 'verified', 'rejected'].includes(kyc_status)) updateData.kyc_status = kyc_status;
     if (credit_limit !== undefined) updateData.credit_limit = parseFloat(credit_limit) || 0;
-    if (active !== undefined) updateData.active = active;
+    if (is_active !== undefined) updateData.is_active = is_active;
 
     await user.update(updateData);
     const { password, ...userData } = user.toJSON();
@@ -67,7 +218,7 @@ const updateUser = async (req, res) => {
   }
 };
 
-// @desc    Delete user (admin only)
+// @desc    Delete user
 // @route   DELETE /api/admin/users/:id
 // @access  Private/Admin
 const deleteUser = async (req, res) => {
@@ -87,13 +238,55 @@ const deleteUser = async (req, res) => {
   }
 };
 
-module.exports = {
-  getUsers,
-  updateKYC,
-  getSalesAnalytics,
-  getInventoryHealth,
-  createUser,
-  updateUser,
-  deleteUser  // Append to existing exports
+// @desc    Get platform analytics
+// @route   GET /api/admin/analytics/platform
+// @access  Private/Admin
+const getPlatformAnalytics = async (req, res) => {
+  try {
+    const totalUsers = await User.count();
+    const totalProducts = await Product.count({ where: { is_active: true } });
+    const totalOrders = await Order.count({ where: { payment_status: 'completed' } });
+    
+    const revenue = await Order.sum('total_amount', {
+      where: { payment_status: 'completed' }
+    });
+    
+    const topCategories = await Category.findAll({
+      attributes: [
+        'name',
+        [sequelize.fn('COUNT', sequelize.col('Products.id')), 'productCount']
+      ],
+      include: [{
+        model: Product,
+        attributes: [],
+        where: { is_active: true },
+        required: false
+      }],
+      group: ['Category.id'],
+      order: [[sequelize.literal('productCount'), 'DESC']],
+      limit: 5
+    });
+    
+    res.json({
+      totalUsers,
+      totalProducts,
+      totalOrders,
+      revenue: revenue || 0,
+      topCategories
+    });
+  } catch (error) {
+    console.error('Get platform analytics error:', error);
+    res.status(500).json({ message: 'Failed to fetch platform analytics' });
+  }
 };
 
+module.exports = {
+  getUsers,
+  getSalesAnalytics,
+  getInventoryHealth,
+  updateKYC,
+  createUser,
+  updateUser,
+  deleteUser,
+  getPlatformAnalytics
+};
