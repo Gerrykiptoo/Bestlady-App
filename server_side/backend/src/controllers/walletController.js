@@ -41,7 +41,13 @@ const topup = async (req, res) => {
     });
 
     const response = await initiateSTKPush(phone, amount, reference);
-    res.json({ message: 'Top-up initiated', data: response });
+    const user = await User.findByPk(req.user.id);
+    res.json({ 
+      message: 'Top-up initiated (pending M-Pesa confirmation)', 
+      data: response,
+      currentBalance: user.wallet_balance,
+      pendingAmount: amount
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

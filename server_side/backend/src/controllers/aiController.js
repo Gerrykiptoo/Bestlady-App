@@ -3,45 +3,74 @@ const { Op } = require('sequelize');
 
 const getUserDashboardData = async (req, res) => {
   try {
-    const userId = req.user.id;
+    const userId = req.user?.id; // Optional for guests
 
-    // 1. Low Stock Alerts from UserInventory
-    const stockAlerts = await UserInventory.findAll({
+    // 1. Low Stock Alerts from UserInventory (authenticated only)
+    const stockAlerts = userId ? await UserInventory.findAll({
       where: {
         user_id: userId,
         current_stock: { [Op.lte]: sequelize.col('reorder_point') }
       },
-      include: [{ model: Product, attributes: ['id', 'name', 'image_url'] }]
-    });
+      include: [{ model: Product, attributes: ['id', 'name', 'image_url'] }],
+      limit: 5
+    }) : [];
 
-    // 2. Global Demand Insights (AIPredictions)
-    const demandInsights = await AIPrediction.findAll({
+    // 2. Business Projections & Forecasts from AIPredictions
+    const predictions = await AIPrediction.findAll({
       where: { prediction_type: 'demand' },
-      include: [{ model: Product, attributes: ['id', 'name'] }],
-      limit: 5,
+      include: [{ model: Product, attributes: ['id', 'name', 'sku', 'price'] }],
+      limit: 8,
       order: [['confidence', 'DESC']]
     });
 
-    // 3. Spending Analytics (Simplified: total spent this month)
-    const startOfMonth = new Date();
-    startOfMonth.setDate(1);
-    startOfMonth.setHours(0, 0, 0, 0);
+    // 3. Aggregate Platform Stats (guest-friendly)
+    const platformStats = await sequelize.query(`
+      SELECT 
+        COUNT(DISTINCT o.user_id) as activeUsers,
+        COUNT(*) as totalOrders,
+        SUM(o.total_amount) as totalRevenue,
+        AVG(o.total_amount) as avgOrderValue
+      FROM Orders o 
+      WHERE o.payment_status = 'paid' AND o.createdAt > NOW() - INTERVAL 30 DAY
+    `, { type: sequelize.QueryTypes.SELECT });
 
-    const totalSpent = await Order.sum('total_amount', {
-      where: {
-        user_id: userId,
-        payment_status: 'paid',
-        createdAt: { [Op.gte]: startOfMonth }
-      }
-    });
+    // 4. Personalized Spending (if user logged in)
+    let spendingAnalytics = { totalSpent: 0, trend: 'stable', trendPercent: 0 };
+    if (userId) {
+      const startOfMonth = new Date();
+      startOfMonth.setDate(1);
+      const totalSpent = await Order.sum('total_amount', {
+        where: {
+          user_id: userId,
+          payment_status: 'paid',
+          createdAt: { [Op.gte]: startOfMonth }
+        }
+      });
+      spendingAnalytics.totalSpent = totalSpent || 0;
+      spendingAnalytics.month = startOfMonth.toLocaleString('default', { month: 'long' });
+    }
+
+    // 5. Smart Recommendations based on user tier or popular
+    const recommendations = userId ? 
+      await Product.findAll({
+        where: { is_active: true },
+        limit: 6,
+        order: [['sales_count', 'DESC']]
+      }) :
+      await Product.findAll({
+        where: { is_active: true, featured: true },
+        limit: 6
+      });
 
     res.json({
       stockAlerts,
-      demandInsights,
-      spendingAnalytics: {
-        totalSpent: totalSpent || 0,
-        month: startOfMonth.toLocaleString('default', { month: 'long' })
-      }
+      predictions,
+      platformStats: platformStats[0] || {},
+      spendingAnalytics,
+      recommendations,
+      demandInsights: predictions.slice(0, 5),
+      isGuest: !userId,
+      message: userId ? 'Your personalized business dashboard' : 'Platform insights (sign up for personal analytics)'
     });
   } catch (error) {
     console.error('AI Dashboard error:', error);
@@ -66,32 +95,50 @@ const getAdminForecast = async (req, res) => {
 /**
  * AI Chat Assistant
  * @route POST /api/ai/chat
- * @access Private
+ * @access Public/Optional Auth
  */
 const aiChat = async (req, res) => {
   try {
     const { message, history } = req.body;
-    const userId = req.user.id;
+    const userId = req.user?.id;
+    const { User, OrderItem, Product, Order } = require('../models');
 
-    // Get user context
-    const { User, OrderItem } = require('../models');
-    const user = await User.findByPk(userId, {
-      attributes: ['username', 'business_name', 'tier', 'wallet_balance']
-    });
+    let userContext = null;
+    let recentOrders = [];
 
-    // Get user's recent orders for context
-    const recentOrders = await Order.findAll({
-      where: { user_id: userId },
-      order: [['createdAt', 'DESC']],
-      limit: 5,
-      include: [{ model: OrderItem, include: [Product] }]
-    });
+    if (userId) {
+      userContext = await User.findByPk(userId, {
+        attributes: ['username', 'business_name', 'tier', 'wallet_balance']
+      });
 
-    // Simple rule-based AI responses (you can integrate OpenAI/Anthropic API here)
+      recentOrders = await Order.findAll({
+        where: { user_id: userId },
+        order: [['createdAt', 'DESC']],
+        limit: 5,
+        include: [{ model: OrderItem, include: [Product] }]
+      });
+    }
+
     let response = '';
-
     const lowerMessage = message.toLowerCase();
 
+    // Guest context handling
+    if (!userId) {
+      if (lowerMessage.includes('how') || lowerMessage.includes('work')) {
+        response = "BestLady is an AI-powered beauty supply chain platform. We connect beauty businesses with top products and provide intelligent tools like stock prediction and regional demand forecasts to help you grow. Would you like to create an account to see your personal business insights?";
+      } else if (lowerMessage.includes('benefit') || lowerMessage.includes('join')) {
+        response = "By joining BestLady, you get access to:\n• Wholesale pricing for bulk orders\n• AI-driven stock alerts to never run out of best-sellers\n• Regional demand analytics to see what's trending in your area\n• 24/7 delivery tracking\n• Seamless payments with M-Pesa";
+      } else if (lowerMessage.includes('trend') || lowerMessage.includes('popular')) {
+        response = "Right now, Natural Skincare and Organic Hair products are trending across the platform. You can see detailed demand graphs on our home page! Sign up to see trends specific to your branch location.";
+      } else if (lowerMessage.includes('account') || lowerMessage.includes('sign up')) {
+        response = "Creating an account is easy! Just click the 'Sign Up' button in the top right corner. You can register as a retail salon or a wholesale distributor to get tailored pricing and AI insights.";
+      } else {
+        response = "Hello! I'm the BestLady AI Assistant. I help business owners optimize their beauty supply chain. You can ask me how the platform works, the benefits of joining, or trending products. For personalized order tracking and stock alerts, please log in or create an account!";
+      }
+      return res.json({ response });
+    }
+
+    // Authenticated user logic
     if (lowerMessage.includes('order') && lowerMessage.includes('status')) {
       if (recentOrders.length > 0) {
         const latestOrder = recentOrders[0];
@@ -111,13 +158,13 @@ const aiChat = async (req, res) => {
         order: [['createdAt', 'DESC']],
         where: { is_active: true }
       });
-      response = `Based on your ${user.tier} tier, I recommend:\n`;
+      response = `Based on your ${userContext.tier} tier, I recommend:\n`;
       topProducts.forEach((p, i) => {
         response += `${i + 1}. ${p.name} - KES ${p.price}\n`;
       });
     } else if (lowerMessage.includes('wallet') || lowerMessage.includes('balance')) {
-      response = `Your current wallet balance is KES ${user.wallet_balance}. `;
-      if (parseFloat(user.wallet_balance) < 1000) {
+      response = `Your current wallet balance is KES ${userContext.wallet_balance}. `;
+      if (parseFloat(userContext.wallet_balance) < 1000) {
         response += 'Would you like to top up your wallet?';
       }
     } else if (lowerMessage.includes('best seller') || lowerMessage.includes('popular')) {
@@ -132,16 +179,6 @@ const aiChat = async (req, res) => {
       bestSellers.forEach((item, i) => {
         response += `${i + 1}. ${item.Product.name} - KES ${item.Product.price}\n`;
       });
-    } else if (lowerMessage.includes('help') || lowerMessage.includes('how')) {
-      response = `I can help you with:
-• Checking order status
-• Product recommendations
-• Wallet balance inquiries
-• Finding best sellers
-• Inventory insights
-• Sales trends
-
-What would you like to know?`;
     } else if (lowerMessage.includes('inventory') || lowerMessage.includes('stock')) {
       const lowStockProducts = await Product.findAll({
         where: {
@@ -158,7 +195,7 @@ What would you like to know?`;
         response = 'All your inventory levels look good! No low stock alerts.';
       }
     } else {
-      response = `Hi ${user.business_name}! I'm here to help. You can ask me about:
+      response = `Hi ${userContext.username}! I'm here to help. You can ask me about:
 • Your orders and their status
 • Product recommendations
 • Wallet balance

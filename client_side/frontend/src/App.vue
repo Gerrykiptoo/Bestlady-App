@@ -3,7 +3,7 @@
     <Navbar />
     <router-view />
     <Footer />
-    <AIChatAssistant v-if="isAuthenticated" />
+    <AIChatAssistant />
   </div>
 </template>
 

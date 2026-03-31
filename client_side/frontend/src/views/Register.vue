@@ -56,6 +56,21 @@
         <div class="mb-4">
           <Input v-model="form.business_name" label="Business Name" placeholder="Enter business name" required />
         </div>
+        <div class="mb-4" v-if="isAdmin">
+          <label class="block text-sm font-medium text-gray-700 mb-1">User Role</label>
+          <select v-model="form.role" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500" required>
+            <option value="user">Customer/User</option>
+            <option value="staff">Staff</option>
+            <option value="agent">Agent</option>
+          </select>
+        </div>
+        <div v-else class="mb-4">
+          <label class="block text-sm font-medium text-gray-700 mb-1">Role</label>
+          <select v-model="form.role" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500" disabled>
+            <option value="user">Customer/User Only</option>
+          </select>
+          <p class="text-xs text-gray-500 mt-1">Staff/Agents created by Admin</p>
+        </div>
         <div class="mb-6">
           <label class="block text-sm font-medium text-gray-700 mb-1">Business Type</label>
           <select v-model="form.business_type" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500" required>
@@ -106,6 +121,8 @@ const form = reactive({
   business_type: '',
   role: 'user'
 })
+
+const isAdmin = computed(() => auth.isAuthenticated && auth.user?.role === 'admin');
 
 const handleRegister = async () => {
   loading.value = true

@@ -1,202 +1,89 @@
-const { User, Order, Product, Category, OrderItem, sequelize } = require('../models');
-const { Op } = require('sequelize');
+// Add these new functions to existing adminController.js
 
-// @desc    Get all users with pagination
-// @route   GET /api/admin/users
+// @desc    Create new user (admin only)
+// @route   POST /api/admin/users
 // @access  Private/Admin
-const getUsers = async (req, res) => {
+const createUser = async (req, res) => {
   try {
-    const { page = 1, limit = 20, search = '' } = req.query;
-    const offset = (page - 1) * limit;
+    const { username, email, password, phone, business_name, business_type, role, tier, kyc_status } = req.body;
 
-    const where = search ? {
-      [Op.or]: [
-        { username: { [Op.iLike]: `%${search}%` } },
-        { email: { [Op.iLike]: `%${search}%` } },
-        { business_name: { [Op.iLike]: `%${search}%` } }
-      ]
-    } : {};
+    // Validate admin-only roles
+    const adminRoles = ['user', 'staff', 'agent'];
+    if (!adminRoles.includes(role)) {
+      return res.status(400).json({ message: 'Invalid role for user creation' });
+    }
 
-    const { count, rows } = await User.findAndCountAll({
-      where,
-      attributes: { exclude: ['password'] },
-      limit: parseInt(limit),
-      offset: parseInt(offset),
-      order: [['createdAt', 'DESC']]
+    const userExists = await User.findOne({ where: { email } });
+    if (userExists) {
+      return res.status(400).json({ message: 'User already exists' });
+    }
+
+    const user = await User.create({
+      username,
+      email,
+      password,
+      phone,
+      business_name,
+      business_type,
+      role,
+      tier: tier || (['mall', 'large_supermarket', 'chain_store', 'distributor', 'exporter', 'institution'].includes(business_type) ? 'wholesale' : 'retail'),
+      kyc_status: kyc_status || 'pending',
+      wallet_balance: 0,
+      credit_limit: 0
     });
 
-    res.json({
-      users: rows,
-      total: count,
-      page: parseInt(page),
-      totalPages: Math.ceil(count / limit)
-    });
+    const { password: _, ...userData } = user.toJSON();
+    res.status(201).json(userData);
   } catch (error) {
-    console.error('Error in getUsers:', error);
+    console.error('Create user error:', error);
     res.status(500).json({ message: 'Server error' });
   }
 };
 
-// @desc    Update user KYC status and credit limit
-// @route   PUT /api/admin/users/:id/kyc
+// @desc    Update user (role, tier, KYC, etc)
+// @route   PUT /api/admin/users/:id
 // @access  Private/Admin
-const updateKYC = async (req, res) => {
+const updateUser = async (req, res) => {
   try {
-    const { kyc_status, credit_limit } = req.body;
-
-    // Validate input
-    const validStatuses = ['pending', 'verified', 'rejected'];
-    if (kyc_status && !validStatuses.includes(kyc_status)) {
-      return res.status(400).json({ message: 'Invalid KYC status' });
-    }
-    if (credit_limit && (isNaN(credit_limit) || credit_limit < 0)) {
-      return res.status(400).json({ message: 'Credit limit must be a non-negative number' });
-    }
-
+    const { role, tier, kyc_status, credit_limit, active } = req.body;
     const user = await User.findByPk(req.params.id);
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    await user.update({ kyc_status, credit_limit });
-    // Remove password from response
+    const updateData = {};
+    if (role && ['user', 'staff', 'agent'].includes(role)) updateData.role = role;
+    if (tier && ['retail', 'wholesale'].includes(tier)) updateData.tier = tier;
+    if (kyc_status && ['pending', 'verified', 'rejected'].includes(kyc_status)) updateData.kyc_status = kyc_status;
+    if (credit_limit !== undefined) updateData.credit_limit = parseFloat(credit_limit) || 0;
+    if (active !== undefined) updateData.active = active;
+
+    await user.update(updateData);
     const { password, ...userData } = user.toJSON();
     res.json(userData);
   } catch (error) {
-    console.error('Error in updateKYC:', error);
+    console.error('Update user error:', error);
     res.status(500).json({ message: 'Server error' });
   }
 };
 
-// @desc    Get sales analytics with optional date range
-// @route   GET /api/admin/analytics/sales
+// @desc    Delete user (admin only)
+// @route   DELETE /api/admin/users/:id
 // @access  Private/Admin
-const getSalesAnalytics = async (req, res) => {
+const deleteUser = async (req, res) => {
   try {
-    const { startDate, endDate } = req.query;
-    const where = { payment_status: 'paid' };
-
-    if (startDate || endDate) {
-      where.createdAt = {};
-      if (startDate) where.createdAt[Op.gte] = new Date(startDate);
-      if (endDate) where.createdAt[Op.lte] = new Date(endDate);
-    } else {
-      // Default to last 30 days
-      const thirtyDaysAgo = new Date();
-      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-      where.createdAt = { [Op.gte]: thirtyDaysAgo };
+    const user = await User.findByPk(req.params.id);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
     }
-
-    // Daily sales
-    const dailySales = await Order.findAll({
-      attributes: [
-        [sequelize.fn('DATE', sequelize.col('createdAt')), 'date'],
-        [sequelize.fn('SUM', sequelize.col('total_amount')), 'totalRevenue'],
-        [sequelize.fn('COUNT', sequelize.col('id')), 'orderCount']
-      ],
-      where,
-      group: [sequelize.fn('DATE', sequelize.col('createdAt'))],
-      order: [[sequelize.fn('DATE', sequelize.col('createdAt')), 'ASC']]
-    });
-
-    // Revenue by tier
-    const revenueByTier = await Order.findAll({
-      attributes: [
-        'order_type',
-        [sequelize.fn('SUM', sequelize.col('total_amount')), 'revenue'],
-        [sequelize.fn('COUNT', sequelize.col('id')), 'orderCount']
-      ],
-      where,
-      group: ['order_type']
-    });
-
-    // Total revenue & orders
-    const totals = await Order.findOne({
-      attributes: [
-        [sequelize.fn('SUM', sequelize.col('total_amount')), 'totalRevenue'],
-        [sequelize.fn('COUNT', sequelize.col('id')), 'totalOrders']
-      ],
-      where
-    });
-
-    res.json({
-      dailySales,
-      revenueByTier,
-      totals: totals || { totalRevenue: 0, totalOrders: 0 }
-    });
+    if (user.role === 'admin') {
+      return res.status(403).json({ message: 'Cannot delete admin user' });
+    }
+    await user.destroy();
+    res.json({ message: 'User deleted successfully' });
   } catch (error) {
-    console.error('Error in getSalesAnalytics:', error);
+    console.error('Delete user error:', error);
     res.status(500).json({ message: 'Server error' });
-  }
-};
-
-// @desc    Get inventory health (low stock, top selling)
-// @route   GET /api/admin/analytics/inventory
-// @access  Private/Admin
-const getInventoryHealth = async (req, res) => {
-  try {
-    const { page = 1, limit = 20 } = req.query;
-    const offset = (page - 1) * limit;
-
-    // 1. Low stock products (current stock <= reorder point)
-    const lowStock = await Product.findAndCountAll({
-      where: {
-        current_stock: { [Op.lte]: sequelize.col('reorder_point') }
-      },
-      include: [{ model: Category, attributes: ['id', 'name'] }],
-      limit: parseInt(limit),
-      offset: parseInt(offset),
-      order: [['current_stock', 'ASC']]
-    });
-
-    // 2. Top selling products - simplified approach
-    const topSellingRaw = await sequelize.query(`
-      SELECT 
-        oi.product_id,
-        SUM(oi.quantity) as total_sold
-      FROM "OrderItems" oi
-      INNER JOIN "Orders" o ON oi.order_id = o.id
-      WHERE o.payment_status = 'paid'
-      GROUP BY oi.product_id
-      ORDER BY total_sold DESC
-      LIMIT 10
-    `, {
-      type: sequelize.QueryTypes.SELECT
-    });
-
-    // Get product details for top selling products
-    const topSellingProducts = [];
-    for (const item of topSellingRaw) {
-      const product = await Product.findByPk(item.product_id, {
-        attributes: ['id', 'name', 'sku']
-      });
-      if (product) {
-        topSellingProducts.push({
-          id: product.id,
-          name: product.name,
-          sku: product.sku,
-          total_sold: parseInt(item.total_sold)
-        });
-      }
-    }
-
-    // 3. Total products count
-    const totalProducts = await Product.count();
-
-    res.json({
-      lowStock: {
-        items: lowStock.rows,
-        total: lowStock.count,
-        page: parseInt(page),
-        totalPages: Math.ceil(lowStock.count / limit)
-      },
-      topSelling: topSellingProducts,
-      totalProducts
-    });
-
-  } catch (error) {
-    console.error('Error in getInventoryHealth:', error);
-    res.status(500).json({ message: 'Server error', error: error.message });
   }
 };
 
@@ -204,5 +91,9 @@ module.exports = {
   getUsers,
   updateKYC,
   getSalesAnalytics,
-  getInventoryHealth
+  getInventoryHealth,
+  createUser,
+  updateUser,
+  deleteUser  // Append to existing exports
 };
+

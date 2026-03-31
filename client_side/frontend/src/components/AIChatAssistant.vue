@@ -125,24 +125,37 @@
 </template>
 
 <script setup>
-import { ref, nextTick } from 'vue'
+import { ref, nextTick, computed } from 'vue'
 import api from '@/services/api'
 import { useToast } from 'vue-toast-notification'
+import { useAuthStore } from '@/stores/auth'
 
 const toast = useToast()
+const auth = useAuthStore()
 const isOpen = ref(false)
 const userInput = ref('')
 const messages = ref([])
 const isTyping = ref(false)
 const messagesContainer = ref(null)
 
-const quickSuggestions = [
-  'Product recommendations',
-  'Order status',
-  'Inventory insights',
-  'Sales trends',
-  'Best sellers'
-]
+const quickSuggestions = computed(() => {
+  if (auth.isAuthenticated) {
+    return [
+      'Product recommendations',
+      'Order status',
+      'Inventory insights',
+      'Sales trends',
+      'Best sellers'
+    ]
+  }
+  return [
+    'How does BestLady work?',
+    'What are the benefits of joining?',
+    'Trending beauty products',
+    'Wholesale vs Retail options',
+    'How to create an account'
+  ]
+})
 
 const toggleChat = () => {
   isOpen.value = !isOpen.value

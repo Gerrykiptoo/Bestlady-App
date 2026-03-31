@@ -65,6 +65,30 @@ const createOrder = async (req, res) => {
       otp_secret: uuidv4()
     }, { transaction: t });
 
+    // Generate Payment QR for the order
+    // Fetch full order with items for QR
+    const fullOrder = await Order.findByPk(order.id, {
+      include: [{ model: OrderItem, include: [Product] }],
+      transaction: t
+    });
+    const qrData = JSON.stringify({
+      orderId: order.id,
+      orderNumber: order.order_number,
+      paymentStatus: 'pending',
+      totalAmount: order.total_amount,
+      items: fullOrder.OrderItems.map(item => ({
+        name: item.Product.name,
+        quantity: item.quantity,
+        price: item.unit_price,
+        subtotal: item.subtotal
+      })),
+      customer: req.user.username || 'Customer',
+      date: new Date().toISOString(),
+      payNowUrl: `${process.env.FRONTEND_URL || 'http://localhost:5173'}/orders/${order.id}/pay`
+    });
+    const qrCode = await generateQR(qrData);
+    await order.update({ qr_code: qrCode }, { transaction: t });
+
     for (const item of orderItems) {
       await OrderItem.create({
         ...item,
@@ -184,11 +208,28 @@ const payOrder = async (req, res) => {
 
         // Generate OTP and QR for pickup
         const { secret, otp } = generateOTP();
-        const qrCode = await generateQR(JSON.stringify({
+        // Full order details for QR
+        const fullOrder = await Order.findByPk(order.id, {
+          include: [{ model: OrderItem, include: [Product] }],
+          transaction: t
+        });
+        const qrData = JSON.stringify({
           orderId: order.id,
           orderNumber: order.order_number,
-          otp: otp
-        }));
+          paymentStatus: 'paid',
+          totalAmount: order.total_amount,
+          items: fullOrder.OrderItems.map(item => ({
+            name: item.Product.name,
+            quantity: item.quantity,
+            price: item.unit_price,
+            subtotal: item.subtotal
+          })),
+          customer: req.user.username || 'Customer',
+          date: new Date().toISOString(),
+          otp: otp,
+          payNowUrl: null // Already paid
+        });
+        const qrCode = await generateQR(qrData);
 
         // Update order
         await order.update({
@@ -272,11 +313,28 @@ const handleMpesaCallback = async (req, res) => {
 
       // Generate OTP and QR code for pickup
       const { secret, otp } = generateOTP();
-      const qrCode = await generateQR(JSON.stringify({
+      // Full order details for QR
+      const fullOrder = await Order.findByPk(order.id, {
+        include: [{ model: OrderItem, include: [Product] }],
+        transaction: t
+      });
+      const qrData = JSON.stringify({
         orderId: order.id,
         orderNumber: order.order_number,
-        otp: otp
-      }));
+        paymentStatus: 'completed',
+        totalAmount: order.total_amount,
+        items: fullOrder.OrderItems.map(item => ({
+          name: item.Product.name,
+          quantity: item.quantity,
+          price: item.unit_price,
+          subtotal: item.subtotal
+        })),
+        customer: req.user.username || 'Customer',
+        date: new Date().toISOString(),
+        otp: otp,
+        payNowUrl: null
+      });
+      const qrCode = await generateQR(qrData);
 
       // Update order
       await order.update({

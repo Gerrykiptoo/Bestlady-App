@@ -58,4 +58,25 @@ const authorize = (...roles) => {
   };
 };
 
-module.exports = { protect, admin, authorize };
+/**
+ * Optional protect – attaches user if token exists, but continues if not
+ */
+const optionalProtect = async (req, res, next) => {
+  if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
+    try {
+      const token = req.headers.authorization.split(' ')[1];
+      const decoded = verifyToken(token);
+      const user = await User.findByPk(decoded.id, {
+        attributes: { exclude: ['password'] }
+      });
+      if (user) {
+        req.user = user;
+      }
+    } catch (error) {
+      console.error('Optional Auth error:', error);
+    }
+  }
+  next();
+};
+
+module.exports = { protect, admin, authorize, optionalProtect };
