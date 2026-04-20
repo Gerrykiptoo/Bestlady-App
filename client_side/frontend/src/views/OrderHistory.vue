@@ -13,40 +13,68 @@
       </router-link>
     </div>
     
-    <div v-else class="space-y-4">
-      <div v-for="order in orders" :key="order.id" class="bg-white rounded-lg shadow p-6">
-        <div class="flex justify-between items-start mb-4">
+    <div v-else class="space-y-6">
+      <div v-for="order in orders" :key="order.id" class="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow border border-gray-100 overflow-hidden">
+        <div class="bg-gray-50 px-6 py-4 flex justify-between items-center border-b border-gray-100">
           <div>
-            <p class="font-semibold">Order #{{ order.order_number }}</p>
-            <p class="text-sm text-gray-500">{{ formatDate(order.createdAt) }}</p>
+            <p class="text-xs text-gray-500 uppercase tracking-wider font-semibold">Order Date</p>
+            <p class="font-medium">{{ formatDate(order.createdAt) }}</p>
           </div>
-          <div>
-            <span :class="[
-              'px-3 py-1 rounded-full text-sm font-semibold',
-              order.status === 'paid' || order.status === 'completed' ? 'bg-green-100 text-green-800' : 
-              order.status === 'pending' ? 'bg-yellow-100 text-yellow-800' : 
-              'bg-gray-100 text-gray-800'
-            ]">
-              {{ order.status }}
-            </span>
+          <div class="text-right">
+            <p class="text-xs text-gray-500 uppercase tracking-wider font-semibold">Order Number</p>
+            <p class="font-mono text-primary-600 font-bold">#{{ order.order_number }}</p>
           </div>
         </div>
-        
-        <div class="border-t border-b py-4 mb-4">
-          <div v-for="item in order.OrderItems" :key="item.id" class="flex justify-between text-sm mb-2">
-            <span>{{ item.Product?.name }} x {{ item.quantity }}</span>
-            <span>KES {{ formatPrice(item.subtotal) }}</span>
+
+        <div class="p-6">
+          <div class="flex flex-col md:flex-row gap-6">
+            <!-- Order Info -->
+            <div class="flex-1">
+              <div class="flex items-center gap-3 mb-4">
+                <span :class="[
+                  'px-3 py-1 rounded-full text-xs font-bold uppercase',
+                  order.status === 'paid' || order.status === 'completed' ? 'bg-green-100 text-green-700' : 
+                  order.status === 'pending' ? 'bg-yellow-100 text-yellow-700' : 
+                  'bg-blue-100 text-blue-700'
+                ]">
+                  {{ order.status }}
+                </span>
+                <span class="text-xs text-gray-400">•</span>
+                <span class="text-xs font-medium text-gray-500 capitalize">{{ order.payment_method }} Payment</span>
+              </div>
+
+              <div class="space-y-3">
+                <div v-for="item in order.OrderItems.slice(0, 2)" :key="item.id" class="flex items-center gap-3">
+                  <div class="w-10 h-10 bg-gray-100 rounded flex-shrink-0 flex items-center justify-center text-xs">
+                    <img v-if="item.Product?.image_url" :src="item.Product.image_url" class="w-full h-full object-cover rounded" />
+                    <span v-else>📦</span>
+                  </div>
+                  <div class="flex-1 min-w-0">
+                    <p class="text-sm font-medium text-gray-800 truncate">{{ item.Product?.name }}</p>
+                    <p class="text-xs text-gray-500">Qty: {{ item.quantity }} @ KES {{ formatPrice(item.unit_price) }}</p>
+                  </div>
+                </div>
+                <p v-if="order.OrderItems.length > 2" class="text-xs text-primary-600 font-medium">
+                  + {{ order.OrderItems.length - 2 }} more items
+                </p>
+              </div>
+            </div>
+
+            <!-- Totals & Action -->
+            <div class="md:w-48 flex flex-col justify-between items-end border-l border-gray-100 md:pl-6">
+              <div class="text-right w-full">
+                <p class="text-xs text-gray-500 mb-1">Total Amount</p>
+                <p class="text-xl font-black text-gray-900">KES {{ formatPrice(order.total_amount) }}</p>
+              </div>
+              
+              <router-link 
+                :to="`/orders/${order.id}`" 
+                class="mt-4 w-full text-center py-2 px-4 bg-white border border-primary-600 text-primary-600 rounded-lg text-sm font-bold hover:bg-primary-50 transition-colors"
+              >
+                View Details
+              </router-link>
+            </div>
           </div>
-        </div>
-        
-        <div class="flex justify-between items-center">
-          <div>
-            <p class="font-bold">Total: KES {{ formatPrice(order.total_amount) }}</p>
-            <p class="text-sm text-gray-500">Payment: {{ order.payment_method }}</p>
-          </div>
-          <router-link :to="`/orders/${order.id}`" class="text-primary-600 hover:underline">
-            View Details →
-          </router-link>
         </div>
       </div>
     </div>

@@ -8,10 +8,14 @@ const generateReceipt = async (order, user, items) => {
   doc.pipe(stream);
 
   // Header
-  doc.fontSize(20).font('Helvetica-Bold').text('BestLady Company Ltd', { align: 'center' });
+  doc.fontSize(24).font('Helvetica-Bold').fillColor('#8B4513').text('BestLady Beauty', { align: 'center' });
+  doc.fontSize(10).font('Helvetica').fillColor('gray').text('AI-Powered Beauty Supply Chain Platform', { align: 'center' });
   doc.moveDown();
-  doc.fontSize(12).font('Helvetica').text(`Receipt No: ${order.orderNumber}`);
-  doc.text(`Date: ${new Date(order.createdAt).toLocaleString()}`);
+  doc.strokeColor('#8B4513').lineWidth(2).moveTo(50, doc.y).lineTo(550, doc.y).stroke();
+  doc.moveDown();
+  
+  doc.fontSize(12).font('Helvetica-Bold').fillColor('black').text(`Receipt No: ${order.order_number}`);
+  doc.fontSize(10).font('Helvetica').text(`Date: ${new Date(order.createdAt).toLocaleString()}`);
   doc.text(`Customer: ${user.business_name} (${user.tier})`);
   doc.moveDown();
 
@@ -60,18 +64,18 @@ const generateReceipt = async (order, user, items) => {
       // Create comprehensive QR data
       const qrData = JSON.stringify({
         orderId: order.id,
-        orderNumber: order.orderNumber,
+        orderNumber: order.order_number,
         paymentStatus: order.payment_status,
         totalAmount: order.total_amount,
         items: items.map(item => ({
-          name: item.product?.name || 'Unknown',
+          name: item.Product?.name || 'Unknown',
           quantity: item.quantity,
           price: item.unit_price,
           subtotal: item.subtotal
         })),
         customer: user.business_name,
         date: order.createdAt,
-        payNowUrl: order.payment_status !== 'paid' ? `${process.env.FRONTEND_URL}/orders/${order.id}/pay` : null
+        payNowUrl: order.payment_status !== 'paid' ? `${process.env.FRONTEND_URL}/orders/${order.id}` : null
       });
       
       const qrBuffer = await QRCode.toBuffer(qrData);

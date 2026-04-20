@@ -87,6 +87,11 @@ module.exports = (sequelize, DataTypes) => {
     otp_secret: {
       type: DataTypes.STRING,
       allowNull: true
+    },
+    receipt_number: {
+      type: DataTypes.STRING(50),
+      unique: true,
+      allowNull: true
     }
   }, {
     sequelize,

@@ -129,10 +129,12 @@ import { ref, nextTick, computed } from 'vue'
 import api from '@/services/api'
 import { useToast } from 'vue-toast-notification'
 import { useAuthStore } from '@/stores/auth'
+import { useUIStore } from '@/stores/ui'
 
 const toast = useToast()
 const auth = useAuthStore()
-const isOpen = ref(false)
+const ui = useUIStore()
+const isOpen = computed(() => ui.isAIChatOpen)
 const userInput = ref('')
 const messages = ref([])
 const isTyping = ref(false)
@@ -158,7 +160,7 @@ const quickSuggestions = computed(() => {
 })
 
 const toggleChat = () => {
-  isOpen.value = !isOpen.value
+  ui.toggleAIChat()
 }
 
 const formatTime = (timestamp) => {

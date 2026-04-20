@@ -29,6 +29,22 @@
             </div>
             <span v-if="payment === 'mpesa'" class="text-green-600 font-bold">✓</span>
           </div>
+
+          <!-- Phone Number Input for M-Pesa -->
+          <div v-if="payment === 'mpesa'" class="mt-4 p-4 bg-gray-50 rounded-xl border border-dashed border-green-300 animate-fade-in">
+            <label class="block text-sm font-semibold text-gray-700 mb-2">M-Pesa Phone Number</label>
+            <div class="relative">
+              <span class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 font-medium">+254</span>
+              <input 
+                v-model="phoneNumber" 
+                type="tel" 
+                placeholder="712345678" 
+                class="w-full pl-16 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-all"
+              />
+            </div>
+            <p class="text-[10px] text-gray-500 mt-2">Enter the number you'll receive the payment prompt on.</p>
+          </div>
+
           <div @click="payment = 'wallet'" :class="payment === 'wallet' ? 'border-blue-600 bg-blue-50' : 'border-gray-200'" class="flex items-center justify-between p-4 border-2 rounded-xl cursor-pointer transition">
             <div class="flex items-center gap-3">
               <div class="w-8 h-8 bg-blue-600 rounded flex items-center justify-center text-white font-bold text-xs">W</div>
@@ -69,9 +85,14 @@ const toast = useToast();
 
 const delivery = ref('private_rider');
 const payment = ref('mpesa');
+const phoneNumber = ref(auth.user?.phone || '');
 const loading = ref(false);
 
 const placeOrder = async () => {
+  if (payment.value === 'mpesa' && !phoneNumber.value) {
+    return toast.error('Please enter your M-Pesa phone number');
+  }
+
   if (payment.value === 'wallet' && auth.user?.wallet_balance < cart.total) {
     return toast.error('Insufficient wallet balance');
   }
@@ -85,12 +106,17 @@ const placeOrder = async () => {
     });
 
     if (payment.value === 'mpesa') {
-      await api.post(`/payment/stkpush`, {
-        orderId: order.id,
-        amount: cart.total,
-        phone: auth.user.phone
-      });
-      toast.success('STK Push sent! Please enter your PIN on your phone.');
+      try {
+        await api.post(`/payment/stkpush`, {
+          orderId: order.id,
+          amount: cart.total,
+          phone: phoneNumber.value
+        });
+        toast.success('STK Push initiated! Check your phone.');
+      } catch (stkErr) {
+        console.error('STK push failed but order was created:', stkErr);
+        toast.warning('Order created, but payment prompt failed. You can try again from Order Details.');
+      }
     } else {
       toast.success('Order placed successfully via wallet!');
     }

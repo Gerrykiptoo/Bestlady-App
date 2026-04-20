@@ -4,8 +4,8 @@ const { getUserDashboardData, getAdminForecast, aiChat } = require('../controlle
 const { protect, admin, optionalProtect } = require('../middleware/authMiddleware');
 
 // @route   GET /api/ai/user/dashboard
-// @access  Private
-router.get('/user/dashboard', protect, getUserDashboardData);
+// @access  Public/Optional Auth
+router.get('/user/dashboard', optionalProtect, getUserDashboardData);
 
 // @route   GET /api/ai/admin/forecast
 // @access  Private/Admin

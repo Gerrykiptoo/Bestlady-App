@@ -1,4 +1,4 @@
-const { Product, OrderItem, Order } = require('../models');
+const { Product, OrderItem, Order, User, sequelize } = require('../models');
 const { Op } = require('sequelize');
 
 /**
@@ -18,11 +18,142 @@ const calculateSalesVelocity = async (productId, days = 7) => {
     },
     include: [{
       model: Order,
-      where: { payment_status: 'paid' }
+      where: { payment_status: 'completed' }
     }]
   });
 
   return sales / days;
+};
+
+/**
+ * Analyze customer purchase patterns
+ * @param {string} userId - UUID of user
+ * @returns {Promise<Object>} customer analytics
+ */
+const analyzeCustomerPatterns = async (userId) => {
+  const orders = await Order.findAll({
+    where: { user_id: userId, payment_status: 'completed' },
+    include: [{ model: OrderItem, include: [Product] }],
+    order: [['createdAt', 'DESC']],
+    limit: 30
+  });
+
+  if (!orders.length) {
+    return { totalOrders: 0, totalSpent: 0, avgOrderValue: 0, topCategories: [], purchaseFrequency: 0 };
+  }
+
+  const totalSpent = orders.reduce((sum, o) => sum + parseFloat(o.total_amount), 0);
+  const avgOrderValue = totalSpent / orders.length;
+  
+  const categorySpend = {};
+  orders.forEach(order => {
+    order.OrderItems.forEach(item => {
+      const category = item.Product?.category || 'Uncategorized';
+      categorySpend[category] = (categorySpend[category] || 0) + item.subtotal;
+    });
+  });
+
+  const topCategories = Object.entries(categorySpend)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5)
+    .map(([name, value]) => ({ name, spent: value }));
+
+  const firstOrder = orders[orders.length - 1]?.createdAt;
+  const lastOrder = orders[0]?.createdAt;
+  const daysDiff = firstOrder && lastOrder ? Math.max(1, (new Date(lastOrder) - new Date(firstOrder)) / (1000 * 60 * 60 * 24)) : 1;
+  const purchaseFrequency = orders.length / daysDiff;
+
+  return {
+    totalOrders: orders.length,
+    totalSpent: Math.round(totalSpent),
+    avgOrderValue: Math.round(avgOrderValue),
+    topCategories,
+    purchaseFrequency: Math.round(purchaseFrequency * 30),
+    lastPurchaseDate: orders[0]?.createdAt,
+    preferredPayment: orders[0]?.payment_method
+  };
+};
+
+/**
+ * Get regional demand insights
+ * @returns {Promise<Object>} regional analytics
+ */
+const getRegionalInsights = async () => {
+  try {
+    const insights = await sequelize.query(`
+      SELECT 
+        u.location as region,
+        COUNT(DISTINCT o.id) as orderCount,
+        SUM(o.total_amount) as revenue,
+        AVG(o.total_amount) as avgOrder
+      FROM Orders o
+      JOIN Users u ON o.user_id = u.id
+      WHERE o.payment_status = 'completed' AND o.createdAt > NOW() - INTERVAL 30 DAY
+      GROUP BY u.location
+      ORDER BY revenue DESC
+      LIMIT 10
+    `, { type: sequelize.QueryTypes.SELECT });
+
+    return insights;
+  } catch (error) {
+    console.error('Regional insights error:', error);
+    return [];
+  }
+};
+
+/**
+ * Get platform-wide analytics dashboard
+ * @returns {Promise<Object>} platform stats
+ */
+const getPlatformAnalytics = async () => {
+  const thirtyDaysAgo = new Date();
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+  const stats = await sequelize.query(`
+    SELECT 
+      COUNT(DISTINCT o.user_id) as activeUsers,
+      COUNT(*) as totalOrders,
+      SUM(CASE WHEN o.payment_status = 'completed' THEN o.total_amount ELSE 0 END) as totalRevenue,
+      AVG(CASE WHEN o.payment_status = 'completed' THEN o.total_amount END) as avgOrderValue,
+      COUNT(CASE WHEN o.status = 'paid' OR o.status = 'completed' THEN 1 END) as paidOrders,
+      COUNT(CASE WHEN o.createdAt > NOW() - INTERVAL 7 DAY THEN 1 END) as weeklyOrders
+    FROM Orders o
+    WHERE o.createdAt > '${thirtyDaysAgo.toISOString()}'
+  `, { type: sequelize.QueryTypes.SELECT });
+
+  const topProducts = await sequelize.query(`
+    SELECT 
+      p.id, p.name, p.image_url,
+      SUM(oi.quantity) as totalSold,
+      SUM(oi.subtotal) as revenue
+    FROM OrderItems oi
+    JOIN Products p ON oi.product_id = p.id
+    JOIN Orders o ON oi.order_id = o.id
+    WHERE o.payment_status = 'completed' AND o.createdAt > NOW() - INTERVAL 30 DAY
+    GROUP BY p.id
+    ORDER BY revenue DESC
+    LIMIT 10
+  `, { type: sequelize.QueryTypes.SELECT });
+
+  const lowStock = await Product.findAll({
+    where: {
+      is_active: true,
+      current_stock: { [Op.lte]: sequelize.col('reorder_level') }
+    },
+    limit: 10,
+    order: [['current_stock', 'ASC']]
+  });
+
+  return {
+    summary: stats[0] || {},
+    topProducts,
+    lowStockAlerts: lowStock.map(p => ({
+      id: p.id,
+      name: p.name,
+      stock: p.current_stock,
+      reorderLevel: p.reorder_level
+    }))
+  };
 };
 
 /**
@@ -77,5 +208,8 @@ const forecastDemand = async () => {
 module.exports = {
   calculateSalesVelocity,
   predictRestock,
-  forecastDemand
+  forecastDemand,
+  analyzeCustomerPatterns,
+  getRegionalInsights,
+  getPlatformAnalytics
 };
