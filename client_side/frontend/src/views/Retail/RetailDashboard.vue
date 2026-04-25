@@ -38,10 +38,30 @@
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
             </svg>
           </div>
-          <span class="text-xs text-yellow-600 bg-yellow-100 px-2 py-1 rounded-full">{{ activeOrders }} pending</span>
+          <span class="text-xs text-yellow-600 bg-yellow-100 px-2 py-1 rounded-full">{{ activeOrdersList.length }} active</span>
         </div>
         <p class="text-sm text-gray-500">Active Orders</p>
-        <p class="text-2xl font-bold text-gray-800">{{ activeOrders }}</p>
+        <p class="text-2xl font-bold text-gray-800">{{ activeOrdersList.length }}</p>
+        
+        <!-- Active Orders List (showing up to 3) -->
+        <div v-if="activeOrdersList.length > 0" class="mt-3 space-y-2 max-h-40 overflow-y-auto">
+          <div 
+            v-for="order in activeOrdersList.slice(0, 3)" 
+            :key="order.id"
+            class="p-2 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100 transition border-l-4 border-blue-500"
+            @click="$router.push(`/orders/${order.id}`)"
+          >
+            <div class="flex justify-between items-center">
+              <div>
+                <p class="text-xs font-semibold text-gray-700">#{{ order.order_number }}</p>
+                <p class="text-[10px] text-gray-500 capitalize">{{ order.status }}</p>
+              </div>
+              <p class="text-xs font-bold text-primary-600">KES {{ formatPrice(order.total_amount) }}</p>
+            </div>
+          </div>
+        </div>
+        <div v-else class="mt-2 text-xs text-gray-500 text-center py-2">No active orders</div>
+        
         <button @click="$router.push('/orders')" class="mt-3 text-sm text-primary-600 hover:underline flex items-center gap-1">
           View All 
           <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -266,7 +286,7 @@ const auth = useAuthStore()
 const toast = useToast()
 
 // State
-const activeOrders = ref(0)
+const activeOrdersList = ref([])
 const lowStockCount = ref(0)
 const monthlySpending = ref(0)
 const monthlySpendingTrend = ref(0)
@@ -325,7 +345,6 @@ const fetchDashboardData = async () => {
     ])
     
     recentOrders.value = ordersRes.data || []
-    activeOrders.value = (ordersRes.data || []).filter(o => o.status === 'pending').length
     lowStockCount.value = alertsRes.data.alerts?.length || 0
     monthlySpending.value = alertsRes.data.spending?.totalSpent || 0
     monthlySpendingTrend.value = alertsRes.data.spending?.trendPercent || 0
@@ -336,8 +355,21 @@ const fetchDashboardData = async () => {
   }
 }
 
+// Fetch active orders with polling
+const fetchActiveOrders = async () => {
+  try {
+    const { data } = await api.get('/orders?status=pending,processing,dispatched&limit=10')
+    activeOrdersList.value = data || []
+  } catch (error) {
+    console.error('Failed to fetch active orders:', error)
+  }
+}
+
 onMounted(() => {
   fetchDashboardData()
+  fetchActiveOrders()
+  // Poll active orders every 30 seconds
+  setInterval(fetchActiveOrders, 30000)
 })
 </script>
 

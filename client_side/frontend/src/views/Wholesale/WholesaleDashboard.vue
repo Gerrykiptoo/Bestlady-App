@@ -41,10 +41,37 @@
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2z" />
             </svg>
           </div>
+          <span class="text-xs text-yellow-600 bg-yellow-100 px-2 py-1 rounded-full">{{ activeOrdersList.length }} active</span>
         </div>
         <p class="text-sm text-gray-500">Active Orders</p>
-        <p class="text-2xl font-bold text-gray-800">{{ activeOrders }}</p>
+        <p class="text-2xl font-bold text-gray-800">{{ activeOrdersList.length }}</p>
         <p class="text-xs text-yellow-600 mt-1">{{ pendingDeliveries }} awaiting dispatch</p>
+        
+        <!-- Active Orders List Preview -->
+        <div v-if="activeOrdersList.length > 0" class="mt-3 space-y-2 max-h-40 overflow-y-auto">
+          <div 
+            v-for="order in activeOrdersList.slice(0, 3)" 
+            :key="order.id"
+            class="p-2 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100 transition border-l-4 border-blue-500"
+            @click="$router.push(`/orders/${order.id}`)"
+          >
+            <div class="flex justify-between items-center">
+              <div>
+                <p class="text-xs font-semibold text-gray-700">#{{ order.order_number }}</p>
+                <p class="text-[10px] text-gray-500 capitalize">{{ order.status }}</p>
+              </div>
+              <p class="text-xs font-bold text-primary-600">KES {{ formatPrice(order.total_amount) }}</p>
+            </div>
+          </div>
+        </div>
+        <div v-else class="mt-2 text-xs text-gray-500 text-center py-2">No active orders</div>
+        
+        <button @click="$router.push('/orders')" class="mt-3 text-sm text-primary-600 hover:underline flex items-center gap-1">
+          View All →
+          <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+          </svg>
+        </button>
       </div>
 
       <!-- Bulk Orders Card -->
@@ -637,14 +664,14 @@ const downloadTemplate = () => {
 // ============================================
 
 // Credit & Orders Data
-const creditLimit = ref(500000);
-const usedCredit = ref(125000);
-const usedCreditPercent = computed(() => Math.round((usedCredit.value / creditLimit.value) * 100));
-const activeOrders = ref(12);
-const pendingDeliveries = ref(5);
-const bulkOrdersCount = ref(48);
-const bulkOrderGrowth = ref(15);
-const savingsThisMonth = ref(24500);
+const creditLimit = ref(500000)
+const usedCredit = ref(125000)
+const usedCreditPercent = computed(() => Math.round((usedCredit.value / creditLimit.value) * 100))
+const activeOrdersList = ref([])
+const pendingDeliveries = ref(5)
+const bulkOrdersCount = ref(48)
+const bulkOrderGrowth = ref(15)
+const savingsThisMonth = ref(24500)
 
 // AI Recommendation
 const aiRecommendation = ref('Based on your ordering patterns, consider increasing stock for "Shea Butter 500ml" and "Hair Food" by 20% for the upcoming holiday season.');
@@ -690,13 +717,26 @@ const formatPrice = (value) => {
     minimumFractionDigits: 0,
     maximumFractionDigits: 0
   }).format(value);
-};
+}
+
+// Fetch active orders with polling
+const fetchActiveOrders = async () => {
+  try {
+    const { data } = await api.get('/orders?status=pending,processing,dispatched&limit=10')
+    activeOrdersList.value = data || []
+  } catch (error) {
+    console.error('Failed to fetch active orders:', error)
+  }
+}
 
 // Lifecycle Hooks
 onMounted(() => {
   // TODO: Fetch initial data from API
   // fetchDashboardData();
-});
+  fetchActiveOrders()
+  // Poll active orders every 30 seconds
+  setInterval(fetchActiveOrders, 30000)
+})
 </script>
 
 <style scoped>

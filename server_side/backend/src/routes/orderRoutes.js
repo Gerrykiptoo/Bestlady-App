@@ -4,6 +4,7 @@ const {
   createOrder,
   getOrders,
   getOrderById,
+  getPublicUnpaidOrder,
   payOrder,
   updateOrderStatus,
   handleMpesaCallback,
@@ -14,6 +15,12 @@ const { protect, admin } = require('../middleware/authMiddleware');
 
 // Public callback route (no authentication - called by Safaricom)
 router.post('/mpesa-callback', handleMpesaCallback);
+
+// Public payment-gateway route
+// @route   GET /api/orders/public/:id
+// @desc    Get unpaid order details for payment page
+// @access  Public
+router.get('/public/:id', getPublicUnpaidOrder);
 
 // Protected routes (require authentication)
 router.post('/', protect, createOrder);

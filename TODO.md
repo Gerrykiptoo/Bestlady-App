@@ -1,41 +1,26 @@
-# BestLady Project Completion Plan
-Status: Approved & In Progress ✅
+# BestLady Missing Features Implementation TODO
 
-## 1. Backend Setup (server_side/backend)
-- [ ] cd server_side/backend && npm install
-- [ ] npx sequelize-cli db:migrate
-- [ ] npx sequelize-cli db:seed:run --seed 202403-test-users.js
-- [ ] Add product seeder & run
-- [ ] npm run dev (start server)
-
-## 2. Frontend Setup (client_side/frontend)
-- [ ] cd client_side/frontend && npm install
-- [ ] npm run dev (start on :5173)
-
-## 3. Dark Mode ✅
-- Add toggle to Navbar/auth store
-- Update style.css + components
-
-## 4. Role Dashboards
-- [ ] AgentDashboard.vue: Full delivery UI + mock API
-- [ ] StaffDashboard.vue: Full ops UI + mock API
-- [ ] Connect AdminDashboard to real /admin/analytics
-
-## 5. AI Refinements
-- [ ] Enhance aiController/aiService for context
-- [ ] Add role-specific responses
-
-## 6. Complete TODO Items (QR/Receipt)
-- [ ] receiptService + orderController updates
-- [ ] Frontend QR scanner
-
-## 7. Testing Guide
-- Login as admin/agent/staff
-- Test all dashboards/features
-
-## 8. Polish
-- Error handling, responsive, PWA
-- Update IMPLEMENTATION_SUMMARY.md
-
-**Next Step: Backend setup commands**
-*Run: cd server_side/backend && npm i && npx sequelize-cli db:migrate && npx sequelize-cli db:seed:run --seed 202403-test-users.js*
+- [ ] Update audit report in markdown format for all 10 requested features
+- [x] Fix OrderDetail payment status polling/refresh flow for M-Pesa callback updates
+- [x] Update receipt QR URL target to `/payment/{orderId}` and ensure receipt includes full item/totals (preserve existing working sections)
+- [x] Add public payment gateway page (`/payment/:id`) and backend support to fetch unpaid order safely
+- [x] Enforce wholesale credit limit during order creation based on pending/processing/dispatched totals
+- [ ] Add admin UI support for editing user `credit_limit` in dashboard users table
+- [ ] Implement active orders list (clickable) + 30s polling in RetailDashboard and WholesaleDashboard
+- [ ] Implement backend `POST /api/ai/bulk-optimize` endpoint (authenticated) with recommendation logic from past orders
+- [ ] Add frontend AI Assistant command “Optimize my orders” + render recommendations + add-to-cart actions
+- [ ] Add DB schema and model support for private rider/pickup fields:
+  - [x] Orders: `delivery_address`, `delivery_lat`, `delivery_lng`, `pickup_station_id`
+  - [x] New `PickupStations` table
+- [x] Implement backend stations API (`GET /api/stations`) and order validation rules by delivery channel
+- [ ] Update Checkout UI to support:
+  - [ ] Private rider address + optional lat/lng picker inputs
+  - [ ] Pickup station dropdown from API
+- [x] Add DB columns to Users: `nickname` and ensure `avatar_url` migration if needed
+- [ ] Add backend profile APIs:
+  - [ ] `PUT /api/users/profile` (nickname updates)
+  - [ ] `POST /api/users/avatar` (upload + URL response)
+- [ ] Add frontend `/profile` page for nickname/avatar edits and wire avatar display in Navbar
+- [ ] Verify wallet balance refresh behavior after topup/order flows in frontend views
+- [ ] Ensure all new endpoints include route comments (as requested)
+- [ ] Run focused checks and provide final implementation summary

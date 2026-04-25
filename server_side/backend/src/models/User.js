@@ -72,6 +72,10 @@ module.exports = (sequelize, DataTypes) => {
     avatar_url: {
       type: DataTypes.TEXT,
       allowNull: true
+    },
+    nickname: {
+      type: DataTypes.STRING(100),
+      allowNull: true
     }
   }, {
     sequelize,

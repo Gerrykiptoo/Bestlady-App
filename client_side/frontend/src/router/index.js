@@ -33,6 +33,11 @@ const routes = [
     name: 'Register',
     component: () => import('@/views/Register.vue')
   },
+  {
+    path: '/payment/:id',
+    name: 'PaymentGateway',
+    component: () => import('@/views/PaymentGateway.vue')
+  },
   
   // Protected Routes (require authentication)
   {
@@ -69,6 +74,12 @@ const routes = [
     path: '/wallet',
     name: 'Wallet',
     component: () => import('@/views/Wallet.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/profile',
+    name: 'Profile',
+    component: () => import('@/views/Profile.vue'),
     meta: { requiresAuth: true }
   },
   

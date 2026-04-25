@@ -152,15 +152,19 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
 import api from '@/services/api'
 import { useToast } from 'vue-toast-notification'
 import { formatPrice } from '@/utils/formatters'
 
 const route = useRoute()
 const toast = useToast()
+const auth = useAuthStore()
 const order = ref(null)
 const payPhoneNumber = ref('')
 const payLoading = ref(false)
+const isPolling = ref(false)
+let pollTimer = null
 
 const steps = ['pending', 'paid', 'processing', 'dispatched', 'delivered']
 
@@ -178,11 +182,12 @@ const handlePayment = async () => {
         phone: payPhoneNumber.value
       })
       toast.success('STK Push initiated! Check your phone.')
+      startPolling()
     } else {
-      // Wallet payment logic (assuming there's an endpoint or we call payOrder)
+      // Wallet payment
       await api.post(`/orders/${order.value.id}/pay`)
       toast.success('Payment successful!')
-      // Refresh order data
+      refreshBalance()
       const { data } = await api.get(`/orders/${route.params.id}`)
       order.value = data
     }
@@ -218,10 +223,46 @@ const downloadReceipt = async () => {
   }
 }
 
+const fetchOrder = async () => {
+  const { data } = await api.get(`/orders/${route.params.id}`)
+  order.value = data
+}
+
+const startPolling = () => {
+  isPolling.value = true
+  if (pollTimer) clearInterval(pollTimer)
+
+  pollTimer = setInterval(async () => {
+    try {
+      await fetchOrder()
+      if (order.value?.payment_status === 'completed' || order.value?.status === 'paid') {
+        isPolling.value = false
+        clearInterval(pollTimer)
+        pollTimer = null
+        toast.success('Payment confirmed')
+        refreshBalance()
+      }
+    } catch (error) {
+      console.error('Polling error:', error)
+    }
+  }, 5000)
+}
+
+const refreshBalance = async () => {
+  try {
+    const { data } = await api.get('/wallet/balance')
+    auth.updateUser({ wallet_balance: data.balance })
+  } catch (error) {
+    console.error('Failed to refresh balance:', error)
+  }
+}
+
 onMounted(async () => {
   try {
-    const { data } = await api.get(`/orders/${route.params.id}`)
-    order.value = data
+    await fetchOrder()
+    if (order.value?.payment_status === 'processing') {
+      startPolling()
+    }
   } catch (error) {
     console.error('Failed to load order:', error)
     toast.error('Order not found')

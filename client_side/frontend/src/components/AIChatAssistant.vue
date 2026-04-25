@@ -86,6 +86,35 @@
             </div>
           </div>
 
+          <!-- Bulk Optimization Recommendations -->
+          <div v-if="showOptimizations && optimizations.length > 0" class="flex justify-start">
+            <div class="bg-white border-2 border-purple-200 rounded-2xl p-4 shadow-sm w-full max-w-[90%]">
+              <div class="flex items-center gap-2 mb-3">
+                <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                <h4 class="font-bold text-purple-900">Bulk Order Recommendations</h4>
+              </div>
+              <div class="space-y-3">
+                <div v-for="(rec, idx) in optimizations" :key="idx" class="bg-purple-50 rounded-xl p-3 border border-purple-100">
+                  <div class="flex justify-between items-start">
+                    <div class="flex-1">
+                      <p class="font-bold text-gray-800">{{ rec.productName }}</p>
+                      <p class="text-xs text-gray-600 mb-1">Past orders: {{ rec.totalPastOrders }} units</p>
+                      <p class="text-sm text-purple-700 font-semibold">Order {{ rec.recommendedQuantity }} units</p>
+                      <p class="text-[10px] text-gray-500 mt-1">{{ rec.reasoning }}</p>
+                    </div>
+                    <button 
+                      @click="addToCart(rec.productId, rec.recommendedQuantity)"
+                      class="bg-purple-600 text-white px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-purple-700 transition"
+                    >
+                      Add All
+                    </button>
+                  </div>
+                </div>
+              </div>
+              <button @click="showOptimizations = false" class="mt-2 text-xs text-gray-500 hover:underline">Dismiss</button>
+            </div>
+          </div>
+
           <!-- Typing Indicator -->
           <div v-if="isTyping" class="flex justify-start">
             <div class="bg-white rounded-2xl px-4 py-3 shadow-sm border border-gray-200">
@@ -100,7 +129,7 @@
 
         <!-- Input Area -->
         <div class="p-4 bg-white border-t border-gray-200">
-          <form @submit.prevent="handleSubmit" class="flex gap-2">
+          <form @submit.prevent="handleSubmit" class="flex gap-2 mb-2">
             <input 
               v-model="userInput"
               type="text"
@@ -118,6 +147,17 @@
               </svg>
             </button>
           </form>
+          
+          <!-- Quick action: Optimize My Orders -->
+          <button 
+            v-if="auth.isAuthenticated"
+            @click="runBulkOptimize"
+            :disabled="isTyping"
+            class="w-full mt-2 bg-purple-100 hover:bg-purple-200 text-purple-700 py-2.5 rounded-lg font-medium transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+            Optimize My Orders
+          </button>
         </div>
       </div>
     </transition>
@@ -130,15 +170,19 @@ import api from '@/services/api'
 import { useToast } from 'vue-toast-notification'
 import { useAuthStore } from '@/stores/auth'
 import { useUIStore } from '@/stores/ui'
+import { useCartStore } from '@/stores/cart'
 
 const toast = useToast()
 const auth = useAuthStore()
 const ui = useUIStore()
+const cart = useCartStore()
 const isOpen = computed(() => ui.isAIChatOpen)
 const userInput = ref('')
 const messages = ref([])
 const isTyping = ref(false)
 const messagesContainer = ref(null)
+const showOptimizations = ref(false)
+const optimizations = ref([])
 
 const quickSuggestions = computed(() => {
   if (auth.isAuthenticated) {
@@ -220,6 +264,52 @@ const sendMessage = async (content) => {
 
 const handleSubmit = () => {
   sendMessage(userInput.value)
+}
+
+const runBulkOptimize = async () => {
+  if (!auth.isAuthenticated) {
+    toast.error('Please login to use this feature')
+    return
+  }
+
+  isTyping.value = true
+  try {
+    const { data } = await api.post('/ai/bulk-optimize')
+    optimizations.value = data
+    showOptimizations.value = true
+    
+    // Also add a message to the chat
+    let msg = '📦 **Bulk Order Recommendations**\n\n'
+    if (data.length === 0) {
+      msg = '📭 No past orders found. Start ordering to get personalized bulk optimization advice!'
+    } else {
+      data.forEach((rec, idx) => {
+        msg += `${idx + 1}. **${rec.productName}**: Order ${rec.recommendedQuantity} units (vs avg ${rec.currentAvgOrder})\n   *${rec.reasoning}*\n`
+      })
+      msg += '\n💡 Click "Add All" on any recommendation to populate your cart.'
+    }
+    
+    messages.value.push({
+      role: 'assistant',
+      content: msg,
+      timestamp: new Date()
+    })
+    scrollToBottom()
+  } catch (error) {
+    console.error('Bulk optimize error:', error)
+    toast.error('Failed to fetch recommendations')
+  } finally {
+    isTyping.value = false
+  }
+}
+
+const addToCart = async (productId, quantity) => {
+  try {
+    cart.addItem({ product_id: productId, quantity })
+    toast.success(`Added ${quantity} units to cart`)
+  } catch (error) {
+    toast.error('Failed to add to cart')
+  }
 }
 </script>
 

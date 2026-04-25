@@ -31,7 +31,7 @@ const generateReceipt = async (order, user, items) => {
 
   // List all commodities with details
   items.forEach(item => {
-    doc.text(item.product?.name || 'Unknown', 50, y, { width: 180, ellipsis: true });
+    doc.text(item.Product?.name || 'Unknown', 50, y, { width: 180, ellipsis: true });
     doc.text(item.quantity.toString(), 250, y);
     doc.text(`KES ${item.unit_price}`, 300, y);
     doc.text(`KES ${item.subtotal}`, 400, y);
@@ -58,33 +58,25 @@ const generateReceipt = async (order, user, items) => {
   doc.fillColor('black');
   y += 30;
 
-  // Enhanced QR Code with payment info
-  if (order.qr_code || order.id) {
+  // Enhanced QR Code with payment link
+  if (order.id) {
     try {
-      // Create comprehensive QR data
-      const qrData = JSON.stringify({
-        orderId: order.id,
-        orderNumber: order.order_number,
-        paymentStatus: order.payment_status,
-        totalAmount: order.total_amount,
-        items: items.map(item => ({
-          name: item.Product?.name || 'Unknown',
-          quantity: item.quantity,
-          price: item.unit_price,
-          subtotal: item.subtotal
-        })),
-        customer: user.business_name,
-        date: order.createdAt,
-        payNowUrl: order.payment_status !== 'paid' ? `${process.env.FRONTEND_URL}/orders/${order.id}` : null
-      });
+      // Create a direct link to the order payment page
+      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+      const orderUrl = `${frontendUrl}/payment/${order.id}`;
       
-      const qrBuffer = await QRCode.toBuffer(qrData);
+      const qrBuffer = await QRCode.toBuffer(orderUrl);
       doc.image(qrBuffer, 50, y, { width: 120 });
       
       // QR Code instructions
-      doc.fontSize(8).font('Helvetica').text('Scan QR code to view order details', 180, y);
-      if (order.payment_status !== 'paid') {
-        doc.text('and complete payment', 180, y + 12);
+      doc.fontSize(10).font('Helvetica-Bold').text('Scan to View & Pay', 180, y);
+      doc.fontSize(8).font('Helvetica').text('Scan this QR code with your phone camera', 180, y + 15);
+      doc.text('to see full itemized details and complete', 180, y + 25);
+      doc.text('your M-Pesa payment securely.', 180, y + 35);
+      
+      if (order.payment_status === 'paid') {
+        doc.fillColor('green').text('Order already paid. Keep this for your records.', 180, y + 55);
+        doc.fillColor('black');
       }
     } catch (err) {
       console.error('QR generation error:', err);

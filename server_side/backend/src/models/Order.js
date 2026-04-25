@@ -6,6 +6,7 @@ module.exports = (sequelize, DataTypes) => {
     static associate(models) {
       Order.belongsTo(models.User, { foreignKey: 'user_id' });
       Order.hasMany(models.OrderItem, { foreignKey: 'order_id' });
+      Order.belongsTo(models.PickupStation, { foreignKey: 'pickup_station_id' });
     }
   }
 
@@ -92,6 +93,26 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.STRING(50),
       unique: true,
       allowNull: true
+    },
+    delivery_address: {
+      type: DataTypes.TEXT,
+      allowNull: true
+    },
+    delivery_lat: {
+      type: DataTypes.DECIMAL(10, 7),
+      allowNull: true
+    },
+    delivery_lng: {
+      type: DataTypes.DECIMAL(10, 7),
+      allowNull: true
+    },
+    pickup_station_id: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      references: {
+        model: 'PickupStations',
+        key: 'id'
+      }
     }
   }, {
     sequelize,

@@ -209,7 +209,7 @@
       </div>
 
       <!-- Recent Orders Table -->
-      <div class="bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden">
+      <div class="bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden mb-8">
         <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center">
           <h3 class="font-bold text-lg text-gray-800">🛒 Recent Orders</h3>
           <router-link to="/admin/orders" class="text-sm text-primary-600 hover:underline">View All Orders →</router-link>
@@ -239,6 +239,77 @@
               </tr>
               <tr v-if="recentOrders.length === 0">
                 <td colspan="5" class="px-6 py-8 text-center text-gray-500">No orders found</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Users Management Table -->
+      <div class="bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center">
+          <h3 class="font-bold text-lg text-gray-800">👥 User Management</h3>
+          <button @click="fetchUsers" class="text-sm text-primary-600 hover:underline flex items-center gap-1">
+            <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+            Refresh
+          </button>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full">
+            <thead class="bg-gray-50">
+              <tr>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">#</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">User</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tier</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Credit Limit <span class="text-red-500">*</span></th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">KYC Status</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+              <tr v-for="(user, idx) in users" :key="user.id" class="hover:bg-gray-50 transition">
+                <td class="px-6 py-4 text-sm text-gray-500">{{ idx + 1 }}</td>
+                <td class="px-6 py-4">
+                  <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center text-primary-600 font-bold text-sm">
+                      {{ (user.business_name || user.username || 'U').charAt(0).toUpperCase() }}
+                    </div>
+                    <div>
+                      <p class="font-medium text-gray-800">{{ user.business_name || user.username }}</p>
+                      <p class="text-xs text-gray-500">{{ user.email }}</p>
+                    </div>
+                  </div>
+                </td>
+                <td class="px-6 py-4">
+                  <span :class="user.tier === 'wholesale' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'" class="px-2 py-1 rounded-full text-xs font-semibold capitalize">
+                    {{ user.tier }}
+                  </span>
+                </td>
+                <td class="px-6 py-4">
+                  <input
+                    type="number"
+                    v-model.number="user.credit_limit"
+                    @change="updateCreditLimit(user)"
+                    class="w-28 px-3 py-1 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none text-sm font-semibold"
+                    :disabled="user.tier !== 'wholesale'"
+                    :title="user.tier === 'wholesale' ? 'Edit credit limit' : 'Credit limit only for wholesale'"
+                  />
+                </td>
+                <td class="px-6 py-4">
+                  <span :class="{
+                    'bg-green-100 text-green-700': user.kyc_status === 'approved',
+                    'bg-yellow-100 text-yellow-700': user.kyc_status === 'pending',
+                    'bg-red-100 text-red-700': user.kyc_status === 'rejected' || user.kyc_status === 'failed'
+                  }" class="px-2 py-1 rounded-full text-xs font-semibold capitalize">
+                    {{ user.kyc_status || 'none' }}
+                  </span>
+                </td>
+                <td class="px-6 py-4 text-sm">
+                  <button @click="viewUserDetails(user)" class="text-primary-600 hover:underline font-medium">View</button>
+                </td>
+              </tr>
+              <tr v-if="users.length === 0">
+                <td colspan="6" class="px-6 py-12 text-center text-gray-500">No users found</td>
               </tr>
             </tbody>
           </table>
@@ -274,7 +345,7 @@ const dateRanges = [
 ]
 const selectedRange = ref('30d')
 
-// Data stores
+// Dashboard data
 const metrics = ref([
   { label: 'Total Revenue', value: 'KES 0', trend: 0, icon: 'RevenueIcon', bgColor: 'bg-green-100', iconColor: 'text-green-600' },
   { label: 'Active Retailers', value: '0', trend: 0, icon: 'UsersIcon', bgColor: 'bg-blue-100', iconColor: 'text-blue-600' },
@@ -288,6 +359,7 @@ const topProducts = ref([])
 const inventoryHealth = ref({ lowStock: 0, overstock: 0, deadStock: 0, turnover: 0, daysInventory: 0 })
 const demandForecast = ref([])
 const recentOrders = ref([])
+const users = ref([])
 
 // Helper functions
 const setDateRange = (range) => {
@@ -405,11 +477,12 @@ const fetchDashboardData = async () => {
     // Fetch top selling products
     topProducts.value = inventoryRes.data.topSelling || []
     
-    // Fetch user stats
+    // Fetch user stats and users list
     const usersRes = await api.get('/admin/users')
-    const users = usersRes.data.users || []
-    metrics.value[1].value = users.filter(u => u.tier === 'retail').length.toLocaleString()
-    metrics.value[2].value = users.filter(u => u.tier === 'wholesale').length.toLocaleString()
+    const usersList = usersRes.data.users || []
+    users.value = usersList
+    metrics.value[1].value = usersList.filter(u => u.tier === 'retail').length.toLocaleString()
+    metrics.value[2].value = usersList.filter(u => u.tier === 'wholesale').length.toLocaleString()
     metrics.value[3].value = '98%' // Placeholder
     
     // Fetch demand forecast (placeholder)
@@ -430,6 +503,33 @@ const fetchDashboardData = async () => {
   } finally {
     loading.value = false
   }
+}
+
+const fetchUsers = async () => {
+  try {
+    const { data } = await api.get('/admin/users')
+    users.value = data.users || []
+  } catch (error) {
+    console.error('Failed to fetch users:', error)
+    toast.error('Failed to load users')
+  }
+}
+
+const updateCreditLimit = async (user) => {
+  try {
+    await api.put(`/admin/users/${user.id}`, { credit_limit: user.credit_limit })
+    toast.success('Credit limit updated successfully')
+  } catch (error) {
+    console.error('Failed to update credit limit:', error)
+    toast.error('Failed to update credit limit')
+    // Revert to original value by re-fetching users
+    fetchUsers()
+  }
+}
+
+const viewUserDetails = (user) => {
+  // Optional: could navigate to a detailed user view or show a modal
+  toast.info(`Viewing ${user.business_name || user.username}`)
 }
 
 const exportReport = async () => {
@@ -453,6 +553,7 @@ watch(chartView, () => renderCharts())
 
 onMounted(() => {
   fetchDashboardData()
+  fetchUsers()
 })
 </script>
 

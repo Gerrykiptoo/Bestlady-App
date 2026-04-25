@@ -40,41 +40,12 @@
       </header>
 
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        <div v-for="product in filteredProducts" :key="product.id" class="bg-white rounded-xl shadow-sm border overflow-hidden group">
-          <div class="h-48 bg-gray-100 flex items-center justify-center">
-            <img v-if="product.image_url" :src="product.image_url" class="object-cover h-full w-full" />
-            <span v-else class="text-gray-400">No Image</span>
-          </div>
-          <div class="p-4 flex flex-col h-full">
-            <div class="flex-grow">
-              <h3 class="font-bold text-gray-800 group-hover:text-primary transition line-clamp-1">{{ product.name }}</h3>
-              <p class="text-xs text-gray-500 mb-2">{{ product.Category?.name }}</p>
-              
-              <div class="mt-2">
-                <span class="text-xl font-black text-gray-900">KES {{ getPrice(product) }}</span>
-                <span v-if="auth.user?.tier === 'wholesale'" class="block text-[10px] text-primary-600 font-bold uppercase">Wholesale Price</span>
-              </div>
-            </div>
-
-            <div class="grid grid-cols-2 gap-2 mt-4">
-              <button 
-                @click="addToCart(product)" 
-                class="flex items-center justify-center gap-1 px-3 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-primary-100 hover:text-primary-700 transition-all text-sm font-semibold"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                  <path d="M3 1a1 1 0 000 2h1.22l.305 1.222a.997.997 0 00.01.042l1.358 5.43-.893.892C3.74 11.846 4.632 14 6.414 14H15a1 1 0 100-2H6.414l1-1H14a1 1 0 00.894-.553l3-6A1 1 0 0017 3H6.28l-.31-1.243A1 1 0 005 1H3z" />
-                </svg>
-                Cart
-              </button>
-              <button 
-                @click="buyNow(product)" 
-                class="px-3 py-2 bg-primary text-white rounded-lg hover:bg-primary-700 transition-all text-sm font-bold shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
-              >
-                Buy Now
-              </button>
-            </div>
-          </div>
-        </div>
+        <ProductCard 
+          v-for="product in filteredProducts" 
+          :key="product.id" 
+          :product="product"
+          @click="goToProduct(product.id)"
+        />
       </div>
     </main>
   </div>
@@ -82,12 +53,14 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue';
+import { useRouter } from 'vue-router';
 import api from '@/services/api';
 import { useAuthStore } from '@/stores/auth';
 import { useCartStore } from '@/stores/cart';
 import { useToast } from 'vue-toast-notification';
-import { formatPrice } from '@/utils/formatters';
+import ProductCard from '@/components/product/ProductCard.vue';
 
+const router = useRouter();
 const auth = useAuthStore();
 const cart = useCartStore();
 const toast = useToast();
@@ -100,21 +73,8 @@ const filteredProducts = computed(() => {
   return products.value.filter(p => p.name.toLowerCase().includes(search.value.toLowerCase()));
 });
 
-const getPrice = (product) => {
-  const price = auth.user?.tier === 'wholesale' ? product.wholesale_price : product.retail_price;
-  return formatPrice(price);
-};
-
-const addToCart = (product) => {
-  const price = auth.user?.tier === 'wholesale' ? product.wholesale_price : product.retail_price;
-  const numPrice = Number(price) || 0;
-  cart.addItem(product, numPrice);
-  toast.success(`${product.name} added to cart!`);
-};
-
-const buyNow = (product) => {
-  addToCart(product);
-  router.push('/checkout');
+const goToProduct = (id) => {
+  router.push(`/products/${id}`);
 };
 
 onMounted(async () => {

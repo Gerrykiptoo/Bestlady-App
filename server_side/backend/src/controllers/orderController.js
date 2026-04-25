@@ -1,4 +1,4 @@
-const { Order, OrderItem, Product, User, WalletTransaction, sequelize } = require('../models');
+const { Order, OrderItem, Product, User, WalletTransaction, PickupStation, sequelize } = require('../models');
 const mpesaService = require('../services/mpesaService');
 const { generateQR } = require('../utils/qrGenerator');
 const { generateOTP, verifyOTP } = require('../utils/otpGenerator');
@@ -11,7 +11,7 @@ const { v4: uuidv4 } = require('uuid');
 const createOrder = async (req, res) => {
   const t = await sequelize.transaction();
   try {
-    const { items, payment_method, delivery_channel } = req.body;
+    const { items, payment_method, delivery_channel, delivery_address, delivery_lat, delivery_lng, pickup_station_id } = req.body;
     const userId = req.user.id;
 
     let subtotal = 0;
@@ -48,6 +48,38 @@ const createOrder = async (req, res) => {
     const delivery_fee = delivery_channel === 'pickup' ? 0 : 250;
     const total_amount = subtotal + tax + delivery_fee;
 
+    if (delivery_channel === 'private_rider' && !delivery_address) {
+      throw new Error('delivery_address is required for private rider delivery');
+    }
+
+    if (delivery_channel === 'pickup') {
+      if (!pickup_station_id) {
+        throw new Error('pickup_station_id is required for pickup delivery');
+      }
+      const station = await PickupStation.findOne({
+        where: { id: pickup_station_id, is_active: true },
+        transaction: t
+      });
+      if (!station) {
+        throw new Error('Selected pickup station is invalid or inactive');
+      }
+    }
+
+    if (req.user.tier === 'wholesale') {
+      const pendingExposure = await Order.sum('total_amount', {
+        where: {
+          user_id: userId,
+          status: ['pending', 'processing', 'dispatched']
+        },
+        transaction: t
+      }) || 0;
+
+      const allowedCredit = parseFloat(req.user.credit_limit || 0);
+      if ((parseFloat(pendingExposure) + parseFloat(total_amount)) > allowedCredit) {
+        throw new Error('Order exceeds your credit limit based on active wholesale orders');
+      }
+    }
+
     const order = await Order.create({
       order_number: `BL-${Date.now()}`,
       user_id: userId,
@@ -60,6 +92,10 @@ const createOrder = async (req, res) => {
       payment_method,
       payment_status: 'pending',
       delivery_channel,
+      delivery_address: delivery_channel === 'private_rider' ? delivery_address : null,
+      delivery_lat: delivery_channel === 'private_rider' ? delivery_lat || null : null,
+      delivery_lng: delivery_channel === 'private_rider' ? delivery_lng || null : null,
+      pickup_station_id: delivery_channel === 'pickup' ? pickup_station_id : null,
       // Temporary OTP (will be regenerated after payment)
       otp_code: Math.floor(100000 + Math.random() * 900000).toString(),
       otp_secret: uuidv4()
@@ -107,13 +143,23 @@ const createOrder = async (req, res) => {
 
 /**
  * Get all orders for the authenticated user
+ * Supports optional status query param (single or comma-separated)
  */
 const getOrders = async (req, res) => {
   try {
+    const where = { user_id: req.user.id };
+    
+    // Handle status filter: ?status=pending,processing,dispatched
+    if (req.query.status) {
+      const statuses = req.query.status.split(',').map(s => s.trim());
+      where.status = { [sequelize.Op.in]: statuses };
+    }
+    
     const orders = await Order.findAll({
-      where: { user_id: req.user.id },
+      where,
       include: [{ model: OrderItem, include: [Product] }],
-      order: [['createdAt', 'DESC']]
+      order: [['createdAt', 'DESC']],
+      limit: req.query.limit ? parseInt(req.query.limit) : undefined
     });
     res.json(orders);
   } catch (error) {
@@ -129,7 +175,7 @@ const getOrderById = async (req, res) => {
   try {
     const order = await Order.findOne({
       where: { id: req.params.id, user_id: req.user.id },
-      include: [{ model: OrderItem, include: [Product] }]
+      include: [{ model: OrderItem, include: [Product] }, { model: PickupStation }]
     });
     if (!order) {
       return res.status(404).json({ message: 'Order not found' });
@@ -137,6 +183,33 @@ const getOrderById = async (req, res) => {
     res.json(order);
   } catch (error) {
     console.error('Get order error:', error);
+    res.status(500).json({ message: error.message });
+  }
+};
+
+/**
+ * Get public unpaid order by ID for payment gateway
+ * @route GET /api/orders/public/:id
+ * @access Public
+ */
+const getPublicUnpaidOrder = async (req, res) => {
+  try {
+    const order = await Order.findOne({
+      where: {
+        id: req.params.id,
+        payment_status: 'pending'
+      },
+      attributes: ['id', 'order_number', 'total_amount', 'payment_status', 'delivery_channel', 'createdAt'],
+      include: [{ model: OrderItem, include: [Product] }, { model: PickupStation }]
+    });
+
+    if (!order) {
+      return res.status(404).json({ message: 'Order not found or already paid' });
+    }
+
+    res.json(order);
+  } catch (error) {
+    console.error('Get public unpaid order error:', error);
     res.status(500).json({ message: error.message });
   }
 };
@@ -506,6 +579,7 @@ module.exports = {
   createOrder,
   getOrders,
   getOrderById,
+  getPublicUnpaidOrder,
   payOrder,
   handleMpesaCallback,
   verifyOrder,
