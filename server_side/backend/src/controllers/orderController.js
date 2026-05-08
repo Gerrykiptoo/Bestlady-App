@@ -1,4 +1,5 @@
 const { Order, OrderItem, Product, User, WalletTransaction, PickupStation, sequelize } = require('../models');
+const { Op } = require('sequelize');                    // ✅ ADDED: missing Op import
 const mpesaService = require('../services/mpesaService');
 const { generateQR } = require('../utils/qrGenerator');
 const { generateOTP, verifyOTP } = require('../utils/otpGenerator');
@@ -102,7 +103,6 @@ const createOrder = async (req, res) => {
     }, { transaction: t });
 
     // Generate Payment QR for the order
-    // Fetch full order with items for QR
     const fullOrder = await Order.findByPk(order.id, {
       include: [{ model: OrderItem, include: [Product] }],
       transaction: t
@@ -152,7 +152,7 @@ const getOrders = async (req, res) => {
     // Handle status filter: ?status=pending,processing,dispatched
     if (req.query.status) {
       const statuses = req.query.status.split(',').map(s => s.trim());
-      where.status = { [sequelize.Op.in]: statuses };
+      where.status = { [Op.in]: statuses };     // ✅ fixed: use Op.in instead of sequelize.Op.in
     }
     
     const orders = await Order.findAll({
@@ -224,25 +224,21 @@ const payOrder = async (req, res) => {
       return res.status(404).json({ message: 'Order not found' });
     }
 
-    // Check if order belongs to user
     if (order.user_id !== req.user.id && req.user.role !== 'admin') {
       return res.status(403).json({ message: 'Not authorized' });
     }
 
-    // Check if already paid
     if (order.status === 'paid') {
       return res.status(400).json({ message: 'Order already paid' });
     }
 
     if (order.payment_method === 'mpesa') {
-      // Use mpesaService to initiate STK push
       const response = await mpesaService.initiateSTKPush(
         req.user.phone,
         order.total_amount,
         order.order_number
       );
 
-      // Store CheckoutRequestID in order for callback verification
       await order.update({
         mpesa_code: response.CheckoutRequestID,
         payment_status: 'processing'
@@ -263,13 +259,11 @@ const payOrder = async (req, res) => {
       }
 
       await sequelize.transaction(async (t) => {
-        // Deduct from wallet
         await user.update(
           { wallet_balance: user.wallet_balance - order.total_amount },
           { transaction: t }
         );
 
-        // Record wallet transaction
         await WalletTransaction.create({
           user_id: user.id,
           transaction_type: 'payment',
@@ -279,9 +273,6 @@ const payOrder = async (req, res) => {
           notes: `Payment for order ${order.order_number}`
         }, { transaction: t });
 
-        // Generate OTP and QR for pickup
-        const { secret, otp } = generateOTP();
-        // Full order details for QR
         const fullOrder = await Order.findByPk(order.id, {
           include: [{ model: OrderItem, include: [Product] }],
           transaction: t
@@ -299,12 +290,12 @@ const payOrder = async (req, res) => {
           })),
           customer: req.user.username || 'Customer',
           date: new Date().toISOString(),
-          otp: otp,
-          payNowUrl: null // Already paid
+          otp: generateOTP().otp,
+          payNowUrl: null
         });
         const qrCode = await generateQR(qrData);
+        const { secret, otp } = generateOTP();
 
-        // Update order
         await order.update({
           status: 'paid',
           payment_status: 'completed',
@@ -314,7 +305,6 @@ const payOrder = async (req, res) => {
         }, { transaction: t });
       });
 
-      // Emit socket notification
       const io = req.app.get('io');
       if (io) {
         io.to(order.user_id).emit('orderUpdate', {
@@ -345,7 +335,6 @@ const payOrder = async (req, res) => {
 
 /**
  * Handle M-Pesa callback (webhook)
- * This is called by Safaricom after payment processing
  */
 const handleMpesaCallback = async (req, res) => {
   const t = await sequelize.transaction();
@@ -361,7 +350,6 @@ const handleMpesaCallback = async (req, res) => {
     const { stkCallback } = Body;
     const { CheckoutRequestID, ResultCode, ResultDesc, CallbackMetadata } = stkCallback;
 
-    // Find order by CheckoutRequestID
     const order = await Order.findOne({ 
       where: { mpesa_code: CheckoutRequestID },
       transaction: t
@@ -374,19 +362,14 @@ const handleMpesaCallback = async (req, res) => {
     }
 
     if (ResultCode === 0) {
-      // Payment successful
       console.log('Payment successful for order:', order.order_number);
-
-      // Extract M-Pesa receipt number
       let mpesaReceipt = '';
       if (CallbackMetadata && CallbackMetadata.Item) {
         const receiptItem = CallbackMetadata.Item.find(item => item.Name === 'MpesaReceiptNumber');
         mpesaReceipt = receiptItem ? receiptItem.Value : '';
       }
 
-      // Generate OTP and QR code for pickup
       const { secret, otp } = generateOTP();
-      // Full order details for QR
       const fullOrder = await Order.findByPk(order.id, {
         include: [{ model: OrderItem, include: [Product] }],
         transaction: t
@@ -402,14 +385,13 @@ const handleMpesaCallback = async (req, res) => {
           price: item.unit_price,
           subtotal: item.subtotal
         })),
-        customer: req.user.username || 'Customer',
+        customer: (await User.findByPk(order.user_id, { transaction: t }))?.username || 'Customer',
         date: new Date().toISOString(),
         otp: otp,
         payNowUrl: null
       });
       const qrCode = await generateQR(qrData);
 
-      // Update order
       await order.update({
         status: 'paid',
         payment_status: 'completed',
@@ -419,7 +401,6 @@ const handleMpesaCallback = async (req, res) => {
         qr_code: qrCode
       }, { transaction: t });
 
-      // Record wallet transaction (optional - for tracking)
       await WalletTransaction.create({
         user_id: order.user_id,
         transaction_type: 'deposit',
@@ -430,7 +411,6 @@ const handleMpesaCallback = async (req, res) => {
         notes: `M-Pesa payment for order ${order.order_number}`
       }, { transaction: t });
 
-      // Emit socket notification
       const io = req.app.get('io');
       if (io) {
         io.to(order.user_id).emit('orderUpdate', {
@@ -439,18 +419,13 @@ const handleMpesaCallback = async (req, res) => {
           status: 'paid'
         });
       }
-
     } else {
-      // Payment failed
       console.log('Payment failed for order:', order.order_number, 'Reason:', ResultDesc);
-      await order.update({
-        payment_status: 'failed'
-      }, { transaction: t });
+      await order.update({ payment_status: 'failed' }, { transaction: t });
     }
 
     await t.commit();
     res.json({ ResultCode: 0, ResultDesc: 'Success' });
-
   } catch (error) {
     await t.rollback();
     console.error('Callback processing error:', error);
@@ -466,30 +441,15 @@ const verifyOrder = async (req, res) => {
     const { otp } = req.body;
     const order = await Order.findByPk(req.params.id);
 
-    if (!order) {
-      return res.status(404).json({ message: 'Order not found' });
-    }
+    if (!order) return res.status(404).json({ message: 'Order not found' });
+    if (order.status !== 'paid') return res.status(400).json({ message: 'Order is not paid yet' });
+    if (order.status === 'completed') return res.status(400).json({ message: 'Order already verified' });
 
-    // Check if order is paid
-    if (order.status !== 'paid') {
-      return res.status(400).json({ message: 'Order is not paid yet' });
-    }
-
-    // Check if already verified
-    if (order.status === 'completed') {
-      return res.status(400).json({ message: 'Order already verified' });
-    }
-
-    // Verify OTP
     const isValid = verifyOTP(order.otp_secret, otp);
-    if (!isValid) {
-      return res.status(400).json({ message: 'Invalid OTP' });
-    }
+    if (!isValid) return res.status(400).json({ message: 'Invalid OTP' });
 
-    // Update order status
     await order.update({ status: 'completed' });
 
-    // Emit socket notification
     const io = req.app.get('io');
     if (io) {
       io.to(order.user_id).emit('orderUpdate', {
@@ -500,7 +460,6 @@ const verifyOrder = async (req, res) => {
     }
 
     res.json({ message: 'Order verified successfully', order });
-
   } catch (error) {
     console.error('Verification error:', error);
     res.status(500).json({ message: error.message });
@@ -516,11 +475,7 @@ const downloadReceipt = async (req, res) => {
       include: [{ model: OrderItem, include: [Product] }]
     });
 
-    if (!order) {
-      return res.status(404).json({ message: 'Order not found' });
-    }
-
-    // Check authorization
+    if (!order) return res.status(404).json({ message: 'Order not found' });
     if (order.user_id !== req.user.id && req.user.role !== 'admin') {
       return res.status(403).json({ message: 'Not authorized' });
     }
@@ -531,7 +486,6 @@ const downloadReceipt = async (req, res) => {
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename=receipt-${order.order_number}.pdf`);
     pdfStream.pipe(res);
-
   } catch (error) {
     console.error('Receipt generation error:', error);
     res.status(500).json({ message: error.message });
@@ -544,14 +498,11 @@ const downloadReceipt = async (req, res) => {
 const updateOrderStatus = async (req, res) => {
   try {
     const order = await Order.findByPk(req.params.id);
-    if (!order) {
-      return res.status(404).json({ message: 'Order not found' });
-    }
+    if (!order) return res.status(404).json({ message: 'Order not found' });
 
     const { status } = req.body;
     await order.update({ status });
 
-    // Emit Socket.io notification to the user
     const io = req.app.get('io');
     if (io) {
       io.to(order.user_id).emit('orderUpdate', {
@@ -561,7 +512,6 @@ const updateOrderStatus = async (req, res) => {
       });
     }
 
-    // AI Logistics Agent logic
     if (status === 'paid' && order.delivery_channel !== 'pickup') {
       const logistics_provider = order.total_amount < 5000 ? 'Private Rider' : 'Company Fleet';
       console.log(`Order ${order.order_number} assigned to ${logistics_provider}`);
@@ -574,7 +524,6 @@ const updateOrderStatus = async (req, res) => {
   }
 };
 
-// ✅ EXPORT ALL FUNCTIONS
 module.exports = {
   createOrder,
   getOrders,

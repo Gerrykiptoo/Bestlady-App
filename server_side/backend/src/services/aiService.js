@@ -86,8 +86,8 @@ const getRegionalInsights = async () => {
         COUNT(DISTINCT o.id) as orderCount,
         SUM(o.total_amount) as revenue,
         AVG(o.total_amount) as avgOrder
-      FROM Orders o
-      JOIN Users u ON o.user_id = u.id
+      FROM "Orders" o
+      JOIN "Users" u ON o.user_id = u.id
       WHERE o.payment_status = 'completed' AND o.createdAt > NOW() - INTERVAL '30 days'
       GROUP BY u.location
       ORDER BY revenue DESC
@@ -117,7 +117,7 @@ const getPlatformAnalytics = async () => {
       AVG(CASE WHEN o.payment_status = 'completed' THEN o.total_amount END) as avgOrderValue,
       COUNT(CASE WHEN o.status = 'paid' OR o.status = 'completed' THEN 1 END) as paidOrders,
       COUNT(CASE WHEN o.createdAt > NOW() - INTERVAL '7 days' THEN 1 END) as weeklyOrders
-    FROM Orders o
+    FROM "Orders" o
     WHERE o.createdAt > '${thirtyDaysAgo.toISOString()}'
   `, { type: sequelize.QueryTypes.SELECT });
 
@@ -126,9 +126,9 @@ const getPlatformAnalytics = async () => {
       p.id, p.name, p.image_url,
       SUM(oi.quantity) as totalSold,
       SUM(oi.subtotal) as revenue
-    FROM OrderItems oi
-    JOIN Products p ON oi.product_id = p.id
-    JOIN Orders o ON oi.order_id = o.id
+    FROM "OrderItems" oi
+    JOIN "Products" p ON oi.product_id = p.id
+    JOIN "Orders" o ON oi.order_id = o.id
     WHERE o.payment_status = 'completed' AND o.createdAt > NOW() - INTERVAL '30 days'
     GROUP BY p.id
     ORDER BY revenue DESC
@@ -138,7 +138,7 @@ const getPlatformAnalytics = async () => {
   const lowStock = await Product.findAll({
     where: {
       is_active: true,
-      current_stock: { [Op.lte]: sequelize.col('reorder_level') }
+      current_stock: { [Op.lte]: sequelize.col('reorder_point') }
     },
     limit: 10,
     order: [['current_stock', 'ASC']]
@@ -151,7 +151,7 @@ const getPlatformAnalytics = async () => {
       id: p.id,
       name: p.name,
       stock: p.current_stock,
-      reorderLevel: p.reorder_level
+      reorderLevel: p.reorder_point
     }))
   };
 };
