@@ -88,7 +88,7 @@ const getRegionalInsights = async () => {
         AVG(o.total_amount) as avgOrder
       FROM Orders o
       JOIN Users u ON o.user_id = u.id
-      WHERE o.payment_status = 'completed' AND o.createdAt > NOW() - INTERVAL 30 DAY
+      WHERE o.payment_status = 'completed' AND o.createdAt > NOW() - INTERVAL '30 days'
       GROUP BY u.location
       ORDER BY revenue DESC
       LIMIT 10
@@ -116,7 +116,7 @@ const getPlatformAnalytics = async () => {
       SUM(CASE WHEN o.payment_status = 'completed' THEN o.total_amount ELSE 0 END) as totalRevenue,
       AVG(CASE WHEN o.payment_status = 'completed' THEN o.total_amount END) as avgOrderValue,
       COUNT(CASE WHEN o.status = 'paid' OR o.status = 'completed' THEN 1 END) as paidOrders,
-      COUNT(CASE WHEN o.createdAt > NOW() - INTERVAL 7 DAY THEN 1 END) as weeklyOrders
+      COUNT(CASE WHEN o.createdAt > NOW() - INTERVAL '7 days' THEN 1 END) as weeklyOrders
     FROM Orders o
     WHERE o.createdAt > '${thirtyDaysAgo.toISOString()}'
   `, { type: sequelize.QueryTypes.SELECT });
@@ -129,7 +129,7 @@ const getPlatformAnalytics = async () => {
     FROM OrderItems oi
     JOIN Products p ON oi.product_id = p.id
     JOIN Orders o ON oi.order_id = o.id
-    WHERE o.payment_status = 'completed' AND o.createdAt > NOW() - INTERVAL 30 DAY
+    WHERE o.payment_status = 'completed' AND o.createdAt > NOW() - INTERVAL '30 days'
     GROUP BY p.id
     ORDER BY revenue DESC
     LIMIT 10

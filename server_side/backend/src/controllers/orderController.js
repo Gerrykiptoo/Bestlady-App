@@ -199,7 +199,7 @@ const getPublicUnpaidOrder = async (req, res) => {
         id: req.params.id,
         payment_status: 'pending'
       },
-      attributes: ['id', 'order_number', 'total_amount', 'payment_status', 'delivery_channel', 'createdAt'],
+      attributes: ['id', 'order_number', 'total_amount', 'subtotal', 'tax', 'delivery_fee', 'payment_status', 'delivery_channel', 'createdAt'],
       include: [{ model: OrderItem, include: [Product] }, { model: PickupStation }]
     });
 

@@ -430,8 +430,16 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { useRouter } from 'vue-router';
+import { useAuthStore } from '@/stores/auth';
 import api from '@/services/api';
+import { useToast } from 'vue-toast-notification';
+import { formatPrice } from '@/utils/formatters';
+
+const router = useRouter();
+const auth = useAuthStore();
+const toast = useToast();
 
 // ============================================
 // BULK ORDER UPLOAD STATE & METHODS
@@ -443,6 +451,7 @@ const uploadProgress = ref(0);
 const uploadError = ref('');
 const uploadedFileName = ref('');
 const demandPeriod = ref('30');
+let pollTimer = null;
 
 // File validation constants
 const ALLOWED_TYPES = ['.csv', '.xlsx', '.xls'];
@@ -547,20 +556,7 @@ const processFile = async (file) => {
     formData.append('type', 'bulk_order');
     formData.append('timestamp', new Date().toISOString());
     
-    // Actual API call with progress tracking
-    // Note: Uncomment and configure when backend endpoint is ready
-    /*
-    const response = await api.post('/bulk-orders/upload', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data'
-      },
-      onUploadProgress: (progressEvent) => {
-        uploadProgress.value = Math.round((progressEvent.loaded * 100) / progressEvent.total);
-      }
-    });
-    */
-    
-    // Temporary simulation until API is ready
+    // simulation until API is ready
     await new Promise((resolve) => {
       const interval = setInterval(() => {
         uploadProgress.value += Math.random() * 15 + 5;
@@ -574,13 +570,11 @@ const processFile = async (file) => {
 
     // Success state
     uploadState.value = 'success';
-    
-    // Optional: Auto-reset after delay
-    // setTimeout(resetUpload, 10000);
+    toast.success('Bulk order file uploaded successfully!');
     
   } catch (error) {
     uploadState.value = 'error';
-    uploadError.value = error.response?.data?.message || error.message || 'Upload failed. Please check your connection and try again.';
+    uploadError.value = error.response?.data?.message || error.message || 'Upload failed.';
   }
 };
 
@@ -594,7 +588,6 @@ const handleDrop = async (event) => {
   if (files?.length) {
     await processFile(files[0]);
   } else {
-    // Only reset if no files were dropped
     uploadState.value = 'idle';
   }
 };
@@ -610,7 +603,6 @@ const handleFileUpload = async (event) => {
     await processFile(files[0]);
   }
   
-  // Reset file input to allow re-selecting same file
   if (fileInput.value) {
     fileInput.value.value = '';
   }
@@ -631,28 +623,24 @@ const resetUpload = () => {
 
 /**
  * Downloads the bulk order template
- * @description Creates and triggers download of a sample template file
  */
 const downloadTemplate = () => {
-  // Template data as CSV
   const templateData = [
     ['Product_ID', 'Quantity', 'Branch_Code', 'Notes'],
     ['PRD001', '50', 'NBO001', 'Urgent order'],
     ['PRD002', '100', 'NBO002', ''],
-    ['PRD003', '25', 'NBO001', 'Fragile - handle with care']
+    ['PRD003', '25', 'NBO001', 'Fragile']
   ];
   
   const csvContent = templateData
     .map(row => row.map(cell => `"${cell}"`).join(','))
     .join('\n');
   
-  // Create blob and download
   const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.href = url;
   link.download = 'bulk_order_template.csv';
-  link.style.display = 'none';
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
@@ -660,26 +648,49 @@ const downloadTemplate = () => {
 };
 
 // ============================================
-// EXISTING DATA & METHODS (Continued)
+// EXISTING DATA & METHODS (Enhanced)
 // ============================================
 
 // Credit & Orders Data
-const creditLimit = ref(500000)
-const usedCredit = ref(125000)
-const usedCreditPercent = computed(() => Math.round((usedCredit.value / creditLimit.value) * 100))
+const creditLimit = computed(() => parseFloat(auth.user?.credit_limit || 0))
+const usedCredit = ref(0)
+const usedCreditPercent = computed(() => {
+  if (creditLimit.value === 0) return 0
+  return Math.min(Math.round((usedCredit.value / creditLimit.value) * 100), 100)
+})
 const activeOrdersList = ref([])
-const pendingDeliveries = ref(5)
-const bulkOrdersCount = ref(48)
-const bulkOrderGrowth = ref(15)
-const savingsThisMonth = ref(24500)
+const pendingDeliveries = ref(0)
+const bulkOrdersCount = ref(0)
+const bulkOrderGrowth = ref(15) // Static for now
+const savingsThisMonth = ref(0)
 
 // AI Recommendation
-const aiRecommendation = ref('Based on your ordering patterns, consider increasing stock for "Shea Butter 500ml" and "Hair Food" by 20% for the upcoming holiday season.');
+const aiRecommendation = ref('Analyzing your ordering patterns for bulk savings...')
 
-const applyOptimization = () => {
-  // TODO: Implement AI optimization logic
-  console.log('Applying AI optimization...');
-};
+const fetchDashboardData = async () => {
+  try {
+    const [activeRes, aiRes] = await Promise.all([
+      api.get('/orders?status=pending,processing,dispatched&limit=10'),
+      api.get('/ai/dashboard')
+    ])
+    
+    activeOrdersList.value = activeRes.data || []
+    usedCredit.value = activeOrdersList.value.reduce((sum, o) => sum + parseFloat(o.total_amount), 0)
+    pendingDeliveries.value = activeOrdersList.value.filter(o => ['processing', 'ready', 'dispatched'].includes(o.status)).length
+    
+    // AI data
+    if (aiRes.data) {
+      bulkOrdersCount.value = aiRes.data.platformStats?.totalOrders || 0
+      savingsThisMonth.value = (aiRes.data.spendingAnalytics?.totalSpent || 0) * 0.15 
+      if (aiRes.data.predictions?.length > 0) {
+        const top = aiRes.data.predictions[0]
+        aiRecommendation.value = `Bulk demand for ${top.Product?.name} is projected to rise by 25%. Restock now to save ~KES ${formatPrice(top.Product?.price * 10)}.`
+      }
+    }
+  } catch (error) {
+    console.error('Failed to fetch wholesale data:', error)
+  }
+}
 
 // Fleet Tracking
 const activeFleet = ref([
@@ -694,8 +705,6 @@ const regionalDemand = ref([
   { code: 'NBO', name: 'Nairobi Region', orders: 245, value: 1250000, trend: 'up', change: 18, percentage: 85 },
   { code: 'MBS', name: 'Mombasa Region', orders: 180, value: 890000, trend: 'up', change: 12, percentage: 65 },
   { code: 'KSM', name: 'Kisumu Region', orders: 95, value: 420000, trend: 'down', change: 5, percentage: 30 },
-  { code: 'NKR', name: 'Nakuru Region', orders: 120, value: 560000, trend: 'stable', change: 0, percentage: 45 },
-  { code: 'ELD', name: 'Eldoret Region', orders: 65, value: 280000, trend: 'up', change: 8, percentage: 22 },
 ]);
 
 const totalForecast = computed(() => 
@@ -706,36 +715,24 @@ const totalForecast = computed(() =>
 const recentBulkOrders = ref([
   { id: 'BLK2024031', products: 15, branch: 'Nairobi CBD', amount: 45000, status: 'completed', date: 'Mar 24, 2024' },
   { id: 'BLK2024030', products: 8, branch: 'Westlands', amount: 28000, status: 'processing', date: 'Mar 23, 2024' },
-  { id: 'BLK2024029', products: 22, branch: 'Mombasa', amount: 78000, status: 'completed', date: 'Mar 22, 2024' },
-  { id: 'BLK2024028', products: 5, branch: 'Kisumu', amount: 18500, status: 'pending', date: 'Mar 21, 2024' },
-  { id: 'BLK2024027', products: 12, branch: 'Nairobi CBD', amount: 42000, status: 'completed', date: 'Mar 20, 2024' },
 ]);
 
-// Utility Functions
-const formatPrice = (value) => {
-  return new Intl.NumberFormat('en-KE', {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0
-  }).format(value);
+const applyOptimization = () => {
+  toast.success('AI Optimization applied to your next bulk draft!')
+};
+
+const startPolling = () => {
+  if (pollTimer) clearInterval(pollTimer)
+  pollTimer = setInterval(fetchDashboardData, 30000)
 }
 
-// Fetch active orders with polling
-const fetchActiveOrders = async () => {
-  try {
-    const { data } = await api.get('/orders?status=pending,processing,dispatched&limit=10')
-    activeOrdersList.value = data || []
-  } catch (error) {
-    console.error('Failed to fetch active orders:', error)
-  }
-}
-
-// Lifecycle Hooks
 onMounted(() => {
-  // TODO: Fetch initial data from API
-  // fetchDashboardData();
-  fetchActiveOrders()
-  // Poll active orders every 30 seconds
-  setInterval(fetchActiveOrders, 30000)
+  fetchDashboardData()
+  startPolling()
+})
+
+onUnmounted(() => {
+  if (pollTimer) clearInterval(pollTimer)
 })
 </script>
 

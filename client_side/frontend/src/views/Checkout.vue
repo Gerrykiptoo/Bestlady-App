@@ -104,11 +104,44 @@
           <span class="text-gray-500 font-medium">Grand Total</span>
           <span class="text-2xl font-black text-primary">KES {{ formatPrice(cart.total) }}</span>
         </div>
-        <button @click="placeOrder" :disabled="loading" class="w-full py-4 bg-primary text-white rounded-xl font-bold text-lg hover:opacity-90 disabled:opacity-50 transition">
+        <button @click="placeOrder" :disabled="loading" class="w-full py-4 bg-primary text-white rounded-xl font-bold text-lg hover:opacity-90 disabled:opacity-50 transition shadow-lg hover:shadow-xl">
           {{ loading ? 'Processing Order...' : 'Confirm & Place Order' }}
         </button>
       </section>
     </div>
+
+    <!-- Success/Status Modal -->
+    <Modal :show="showModal" @close="handleModalClose" :title="modalTitle" size="sm">
+      <div class="text-center py-6">
+        <div :class="[
+          'w-20 h-20 rounded-full mx-auto mb-6 flex items-center justify-center text-4xl',
+          modalType === 'success' ? 'bg-green-100 text-green-600' : 
+          modalType === 'warning' ? 'bg-orange-100 text-orange-600' : 'bg-red-100 text-red-600'
+        ]">
+          <span v-if="modalType === 'success'">✅</span>
+          <span v-else-if="modalType === 'warning'">⏳</span>
+          <span v-else>❌</span>
+        </div>
+        
+        <p class="text-gray-600 mb-8 px-4">{{ modalMessage }}</p>
+        
+        <div class="space-y-3 px-4">
+          <button 
+            @click="handleModalClose"
+            class="w-full py-3 bg-primary text-white font-bold rounded-xl hover:opacity-90 transition shadow-md"
+          >
+            Go to Dashboard
+          </button>
+          <button 
+            v-if="createdOrderId"
+            @click="$router.push(`/orders/${createdOrderId}`)"
+            class="w-full py-3 border-2 border-gray-200 text-gray-700 font-bold rounded-xl hover:bg-gray-50 transition"
+          >
+            View Order Details
+          </button>
+        </div>
+      </div>
+    </Modal>
   </div>
 </template>
 
@@ -120,6 +153,7 @@ import { useAuthStore } from '@/stores/auth';
 import api from '@/services/api';
 import { useToast } from 'vue-toast-notification';
 import { formatPrice } from '@/utils/formatters';
+import Modal from '@/components/common/Modal.vue';
 
 const cart = useCartStore();
 const auth = useAuthStore();
@@ -130,6 +164,13 @@ const delivery = ref('private_rider');
 const payment = ref('mpesa');
 const phoneNumber = ref(auth.user?.phone || '');
 const loading = ref(false);
+
+// Modal state
+const showModal = ref(false);
+const modalType = ref('success');
+const modalTitle = ref('');
+const modalMessage = ref('');
+const createdOrderId = ref(null);
 
 // New delivery fields
 const deliveryAddress = ref('');
@@ -171,6 +212,8 @@ const placeOrder = async () => {
       })
     });
 
+    createdOrderId.value = order.id;
+
     if (payment.value === 'mpesa') {
       try {
         await api.post(`/payment/stkpush`, {
@@ -178,22 +221,33 @@ const placeOrder = async () => {
           amount: cart.total,
           phone: phoneNumber.value
         });
-        toast.success('STK Push initiated! Check your phone.');
+        modalType.value = 'warning';
+        modalTitle.value = 'Payment Initiated';
+        modalMessage.value = 'Your order has been created. Please check your phone for the M-Pesa PIN prompt to complete payment.';
       } catch (stkErr) {
         console.error('STK push failed but order was created:', stkErr);
-        toast.warning('Order created, but payment prompt failed. You can try again from Order Details.');
+        modalType.value = 'warning';
+        modalTitle.value = 'Order Created';
+        modalMessage.value = 'Order created, but we couldn\'t send the M-Pesa prompt. You can try paying again from the Order Details page.';
       }
     } else {
-      toast.success('Order placed successfully via wallet!');
+      modalType.value = 'success';
+      modalTitle.value = 'Success!';
+      modalMessage.value = 'Your order has been placed successfully using your wallet balance.';
     }
 
     cart.clear();
-    router.push('/dashboard');
+    showModal.value = true;
   } catch (err) {
     toast.error(err.response?.data?.message || 'Error placing order');
   } finally {
     loading.value = false;
   }
+};
+
+const handleModalClose = () => {
+  showModal.value = false;
+  router.push('/dashboard');
 };
 
 // Fetch pickup stations on mount

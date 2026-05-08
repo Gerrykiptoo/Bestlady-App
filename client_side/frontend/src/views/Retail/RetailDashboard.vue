@@ -273,7 +273,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import api from '@/services/api'
@@ -291,6 +291,7 @@ const lowStockCount = ref(0)
 const monthlySpending = ref(0)
 const monthlySpendingTrend = ref(0)
 const recentOrders = ref([])
+let pollTimer = null
 
 // Regional Demand Data (Mocked from wholesale)
 const regionalDemand = ref([
@@ -339,37 +340,35 @@ const reorderFavorites = async () => {
 // Fetch dashboard data
 const fetchDashboardData = async () => {
   try {
-    const [ordersRes, alertsRes] = await Promise.all([
+    const [ordersRes, activeRes, aiRes] = await Promise.all([
       api.get('/orders?limit=5'),
+      api.get('/orders?status=pending,processing,dispatched&limit=10'),
       api.get('/ai/user/dashboard')
     ])
     
     recentOrders.value = ordersRes.data || []
-    lowStockCount.value = alertsRes.data.alerts?.length || 0
-    monthlySpending.value = alertsRes.data.spending?.totalSpent || 0
-    monthlySpendingTrend.value = alertsRes.data.spending?.trendPercent || 0
+    activeOrdersList.value = activeRes.data || []
+    lowStockCount.value = aiRes.data.alerts?.length || 0
+    monthlySpending.value = aiRes.data.spending?.totalSpent || 0
+    monthlySpendingTrend.value = aiRes.data.spending?.trendPercent || 0
     
   } catch (error) {
     console.error('Failed to load dashboard:', error)
-    toast.error('Failed to load dashboard data')
   }
 }
 
-// Fetch active orders with polling
-const fetchActiveOrders = async () => {
-  try {
-    const { data } = await api.get('/orders?status=pending,processing,dispatched&limit=10')
-    activeOrdersList.value = data || []
-  } catch (error) {
-    console.error('Failed to fetch active orders:', error)
-  }
+const startPolling = () => {
+  if (pollTimer) clearInterval(pollTimer)
+  pollTimer = setInterval(fetchDashboardData, 30000)
 }
 
 onMounted(() => {
   fetchDashboardData()
-  fetchActiveOrders()
-  // Poll active orders every 30 seconds
-  setInterval(fetchActiveOrders, 30000)
+  startPolling()
+})
+
+onUnmounted(() => {
+  if (pollTimer) clearInterval(pollTimer)
 })
 </script>
 

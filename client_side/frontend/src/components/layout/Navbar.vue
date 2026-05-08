@@ -168,7 +168,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useCartStore } from '@/stores/cart'
@@ -198,6 +198,16 @@ const logout = () => {
 const handleAvatarError = (e) => {
   e.target.src = '/default-avatar.png'
 }
+
+onMounted(() => {
+  if (auth.isAuthenticated) {
+    auth.refreshUserData().catch(err => {
+      if (err.response?.status === 401) {
+        auth.logout()
+      }
+    })
+  }
+})
 </script>
 
 <style scoped>

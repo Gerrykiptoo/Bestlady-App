@@ -22,3 +22,5 @@ router.post('/chat', optionalProtect, aiChat);
 router.post('/bulk-optimize', protect, bulkOptimize);
 
 module.exports = router;
+
+
