@@ -31,15 +31,17 @@ module.exports = (sequelize, DataTypes) => {
     confidence: { 
       type: DataTypes.FLOAT 
     },
-    created_at: { 
+    // ✅ Use correct column name: createdAt (camelCase) -> maps to "createdAt" in DB
+    createdAt: { 
       type: DataTypes.DATE, 
-      defaultValue: DataTypes.NOW 
+      defaultValue: DataTypes.NOW,
+      field: 'createdAt'      // explicitly map to the database column name
     }
   }, { 
     sequelize, 
     modelName: 'AIPrediction', 
     tableName: 'AIPredictions',
-    timestamps: false 
+    timestamps: false         // we manage createdAt manually
   });
   return AIPrediction;
 };

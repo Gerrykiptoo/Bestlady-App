@@ -1,40 +1,39 @@
 const { UserInventory, Product, AIPrediction, Order, OrderItem, User, sequelize } = require('../models');
 const { Op } = require('sequelize');
 const aiService = require('../services/aiService');
-const ss = require('simple-statistics'); // for admin forecast
+const ss = require('simple-statistics');
 
-// -------------------- 1. USER DASHBOARD (existing) --------------------
+// -------------------- 1. USER DASHBOARD --------------------
 const getUserDashboardData = async (req, res) => {
   try {
     const userId = req.user?.id;
 
     const platformAnalytics = await aiService.getPlatformAnalytics();
 
-    const stockAlerts = userId ? await UserInventory.findAll({
-      where: {
-        user_id: userId,
-        current_stock: { [Op.lte]: sequelize.col('reorder_point') }
-      },
-      include: [{ model: Product, attributes: ['id', 'name', 'image_url'] }],
-      limit: 5
-    }) : [];
+    const stockAlerts = userId
+      ? await UserInventory.findAll({
+          where: {
+            user_id: userId,
+            current_stock: { [Op.lte]: sequelize.col('UserInventory.reorder_point') }
+          },
+          include: [{ model: Product, attributes: ['id', 'name', 'image_url'] }],
+          limit: 5
+        })
+      : [];
 
     const predictions = await AIPrediction.findAll({
       where: { prediction_type: 'demand' },
-      include: [{ model: Product, attributes: ['id', 'name', 'sku', 'price'] }],
+      attributes: { exclude: ['createdAt'] },
+      include: [{ model: Product, attributes: ['id', 'name', 'sku'] }],
       limit: 8,
       order: [['confidence', 'DESC']]
     });
 
-    const platformStats = await sequelize.query(`
-      SELECT 
-        COUNT(DISTINCT o.user_id) as activeUsers,
-        COUNT(*) as totalOrders,
-        SUM(o.total_amount) as totalRevenue,
-        AVG(o.total_amount) as avgOrderValue
-      FROM Orders o 
-      WHERE o.payment_status = 'paid' AND o.createdAt > NOW() - INTERVAL 30 DAY
-    `, { type: sequelize.QueryTypes.SELECT });
+    // ✅ Single‑line query – avoids whitespace errors
+    const platformStats = await sequelize.query(
+      `SELECT COUNT(DISTINCT o.user_id) as activeUsers, COUNT(*) as totalOrders, SUM(o.total_amount) as totalRevenue, AVG(o.total_amount) as avgOrderValue FROM "Orders" o WHERE o.payment_status = 'paid' AND o."createdAt" > NOW() - INTERVAL '30 days'`,
+      { type: sequelize.QueryTypes.SELECT }
+    );
 
     let spendingAnalytics = { totalSpent: 0, trend: 'stable', trendPercent: 0 };
     if (userId) {
@@ -51,16 +50,17 @@ const getUserDashboardData = async (req, res) => {
       spendingAnalytics.month = startOfMonth.toLocaleString('default', { month: 'long' });
     }
 
-    const recommendations = userId ? 
-      await Product.findAll({
-        where: { is_active: true },
-        limit: 6,
-        order: [['sales_count', 'DESC']]
-      }) :
-      await Product.findAll({
-        where: { is_active: true, featured: true },
-        limit: 6
-      });
+    // ✅ Use a real column (createdAt) instead of non‑existent sales_count
+    const recommendations = userId
+      ? await Product.findAll({
+          where: { is_active: true },
+          limit: 6,
+          order: [['createdAt', 'DESC']]
+        })
+      : await Product.findAll({
+          where: { is_active: true, featured: true },
+          limit: 6
+        });
 
     res.json({
       stockAlerts,
@@ -79,18 +79,16 @@ const getUserDashboardData = async (req, res) => {
   }
 };
 
-// -------------------- 2. BULK OPTIMIZER (existing) --------------------
+// -------------------- 2. BULK OPTIMIZER --------------------
 const bulkOptimize = async (req, res) => {
   try {
     const userId = req.user.id;
-    
     const orders = await Order.findAll({
       where: { user_id: userId, payment_status: 'completed' },
       include: [{ model: OrderItem, include: [Product] }],
       order: [['createdAt', 'DESC']],
       limit: 50
     });
-
     if (orders.length === 0) return res.json([]);
 
     const productStats = {};
@@ -126,13 +124,12 @@ const bulkOptimize = async (req, res) => {
           productId: stat.productId,
           productName: stat.productName,
           currentAvgOrder: Math.round(avgQuantity),
-          recommendedQuantity: recommendedQuantity,
+          recommendedQuantity,
           totalPastOrders: stat.totalQuantity,
           reasoning: `You've ordered ${stat.totalQuantity} units total. Ordering ${recommendedQuantity} now could save ~KES ${Math.round(estimatedSavings)} with bulk pricing and prevent stockouts.`,
           confidence: Math.min(85 + Math.random() * 14, 99).toFixed(0)
         };
       });
-
     res.json(recommendations);
   } catch (error) {
     console.error('Bulk optimize error:', error);
@@ -140,7 +137,7 @@ const bulkOptimize = async (req, res) => {
   }
 };
 
-// -------------------- 3. AI CHAT (existing) --------------------
+// -------------------- 3. AI CHAT --------------------
 const aiChat = async (req, res) => {
   try {
     const { message, history } = req.body;
@@ -174,7 +171,7 @@ const aiChat = async (req, res) => {
     };
 
     if (!userId) {
-      // Guest chat logic (unchanged)
+      // ----- Guest chat logic (full) -----
       if (lowerMessage.includes('analytics') || lowerMessage.includes('insight')) {
         const platformData = await aiService.getPlatformAnalytics();
         const { summary } = platformData || {};
@@ -211,7 +208,7 @@ const aiChat = async (req, res) => {
       return res.json({ response });
     }
 
-    // Authenticated user chat logic (unchanged)
+    // ----- Authenticated user chat logic -----
     if (lowerMessage.includes('analytics') || lowerMessage.includes('my stats') || lowerMessage.includes('my spend')) {
       if (customerAnalytics) {
         response = `📊 Your Business Analytics:\n\n💰 Spending:\n• Total Spent: ${formatCurrency(customerAnalytics.totalSpent)}\n• Avg Order: ${formatCurrency(customerAnalytics.avgOrderValue)}\n• Orders: ${customerAnalytics.totalOrders}\n\n📈 Activity:\n• Monthly Purchases: ${customerAnalytics.purchaseFrequency}\n• Preferred: ${customerAnalytics.preferredPayment}\n\n🏆 Top Categories:\n`;
@@ -244,7 +241,7 @@ const aiChat = async (req, res) => {
     } else if (lowerMessage.includes('recommend') || lowerMessage.includes('suggestion')) {
       const topProducts = await Product.findAll({
         limit: 4,
-        order: [['sales_count', 'DESC']],
+        order: [['createdAt', 'DESC']],
         where: { is_active: true }
       });
       response = `✨ Recommended for your ${userContext.tier} tier:\n\n`;
@@ -263,27 +260,27 @@ const aiChat = async (req, res) => {
     } else if (lowerMessage.includes('best seller') || lowerMessage.includes('popular') || lowerMessage.includes('trending')) {
       const bestSellers = await OrderItem.findAll({
         attributes: ['product_id', [sequelize.fn('SUM', sequelize.col('quantity')), 'totalSold']],
-        include: [{ model: Product, attributes: ['name', 'price', 'image_url'] }],
+        include: [{ model: Product, attributes: ['name', 'retail_price', 'image_url'] }],
         group: ['product_id', 'Product.id'],
         order: [[sequelize.fn('SUM', sequelize.col('quantity')), 'DESC']],
         limit: 5
       });
       response = '🔥 Trending Products:\n\n';
       bestSellers.forEach((item, i) => {
-        response += `${i + 1}. ${item.Product.name} - ${formatCurrency(item.Product.price)}\n   Sold: ${item.dataValues.totalSold} units\n`;
+        response += `${i + 1}. ${item.Product.name} - ${formatCurrency(item.Product.retail_price)}\n   Sold: ${item.dataValues.totalSold} units\n`;
       });
     } else if (lowerMessage.includes('inventory') || lowerMessage.includes('stock') || lowerMessage.includes('low')) {
       const lowStockProducts = await Product.findAll({
         where: {
           is_active: true,
-          current_stock: { [Op.lt]: sequelize.col('reorder_level') }
+          current_stock: { [Op.lt]: sequelize.col('reorder_point') }
         },
         limit: 5
       });
       if (lowStockProducts.length > 0) {
         response = `⚠️ Low Stock Alert:\n\n`;
         lowStockProducts.forEach((p, i) => {
-          response += `${i + 1}. ${p.name}\n   Current: ${p.current_stock} | Reorder at: ${p.reorder_level}\n`;
+          response += `${i + 1}. ${p.name}\n   Current: ${p.current_stock} | Reorder at: ${p.reorder_point}\n`;
         });
         response += `\n💡 Consider restocking soon!`;
       } else {
@@ -299,13 +296,11 @@ const aiChat = async (req, res) => {
     res.json({ response, quickReplies });
   } catch (error) {
     console.error('AI Chat error:', error);
-    res.status(500).json({ 
-      response: "I'm sorry, I encountered an error. Please try again or contact support if the issue persists."
-    });
+    res.status(500).json({ response: "I'm sorry, I encountered an error. Please try again or contact support if the issue persists." });
   }
 };
 
-// -------------------- 4. ADMIN FORECAST (NEW) --------------------
+// -------------------- 4. ADMIN FORECAST --------------------
 const getAdminForecast = async (req, res) => {
   try {
     if (req.user.role !== 'admin') {
@@ -332,7 +327,6 @@ const getAdminForecast = async (req, res) => {
       });
     }
 
-    // Aggregate daily revenues
     const dailyMap = new Map();
     for (const order of orders) {
       const date = order.createdAt.toISOString().slice(0, 10);
@@ -389,13 +383,10 @@ const getAdminForecast = async (req, res) => {
       wholesalePercentage: (orders.filter(o => o.order_type === 'wholesale').length / orders.length * 100).toFixed(1)
     };
 
-    // Top selling products (simplified)
     const topProducts = await Order.findAll({
       attributes: [
         'id',
-        [sequelize.literal(`(
-          SELECT SUM(quantity) FROM "OrderItems" WHERE "OrderItems"."order_id" = "Order"."id"
-        )`), 'totalSold']
+        [sequelize.literal(`(SELECT SUM(quantity) FROM "OrderItems" WHERE "OrderItems"."order_id" = "Order"."id")`), 'totalSold']
       ],
       include: [{ model: Product, attributes: ['name', 'sku'] }],
       where: { payment_status: 'completed' },
@@ -424,7 +415,6 @@ const getAdminForecast = async (req, res) => {
   }
 };
 
-// Helper for summary when insufficient data
 function calculateOrderSummary(orders) {
   const totalRevenue = orders.reduce((s, o) => s + parseFloat(o.total_amount), 0);
   return {
@@ -436,7 +426,6 @@ function calculateOrderSummary(orders) {
   };
 }
 
-// -------------------- EXPORTS --------------------
 module.exports = {
   getUserDashboardData,
   bulkOptimize,

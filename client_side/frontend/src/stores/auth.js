@@ -1,9 +1,20 @@
 import { defineStore } from 'pinia';
 import api from '@/services/api';
 
+const safeParseJson = (key, defaultValue = null) => {
+  const item = localStorage.getItem(key);
+  if (!item || item === 'undefined') return defaultValue;
+  try {
+    return JSON.parse(item);
+  } catch (e) {
+    console.error(`Failed to parse ${key} from localStorage`, e);
+    return defaultValue;
+  }
+};
+
 export const useAuthStore = defineStore('auth', {
   state: () => ({
-    user: JSON.parse(localStorage.getItem('user')) || null,
+    user: safeParseJson('user'),
     token: localStorage.getItem('accessToken') || null,
     loading: false,
     error: null
