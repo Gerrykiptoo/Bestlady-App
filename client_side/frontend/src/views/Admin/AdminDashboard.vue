@@ -171,9 +171,45 @@
 
     <!-- ================= ANALYTICS TAB ================= -->
     <div v-if="activeTab === 'analytics'">
-      <!-- Keep your existing analytics content here (metrics, charts, etc.) -->
-      <div class="text-center py-12 text-gray-500">
-        Analytics content (metrics, charts, forecasts) goes here
+      <!-- Financial Reports Card -->
+      <div class="bg-white rounded-2xl shadow-md p-6 mb-8">
+        <h3 class="font-bold text-lg mb-4">📊 Download Financial Reports</h3>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div class="border rounded-lg p-4">
+            <h4 class="font-semibold">Orders Report</h4>
+            <div class="flex gap-2 mt-2">
+              <input type="date" v-model="reportStartDate" class="border rounded px-2 py-1 text-sm" />
+              <span>to</span>
+              <input type="date" v-model="reportEndDate" class="border rounded px-2 py-1 text-sm" />
+            </div>
+            <button @click="downloadReport('orders')" class="mt-3 w-full bg-primary-600 text-white py-2 rounded-lg text-sm hover:bg-primary-700">
+              Download Orders CSV
+            </button>
+          </div>
+          <div class="border rounded-lg p-4">
+            <h4 class="font-semibold">Products Sold Report</h4>
+            <div class="flex gap-2 mt-2">
+              <input type="date" v-model="reportStartDate" class="border rounded px-2 py-1 text-sm" />
+              <span>to</span>
+              <input type="date" v-model="reportEndDate" class="border rounded px-2 py-1 text-sm" />
+            </div>
+            <button @click="downloadReport('products_sold')" class="mt-3 w-full bg-primary-600 text-white py-2 rounded-lg text-sm hover:bg-primary-700">
+              Download Products Sold CSV
+            </button>
+          </div>
+          <div class="border rounded-lg p-4">
+            <h4 class="font-semibold">Stock Report</h4>
+            <button @click="downloadReport('stock')" class="mt-8 w-full bg-primary-600 text-white py-2 rounded-lg text-sm hover:bg-primary-700">
+              Download Stock CSV
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Placeholder for charts/metrics – replace with your actual analytics -->
+      <div class="bg-white rounded-2xl shadow-md p-6">
+        <h3 class="font-bold text-lg mb-4">📈 Platform Analytics</h3>
+        <p class="text-gray-500">Your charts and metrics will appear here.</p>
       </div>
     </div>
 
@@ -256,6 +292,10 @@ import { formatPrice } from '@/utils/formatters'
 const toast = useToast()
 const activeTab = ref('products')
 
+// ---------- Financial Reports ----------
+const reportStartDate = ref(new Date().toISOString().slice(0,10))
+const reportEndDate = ref(new Date().toISOString().slice(0,10))
+
 // ---------- Products ----------
 const products = ref([])
 const categories = ref([])
@@ -275,6 +315,10 @@ const productForm = ref({
   reorder_point: 10
 })
 
+// ---------- Users ----------
+const users = ref([])
+
+// ---------- Products Methods ----------
 const fetchProducts = async () => {
   try {
     const { data } = await api.get('/products')
@@ -373,9 +417,7 @@ const deleteProduct = async (id) => {
   }
 }
 
-// ---------- Users ----------
-const users = ref([])
-
+// ---------- Users Methods ----------
 const fetchUsers = async () => {
   try {
     const { data } = await api.get('/admin/users')
@@ -397,6 +439,28 @@ const updateUserField = async (user, field, value) => {
 
 const viewUserDetails = (user) => {
   toast.info(`Viewing ${user.business_name || user.username}`)
+}
+
+// ---------- Financial Reports ----------
+const downloadReport = async (type) => {
+  try {
+    let url = `/admin/reports/financial?reportType=${type}`
+    if (type !== 'stock') {
+      url += `&startDate=${reportStartDate.value}&endDate=${reportEndDate.value}`
+    }
+    const response = await api.get(url, { responseType: 'blob' })
+    const blob = new Blob([response.data], { type: 'text/csv' })
+    const link = document.createElement('a')
+    link.href = URL.createObjectURL(blob)
+    link.download = `${type}_report_${new Date().toISOString().slice(0,10)}.csv`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(link.href)
+    toast.success('Report downloaded')
+  } catch (error) {
+    toast.error('Failed to download report')
+  }
 }
 
 // ---------- Lifecycle ----------
