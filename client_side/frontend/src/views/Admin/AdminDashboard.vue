@@ -59,7 +59,7 @@
                 <td class="px-4 py-3"><img :src="prod.image_url || '/placeholder.jpg'" class="w-12 h-12 object-cover rounded" /></td>
                 <td class="px-4 py-3 font-medium">{{ prod.name }}</td>
                 <td class="px-4 py-3 text-sm">{{ prod.sku }}</td>
-                <td class="px-4 py-3 text-sm">{{ prod.Category?.name }}</td>
+                <td class="px-4 py-3 text-sm">{{ prod.Category?.name || 'N/A' }}</td>
                 <td class="px-4 py-3 text-sm">KES {{ formatPrice(prod.retail_price) }}</td>
                 <td class="px-4 py-3 text-sm">KES {{ formatPrice(prod.wholesale_price) }}</td>
                 <td class="px-4 py-3 text-sm">
@@ -69,12 +69,12 @@
                 </td>
                 <td class="px-4 py-3">
                   <div class="flex gap-2">
-                    <button @click="openProductModal(prod)" class="text-blue-600 hover:text-blue-800">
+                    <button @click="openProductModal(prod)" class="text-blue-600 hover:text-blue-800" title="Edit">
                       <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                       </svg>
                     </button>
-                    <button @click="deleteProduct(prod.id)" class="text-red-600 hover:text-red-800">
+                    <button @click="deleteProduct(prod.id)" class="text-red-600 hover:text-red-800" title="Delete">
                       <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                       </svg>
@@ -161,9 +161,9 @@
       </div>
     </div>
 
-    <!-- ================= ANALYTICS TAB (ENHANCED) ================= -->
+    <!-- ================= ANALYTICS TAB ================= -->
     <div v-if="activeTab === 'analytics'">
-      <!-- Key Metrics Cards -->
+      <!-- Key Metrics -->
       <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
         <div class="bg-white rounded-xl shadow p-4">
           <p class="text-sm text-gray-500">Total Revenue (30d)</p>
@@ -176,7 +176,6 @@
         <div class="bg-white rounded-xl shadow p-4">
           <p class="text-sm text-gray-500">Low Stock Items</p>
           <p class="text-2xl font-bold text-red-600">{{ lowStockCount }}</p>
-          <span class="text-xs text-gray-400">auto‑refresh every 30s</span>
         </div>
         <div class="bg-white rounded-xl shadow p-4">
           <p class="text-sm text-gray-500">Active Users</p>
@@ -184,7 +183,7 @@
         </div>
       </div>
 
-      <!-- Revenue Trend Chart -->
+      <!-- Revenue Chart -->
       <div class="bg-white rounded-2xl shadow-md p-6 mb-8">
         <h3 class="font-bold text-lg mb-4">📈 Revenue Trend (Last 30 Days)</h3>
         <div class="h-80">
@@ -194,15 +193,9 @@
 
       <!-- Inventory & Top Products -->
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-        <!-- Low Stock Items (real‑time) -->
         <div class="bg-white rounded-2xl shadow-md p-6">
-          <h3 class="font-bold text-lg mb-4 flex justify-between">
-            ⚠️ Low Stock Items
-            <span class="text-xs text-gray-400">updates every 30s</span>
-          </h3>
-          <div v-if="lowStockItems.length === 0" class="text-gray-500 text-center py-4">
-            ✅ All stock levels are healthy
-          </div>
+          <h3 class="font-bold text-lg mb-4">⚠️ Low Stock Items</h3>
+          <div v-if="lowStockItems.length === 0" class="text-gray-500 text-center py-4">✅ All stock levels are healthy</div>
           <div v-else class="space-y-3">
             <div v-for="item in lowStockItems" :key="item.id" class="border-l-4 border-red-500 bg-red-50 p-3 rounded">
               <div class="flex justify-between">
@@ -214,12 +207,9 @@
           </div>
         </div>
 
-        <!-- Top Selling Products -->
         <div class="bg-white rounded-2xl shadow-md p-6">
           <h3 class="font-bold text-lg mb-4">🏆 Top Selling Products (30d)</h3>
-          <div v-if="topProducts.length === 0" class="text-gray-500 text-center py-4">
-            No sales data yet
-          </div>
+          <div v-if="topProducts.length === 0" class="text-gray-500 text-center py-4">No sales data yet</div>
           <div v-else class="space-y-4">
             <div v-for="(prod, idx) in topProducts" :key="prod.product_id" class="flex items-center gap-3">
               <div class="w-6 text-center font-bold">{{ idx+1 }}</div>
@@ -234,8 +224,8 @@
         </div>
       </div>
 
-      <!-- Financial Reports Downloads -->
-      <div class="bg-white rounded-2xl shadow-md p-6 mb-8">
+      <!-- Financial Reports -->
+      <div class="bg-white rounded-2xl shadow-md p-6">
         <h3 class="font-bold text-lg mb-4">📊 Download Financial Reports</h3>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div class="border rounded-lg p-4">
@@ -272,7 +262,7 @@
 
     <!-- ================= PRODUCT MODAL ================= -->
     <Modal :show="productModalVisible" @close="closeProductModal">
-      <div class="p-6">
+      <div class="p-6 max-h-[80vh] overflow-y-auto">
         <h3 class="text-xl font-bold mb-4">{{ editingProduct ? 'Edit Product' : 'Add Product' }}</h3>
         <form @submit.prevent="saveProduct" class="space-y-4">
           <div>
@@ -336,6 +326,49 @@
         </form>
       </div>
     </Modal>
+
+    <!-- ================= USER DETAILS MODAL ================= -->
+    <Modal :show="userDetailsModalVisible" @close="closeUserDetailsModal" size="lg">
+      <div class="p-6 max-h-[80vh] overflow-y-auto">
+        <div class="flex justify-between items-center mb-4">
+          <h3 class="text-xl font-bold">User Details: {{ selectedUser?.business_name || selectedUser?.username }}</h3>
+          <button @click="downloadUserData" class="bg-primary-600 text-white px-3 py-1 rounded text-sm hover:bg-primary-700">📥 Download JSON</button>
+        </div>
+        <div class="grid grid-cols-2 gap-4 mb-6 p-4 bg-gray-50 rounded-lg">
+          <div><span class="font-semibold">Email:</span> {{ selectedUser?.email }}</div>
+          <div><span class="font-semibold">Phone:</span> {{ selectedUser?.phone || 'N/A' }}</div>
+          <div><span class="font-semibold">Tier:</span> {{ selectedUser?.tier }}</div>
+          <div><span class="font-semibold">Role:</span> {{ selectedUser?.role }}</div>
+          <div><span class="font-semibold">KYC Status:</span> {{ selectedUser?.kyc_status || 'pending' }}</div>
+          <div><span class="font-semibold">Wallet Balance:</span> KES {{ formatPrice(selectedUser?.wallet_balance) }}</div>
+          <div><span class="font-semibold">Credit Limit:</span> KES {{ formatPrice(selectedUser?.credit_limit) }}</div>
+          <div><span class="font-semibold">Joined:</span> {{ formatDate(selectedUser?.createdAt) }}</div>
+          <div><span class="font-semibold">Active:</span> {{ selectedUser?.is_active ? '✅ Yes' : '❌ No' }}</div>
+          <div><span class="font-semibold">Business Name:</span> {{ selectedUser?.business_name || 'N/A' }}</div>
+        </div>
+        <h4 class="font-semibold text-lg mt-4 mb-2">📦 Orders</h4>
+        <div class="overflow-x-auto mb-6">
+          <table class="min-w-full text-sm border">
+            <thead class="bg-gray-100"><tr><th class="px-3 py-2">Order #</th><th>Date</th><th>Amount</th><th>Status</th><th>Payment Status</th></tr></thead>
+            <tbody>
+              <tr v-for="order in userOrders" :key="order.id" class="border-b"><td class="px-3 py-2">{{ order.order_number }}</td><td>{{ formatDate(order.createdAt) }}</td><td>KES {{ formatPrice(order.total_amount) }}</td><td class="capitalize">{{ order.status }}</td><td class="capitalize">{{ order.payment_status }}</td></tr>
+              <tr v-if="userOrders.length === 0"><td colspan="5" class="text-center py-3 text-gray-500">No orders found</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <h4 class="font-semibold text-lg mt-4 mb-2">💰 Wallet Transactions</h4>
+        <div class="overflow-x-auto">
+          <table class="min-w-full text-sm border">
+            <thead class="bg-gray-100"><tr><th>Type</th><th>Amount</th><th>Status</th><th>Date</th><th>Reference</th></tr></thead>
+            <tbody>
+              <tr v-for="tx in userTransactions" :key="tx.id" class="border-b"><td class="capitalize">{{ tx.transaction_type }}</td><td>KES {{ formatPrice(tx.amount) }}</td><td class="capitalize">{{ tx.status }}</td><td>{{ formatDate(tx.createdAt) }}</td><td>{{ tx.reference_id || '-' }}</td></tr>
+              <tr v-if="userTransactions.length === 0"><td colspan="5" class="text-center py-3 text-gray-500">No transactions found</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="flex justify-end mt-6"><button @click="closeUserDetailsModal" class="px-4 py-2 bg-gray-300 rounded-lg hover:bg-gray-400">Close</button></div>
+      </div>
+    </Modal>
   </div>
 </template>
 
@@ -345,7 +378,7 @@ import { Chart, registerables } from 'chart.js'
 import api from '@/services/api'
 import Modal from '@/components/common/Modal.vue'
 import { useToast } from 'vue-toast-notification'
-import { formatPrice } from '@/utils/formatters'
+import { formatPrice, formatDate } from '@/utils/formatters'
 
 Chart.register(...registerables)
 
@@ -364,21 +397,19 @@ const editingProduct = ref(null)
 const imageFile = ref(null)
 const imagePreview = ref('')
 const productForm = ref({
-  name: '',
-  sku: '',
-  description: '',
-  category_id: '',
-  retail_price: 0,
-  wholesale_price: 0,
-  unit: 'piece',
-  current_stock: 0,
-  reorder_point: 10
+  name: '', sku: '', description: '', category_id: '',
+  retail_price: 0, wholesale_price: 0, unit: 'piece',
+  current_stock: 0, reorder_point: 10
 })
 
 // ---------- Users ----------
 const users = ref([])
+const userDetailsModalVisible = ref(false)
+const selectedUser = ref(null)
+const userOrders = ref([])
+const userTransactions = ref([])
 
-// ---------- Analytics Data ----------
+// ---------- Analytics ----------
 const metrics = ref({ totalRevenue: 0, totalOrders: 0 })
 const lowStockItems = ref([])
 const lowStockCount = ref(0)
@@ -388,12 +419,14 @@ const revenueChart = ref(null)
 let revenueChartInstance = null
 let pollInterval = null
 
-// ---------- Products Methods ----------
+// ---------- Products API ----------
 const fetchProducts = async () => {
   try {
     const { data } = await api.get('/products')
     products.value = data.products || []
+    console.log('Products loaded:', products.value.length)
   } catch (err) {
+    console.error('Failed to load products', err)
     toast.error('Failed to load products')
   }
 }
@@ -402,9 +435,7 @@ const fetchCategories = async () => {
   try {
     const { data } = await api.get('/categories')
     categories.value = data
-  } catch (err) {
-    console.error('Failed to load categories', err)
-  }
+  } catch (err) { console.error(err) }
 }
 
 const openProductModal = (product = null) => {
@@ -414,15 +445,9 @@ const openProductModal = (product = null) => {
     imagePreview.value = product.image_url || ''
   } else {
     productForm.value = {
-      name: '',
-      sku: '',
-      description: '',
-      category_id: '',
-      retail_price: 0,
-      wholesale_price: 0,
-      unit: 'piece',
-      current_stock: 0,
-      reorder_point: 10
+      name: '', sku: '', description: '', category_id: '',
+      retail_price: 0, wholesale_price: 0, unit: 'piece',
+      current_stock: 0, reorder_point: 10
     }
     imagePreview.value = ''
     imageFile.value = null
@@ -452,20 +477,14 @@ const saveProduct = async () => {
       formData.append(key, productForm.value[key])
     }
   })
-  if (imageFile.value) {
-    formData.append('image', imageFile.value)
-  }
+  if (imageFile.value) formData.append('image', imageFile.value)
 
   try {
     if (editingProduct.value) {
-      await api.put(`/products/${editingProduct.value.id}`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      })
+      await api.put(`/products/${editingProduct.value.id}`, formData, { headers: { 'Content-Type': 'multipart/form-data' } })
       toast.success('Product updated')
     } else {
-      await api.post('/products', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      })
+      await api.post('/products', formData, { headers: { 'Content-Type': 'multipart/form-data' } })
       toast.success('Product created')
     }
     closeProductModal()
@@ -481,20 +500,16 @@ const deleteProduct = async (id) => {
       await api.delete(`/products/${id}`)
       toast.success('Product deleted')
       fetchProducts()
-    } catch (err) {
-      toast.error('Failed to delete product')
-    }
+    } catch (err) { toast.error('Failed to delete product') }
   }
 }
 
-// ---------- Users Methods ----------
+// ---------- Users API ----------
 const fetchUsers = async () => {
   try {
     const { data } = await api.get('/admin/users')
     users.value = data.users || []
-  } catch (err) {
-    toast.error('Failed to load users')
-  }
+  } catch (err) { toast.error('Failed to load users') }
 }
 
 const updateUserField = async (user, field, value) => {
@@ -507,73 +522,89 @@ const updateUserField = async (user, field, value) => {
   }
 }
 
-const viewUserDetails = (user) => {
-  toast.info(`Viewing ${user.business_name || user.username}`)
+const viewUserDetails = async (user) => {
+  selectedUser.value = user
+  userDetailsModalVisible.value = true
+  try {
+    const [ordersRes, walletRes] = await Promise.all([
+      api.get(`/orders?userId=${user.id}&limit=50`),
+      api.get(`/wallet/transactions?userId=${user.id}&limit=50`)
+    ])
+    userOrders.value = ordersRes.data || []
+    userTransactions.value = walletRes.data || []
+  } catch (error) {
+    console.error('Failed to fetch user details', error)
+    toast.error('Could not load user details')
+  }
+}
+
+const closeUserDetailsModal = () => {
+  userDetailsModalVisible.value = false
+  selectedUser.value = null
+  userOrders.value = []
+  userTransactions.value = []
+}
+
+const downloadUserData = () => {
+  if (!selectedUser.value) return
+  const data = { user: selectedUser.value, orders: userOrders.value, transactions: userTransactions.value }
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `user_${selectedUser.value.id}_data.json`
+  a.click()
+  URL.revokeObjectURL(url)
+  toast.success('User data downloaded')
 }
 
 // ---------- Reports ----------
 const downloadReport = async (type) => {
   try {
     let url = `/admin/reports/financial?reportType=${type}`
-    if (type !== 'stock') {
-      url += `&startDate=${reportStartDate.value}&endDate=${reportEndDate.value}`
-    }
+    if (type !== 'stock') url += `&startDate=${reportStartDate.value}&endDate=${reportEndDate.value}`
     const response = await api.get(url, { responseType: 'blob' })
     const blob = new Blob([response.data], { type: 'text/csv' })
     const link = document.createElement('a')
     link.href = URL.createObjectURL(blob)
     link.download = `${type}_report_${new Date().toISOString().slice(0,10)}.csv`
-    document.body.appendChild(link)
     link.click()
-    document.body.removeChild(link)
     URL.revokeObjectURL(link.href)
     toast.success('Report downloaded')
-  } catch (error) {
-    toast.error('Failed to download report')
-  }
+  } catch (error) { toast.error('Failed to download report') }
 }
 
-// ---------- Analytics (Charts + Real‑time Polling) ----------
+// ---------- Analytics ----------
 const fetchAnalytics = async () => {
   try {
-    // Sales analytics
     const salesRes = await api.get('/admin/analytics/sales')
     const dailySales = salesRes.data.dailySales || []
     metrics.value.totalRevenue = salesRes.data.totals?.totalRevenue || 0
     metrics.value.totalOrders = salesRes.data.totals?.totalOrders || 0
 
-    // Inventory health
     const inventoryRes = await api.get('/admin/analytics/inventory')
     lowStockItems.value = inventoryRes.data.lowStock?.items || []
     lowStockCount.value = inventoryRes.data.lowStock?.total || 0
     topProducts.value = inventoryRes.data.topSelling || []
 
-    // Active users (from platform analytics)
     const platformRes = await api.get('/admin/analytics/platform')
     activeUsers.value = platformRes.data.totalUsers || 0
 
     await nextTick()
     renderChart(dailySales)
-  } catch (err) {
-    console.error('Failed to fetch analytics:', err)
-    // Don't show toast on every poll failure, just log
-  }
+  } catch (err) { console.error('Analytics error:', err) }
 }
 
 const renderChart = (dailySales) => {
   if (revenueChartInstance) revenueChartInstance.destroy()
   if (!revenueChart.value) return
-
-  const labels = dailySales.map(d => d.date)
-  const data = dailySales.map(d => d.totalRevenue || 0)
-
   revenueChartInstance = new Chart(revenueChart.value, {
     type: 'line',
     data: {
-      labels,
+      labels: dailySales.map(d => d.date),
       datasets: [{
         label: 'Revenue (KES)',
-        data,
+        data: dailySales.map(d => d.totalRevenue || 0),
         borderColor: '#8B4513',
         backgroundColor: 'rgba(139, 69, 19, 0.1)',
         tension: 0.4,
@@ -583,12 +614,7 @@ const renderChart = (dailySales) => {
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      scales: {
-        y: {
-          beginAtZero: true,
-          ticks: { callback: (val) => 'KES ' + val.toLocaleString() }
-        }
-      }
+      scales: { y: { beginAtZero: true, ticks: { callback: (val) => 'KES ' + val.toLocaleString() } } }
     }
   })
 }
@@ -599,7 +625,6 @@ onMounted(() => {
   fetchCategories()
   fetchUsers()
   fetchAnalytics()
-  // Poll every 30 seconds for real‑time stock changes
   pollInterval = setInterval(fetchAnalytics, 30000)
 })
 

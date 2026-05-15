@@ -58,7 +58,7 @@ const getSalesAnalytics = async (req, res) => {
   }
 };
 
-// @desc    Get inventory health (fixed topSelling query)
+// @desc    Get inventory health (FIXED: quoted alias in ORDER BY)
 const getInventoryHealth = async (req, res) => {
   try {
     const lowStock = await Product.findAndCountAll({
@@ -76,7 +76,7 @@ const getInventoryHealth = async (req, res) => {
       ],
       include: [{ model: Product, attributes: ['id', 'name', 'sku', 'image_url', 'retail_price', 'wholesale_price'] }],
       group: ['product_id', 'Product.id'],
-      order: [[sequelize.literal('totalSold'), 'DESC']],
+      order: [[sequelize.literal('"totalSold"'), 'DESC']],   // ✅ double quotes fix
       limit: 10,
       where: {
         createdAt: { [Op.gte]: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) }
