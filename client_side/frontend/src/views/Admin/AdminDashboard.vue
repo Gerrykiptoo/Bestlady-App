@@ -1,6 +1,5 @@
 <template>
   <div class="p-6 bg-gradient-to-br from-gray-50 to-gray-100 min-h-screen">
-    <!-- Header -->
     <div class="mb-8">
       <h1 class="text-3xl font-bold bg-gradient-to-r from-primary-600 to-secondary-500 bg-clip-text text-transparent">
         Admin Dashboard
@@ -41,7 +40,6 @@
           </button>
         </div>
 
-        <!-- Products Table -->
         <div class="overflow-x-auto">
           <table class="w-full">
             <thead class="bg-gray-50">
@@ -58,9 +56,7 @@
             </thead>
             <tbody class="divide-y divide-gray-100">
               <tr v-for="prod in products" :key="prod.id" class="hover:bg-gray-50">
-                <td class="px-4 py-3">
-                  <img :src="prod.image_url || '/placeholder.jpg'" class="w-12 h-12 object-cover rounded" />
-                </td>
+                <td class="px-4 py-3"><img :src="prod.image_url || '/placeholder.jpg'" class="w-12 h-12 object-cover rounded" /></td>
                 <td class="px-4 py-3 font-medium">{{ prod.name }}</td>
                 <td class="px-4 py-3 text-sm">{{ prod.sku }}</td>
                 <td class="px-4 py-3 text-sm">{{ prod.Category?.name }}</td>
@@ -143,7 +139,6 @@
                     v-model.number="user.credit_limit"
                     @blur="updateUserField(user, 'credit_limit', user.credit_limit)"
                     class="w-28 px-2 py-1 border rounded"
-                    :disabled="user.tier !== 'wholesale'"
                   />
                 </td>
                 <td class="px-6 py-4">
@@ -160,18 +155,86 @@
                   <button @click="viewUserDetails(user)" class="text-primary-600 hover:underline">View</button>
                 </td>
               </tr>
-              <tr v-if="users.length === 0">
-                <td colspan="7" class="px-6 py-12 text-center text-gray-500">No users found</td>
-              </tr>
             </tbody>
           </table>
         </div>
       </div>
     </div>
 
-    <!-- ================= ANALYTICS TAB ================= -->
+    <!-- ================= ANALYTICS TAB (ENHANCED) ================= -->
     <div v-if="activeTab === 'analytics'">
-      <!-- Financial Reports Card -->
+      <!-- Key Metrics Cards -->
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+        <div class="bg-white rounded-xl shadow p-4">
+          <p class="text-sm text-gray-500">Total Revenue (30d)</p>
+          <p class="text-2xl font-bold text-green-600">KES {{ formatPrice(metrics.totalRevenue || 0) }}</p>
+        </div>
+        <div class="bg-white rounded-xl shadow p-4">
+          <p class="text-sm text-gray-500">Total Orders (30d)</p>
+          <p class="text-2xl font-bold text-blue-600">{{ metrics.totalOrders || 0 }}</p>
+        </div>
+        <div class="bg-white rounded-xl shadow p-4">
+          <p class="text-sm text-gray-500">Low Stock Items</p>
+          <p class="text-2xl font-bold text-red-600">{{ lowStockCount }}</p>
+          <span class="text-xs text-gray-400">auto‑refresh every 30s</span>
+        </div>
+        <div class="bg-white rounded-xl shadow p-4">
+          <p class="text-sm text-gray-500">Active Users</p>
+          <p class="text-2xl font-bold text-purple-600">{{ activeUsers || 0 }}</p>
+        </div>
+      </div>
+
+      <!-- Revenue Trend Chart -->
+      <div class="bg-white rounded-2xl shadow-md p-6 mb-8">
+        <h3 class="font-bold text-lg mb-4">📈 Revenue Trend (Last 30 Days)</h3>
+        <div class="h-80">
+          <canvas ref="revenueChart"></canvas>
+        </div>
+      </div>
+
+      <!-- Inventory & Top Products -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+        <!-- Low Stock Items (real‑time) -->
+        <div class="bg-white rounded-2xl shadow-md p-6">
+          <h3 class="font-bold text-lg mb-4 flex justify-between">
+            ⚠️ Low Stock Items
+            <span class="text-xs text-gray-400">updates every 30s</span>
+          </h3>
+          <div v-if="lowStockItems.length === 0" class="text-gray-500 text-center py-4">
+            ✅ All stock levels are healthy
+          </div>
+          <div v-else class="space-y-3">
+            <div v-for="item in lowStockItems" :key="item.id" class="border-l-4 border-red-500 bg-red-50 p-3 rounded">
+              <div class="flex justify-between">
+                <span class="font-semibold">{{ item.name }}</span>
+                <span class="text-red-600 font-bold">{{ item.current_stock }} units left</span>
+              </div>
+              <div class="text-sm text-gray-500">Reorder at: {{ item.reorder_point }}</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Top Selling Products -->
+        <div class="bg-white rounded-2xl shadow-md p-6">
+          <h3 class="font-bold text-lg mb-4">🏆 Top Selling Products (30d)</h3>
+          <div v-if="topProducts.length === 0" class="text-gray-500 text-center py-4">
+            No sales data yet
+          </div>
+          <div v-else class="space-y-4">
+            <div v-for="(prod, idx) in topProducts" :key="prod.product_id" class="flex items-center gap-3">
+              <div class="w-6 text-center font-bold">{{ idx+1 }}</div>
+              <img :src="prod.Product?.image_url || '/placeholder.jpg'" class="w-10 h-10 rounded object-cover" />
+              <div class="flex-1">
+                <p class="font-medium">{{ prod.Product?.name }}</p>
+                <p class="text-xs text-gray-500">{{ prod.totalSold }} units sold</p>
+              </div>
+              <p class="font-semibold text-primary-600">KES {{ formatPrice(prod.revenue || 0) }}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Financial Reports Downloads -->
       <div class="bg-white rounded-2xl shadow-md p-6 mb-8">
         <h3 class="font-bold text-lg mb-4">📊 Download Financial Reports</h3>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -204,12 +267,6 @@
             </button>
           </div>
         </div>
-      </div>
-
-      <!-- Placeholder for charts/metrics – replace with your actual analytics -->
-      <div class="bg-white rounded-2xl shadow-md p-6">
-        <h3 class="font-bold text-lg mb-4">📈 Platform Analytics</h3>
-        <p class="text-gray-500">Your charts and metrics will appear here.</p>
       </div>
     </div>
 
@@ -283,16 +340,19 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted, nextTick } from 'vue'
+import { Chart, registerables } from 'chart.js'
 import api from '@/services/api'
 import Modal from '@/components/common/Modal.vue'
 import { useToast } from 'vue-toast-notification'
 import { formatPrice } from '@/utils/formatters'
 
+Chart.register(...registerables)
+
 const toast = useToast()
 const activeTab = ref('products')
 
-// ---------- Financial Reports ----------
+// ---------- Reports ----------
 const reportStartDate = ref(new Date().toISOString().slice(0,10))
 const reportEndDate = ref(new Date().toISOString().slice(0,10))
 
@@ -317,6 +377,16 @@ const productForm = ref({
 
 // ---------- Users ----------
 const users = ref([])
+
+// ---------- Analytics Data ----------
+const metrics = ref({ totalRevenue: 0, totalOrders: 0 })
+const lowStockItems = ref([])
+const lowStockCount = ref(0)
+const topProducts = ref([])
+const activeUsers = ref(0)
+const revenueChart = ref(null)
+let revenueChartInstance = null
+let pollInterval = null
 
 // ---------- Products Methods ----------
 const fetchProducts = async () => {
@@ -433,7 +503,7 @@ const updateUserField = async (user, field, value) => {
     toast.success(`${field} updated`)
   } catch (err) {
     toast.error(`Failed to update ${field}`)
-    fetchUsers() // revert
+    fetchUsers()
   }
 }
 
@@ -441,7 +511,7 @@ const viewUserDetails = (user) => {
   toast.info(`Viewing ${user.business_name || user.username}`)
 }
 
-// ---------- Financial Reports ----------
+// ---------- Reports ----------
 const downloadReport = async (type) => {
   try {
     let url = `/admin/reports/financial?reportType=${type}`
@@ -463,11 +533,79 @@ const downloadReport = async (type) => {
   }
 }
 
+// ---------- Analytics (Charts + Real‑time Polling) ----------
+const fetchAnalytics = async () => {
+  try {
+    // Sales analytics
+    const salesRes = await api.get('/admin/analytics/sales')
+    const dailySales = salesRes.data.dailySales || []
+    metrics.value.totalRevenue = salesRes.data.totals?.totalRevenue || 0
+    metrics.value.totalOrders = salesRes.data.totals?.totalOrders || 0
+
+    // Inventory health
+    const inventoryRes = await api.get('/admin/analytics/inventory')
+    lowStockItems.value = inventoryRes.data.lowStock?.items || []
+    lowStockCount.value = inventoryRes.data.lowStock?.total || 0
+    topProducts.value = inventoryRes.data.topSelling || []
+
+    // Active users (from platform analytics)
+    const platformRes = await api.get('/admin/analytics/platform')
+    activeUsers.value = platformRes.data.totalUsers || 0
+
+    await nextTick()
+    renderChart(dailySales)
+  } catch (err) {
+    console.error('Failed to fetch analytics:', err)
+    // Don't show toast on every poll failure, just log
+  }
+}
+
+const renderChart = (dailySales) => {
+  if (revenueChartInstance) revenueChartInstance.destroy()
+  if (!revenueChart.value) return
+
+  const labels = dailySales.map(d => d.date)
+  const data = dailySales.map(d => d.totalRevenue || 0)
+
+  revenueChartInstance = new Chart(revenueChart.value, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [{
+        label: 'Revenue (KES)',
+        data,
+        borderColor: '#8B4513',
+        backgroundColor: 'rgba(139, 69, 19, 0.1)',
+        tension: 0.4,
+        fill: true
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        y: {
+          beginAtZero: true,
+          ticks: { callback: (val) => 'KES ' + val.toLocaleString() }
+        }
+      }
+    }
+  })
+}
+
 // ---------- Lifecycle ----------
 onMounted(() => {
   fetchProducts()
   fetchCategories()
   fetchUsers()
+  fetchAnalytics()
+  // Poll every 30 seconds for real‑time stock changes
+  pollInterval = setInterval(fetchAnalytics, 30000)
+})
+
+onUnmounted(() => {
+  if (pollInterval) clearInterval(pollInterval)
+  if (revenueChartInstance) revenueChartInstance.destroy()
 })
 </script>
 

@@ -22,8 +22,8 @@ onMounted(() => {
     router.replace('/agent');
   } else if (tier === 'wholesale') {
     router.replace('/wholesale');
-  } else if (role === 'user') {
-    router.replace('/user/dashboard');
+  } else if (tier === 'retail' || role === 'user') {
+    router.replace('/retail');
   } else {
     router.replace('/');
   }

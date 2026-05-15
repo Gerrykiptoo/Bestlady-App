@@ -48,6 +48,8 @@
             class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all bg-white"
           >
             <option value="user">Registered User</option>
+            <option value="staff">Staff Member</option>
+            <option value="agent">Agent</option>
             <option value="admin">Admin</option>
           </select>
         </div>
@@ -146,9 +148,9 @@ const handleLogin = async () => {
   try {
     const response = await auth.login(credentials);
     
-    // Validate role if logging in as admin
-    if (credentials.userType === 'admin' && response.user.role !== 'admin') {
-      toast.error('You do not have admin privileges');
+    // Validate role if logging in as admin/staff/agent
+    if (credentials.userType !== 'user' && response.user.role !== credentials.userType) {
+      toast.error(`You do not have ${credentials.userType} privileges`);
       auth.logout();
       return;
     }
