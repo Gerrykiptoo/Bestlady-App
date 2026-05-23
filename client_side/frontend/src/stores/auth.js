@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia';
 import api from '@/services/api';
+import { initSocket, disconnectSocket } from '@/services/socket';
 
 const safeParseJson = (key, defaultValue = null) => {
   const item = localStorage.getItem(key);
@@ -34,6 +35,10 @@ export const useAuthStore = defineStore('auth', {
         localStorage.setItem('accessToken', data.accessToken);
         localStorage.setItem('refreshToken', data.refreshToken);
         localStorage.setItem('user', JSON.stringify(data.user));
+        
+        // Initialize socket
+        initSocket(data.user.id);
+        
         return data;
       } catch (err) {
         this.error = err.response?.data?.message || 'Login failed';
@@ -48,6 +53,7 @@ export const useAuthStore = defineStore('auth', {
       localStorage.removeItem('accessToken');
       localStorage.removeItem('refreshToken');
       localStorage.removeItem('user');
+      disconnectSocket();
     },
     updateUser(userData) {
       this.user = { ...this.user, ...userData };

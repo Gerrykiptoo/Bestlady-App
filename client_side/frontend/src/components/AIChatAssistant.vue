@@ -86,32 +86,25 @@
             </div>
           </div>
 
-          <!-- Bulk Optimization Recommendations -->
+          <!-- Bulk Order CTA card -->
           <div v-if="showOptimizations && optimizations.length > 0" class="flex justify-start">
-            <div class="bg-white border-2 border-purple-200 rounded-2xl p-4 shadow-sm w-full max-w-[90%]">
+            <div class="bg-gradient-to-br from-purple-50 to-pink-50 border-2 border-purple-200 rounded-2xl p-4 shadow-sm w-full max-w-[90%]">
               <div class="flex items-center gap-2 mb-3">
                 <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                <h4 class="font-bold text-purple-900">Bulk Order Recommendations</h4>
+                <h4 class="font-bold text-purple-900">{{ optimizations.length }} Items Ready</h4>
+                <span v-if="pendingTierInfo?.discountPercent > 0" class="ml-auto text-xs font-bold bg-green-100 text-green-700 px-2 py-0.5 rounded-full">
+                  {{ pendingTierInfo.discountPercent }}% OFF
+                </span>
               </div>
-              <div class="space-y-3">
-                <div v-for="(rec, idx) in optimizations" :key="idx" class="bg-purple-50 rounded-xl p-3 border border-purple-100">
-                  <div class="flex justify-between items-start">
-                    <div class="flex-1">
-                      <p class="font-bold text-gray-800">{{ rec.productName }}</p>
-                      <p class="text-xs text-gray-600 mb-1">Past orders: {{ rec.totalPastOrders }} units</p>
-                      <p class="text-sm text-purple-700 font-semibold">Order {{ rec.recommendedQuantity }} units</p>
-                      <p class="text-[10px] text-gray-500 mt-1">{{ rec.reasoning }}</p>
-                    </div>
-                    <button 
-                      @click="addToCart(rec.productId, rec.recommendedQuantity)"
-                      class="bg-purple-600 text-white px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-purple-700 transition"
-                    >
-                      Add All
-                    </button>
-                  </div>
-                </div>
-              </div>
-              <button @click="showOptimizations = false" class="mt-2 text-xs text-gray-500 hover:underline">Dismiss</button>
+              <p class="text-xs text-gray-500 mb-3">Your personalized bulk order with loyalty discounts is ready to place and pay.</p>
+              <button
+                @click="goToOrderReview"
+                class="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white py-2.5 rounded-xl font-bold text-sm hover:from-purple-700 hover:to-pink-700 transition flex items-center justify-center gap-2"
+              >
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" /></svg>
+                Review & Place Order
+              </button>
+              <button @click="showOptimizations = false" class="mt-2 w-full text-xs text-gray-400 hover:text-gray-600">Dismiss</button>
             </div>
           </div>
 
@@ -166,6 +159,7 @@
 
 <script setup>
 import { ref, nextTick, computed } from 'vue'
+import { useRouter } from 'vue-router'
 import api from '@/services/api'
 import { useToast } from 'vue-toast-notification'
 import { useAuthStore } from '@/stores/auth'
@@ -173,6 +167,7 @@ import { useUIStore } from '@/stores/ui'
 import { useCartStore } from '@/stores/cart'
 
 const toast = useToast()
+const router = useRouter()
 const auth = useAuthStore()
 const ui = useUIStore()
 const cart = useCartStore()
@@ -183,6 +178,7 @@ const isTyping = ref(false)
 const messagesContainer = ref(null)
 const showOptimizations = ref(false)
 const optimizations = ref([])
+const pendingTierInfo = ref(null)
 
 const quickSuggestions = computed(() => {
   if (auth.isAuthenticated) {
@@ -275,25 +271,40 @@ const runBulkOptimize = async () => {
   isTyping.value = true
   try {
     const { data } = await api.post('/ai/bulk-optimize')
-    optimizations.value = data
-    showOptimizations.value = true
-    
-    // Also add a message to the chat
-    let msg = '📦 **Bulk Order Recommendations**\n\n'
-    if (data.length === 0) {
-      msg = '📭 No past orders found. Start ordering to get personalized bulk optimization advice!'
-    } else {
-      data.forEach((rec, idx) => {
-        msg += `${idx + 1}. **${rec.productName}**: Order ${rec.recommendedQuantity} units (vs avg ${rec.currentAvgOrder})\n   *${rec.reasoning}*\n`
+
+    const recs = data.recommendations ?? data
+    const tier = data.tierInfo ?? null
+
+    if (!recs || recs.length === 0) {
+      messages.value.push({
+        role: 'assistant',
+        content: data.message || '📭 No past orders found yet. Place a few orders and I\'ll generate personalized bulk recommendations with loyalty discounts!',
+        timestamp: new Date()
       })
-      msg += '\n💡 Click "Add All" on any recommendation to populate your cart.'
+      scrollToBottom()
+      return
     }
-    
-    messages.value.push({
-      role: 'assistant',
-      content: msg,
-      timestamp: new Date()
+
+    // Build a quick summary in chat, then prompt to review
+    let msg = `📦 **${recs.length} Bulk Recommendations Ready!**\n\n`
+    if (tier && tier.discountPercent > 0) {
+      msg += `${tier.tierEmoji} ${tier.tier} tier — **${tier.discountPercent}% loyalty discount** applied to all items.\n\n`
+    }
+    recs.slice(0, 3).forEach((rec, idx) => {
+      msg += `${idx + 1}. ${rec.productName} × ${rec.recommendedQuantity} units`
+      if (rec.discountPercent > 0) msg += ` *(${rec.discountPercent}% off → KES ${rec.discountedPrice?.toLocaleString()})*`
+      msg += '\n'
     })
+    if (recs.length > 3) msg += `…and ${recs.length - 3} more items.\n`
+    msg += '\n👉 Tap **"Review & Place Order"** below to see the full order, choose delivery, and pay — all in one step.'
+
+    messages.value.push({ role: 'assistant', content: msg, timestamp: new Date() })
+
+    // Store recs for the action button
+    optimizations.value = recs
+    showOptimizations.value = true
+    pendingTierInfo.value = tier
+
     scrollToBottom()
   } catch (error) {
     console.error('Bulk optimize error:', error)
@@ -303,12 +314,30 @@ const runBulkOptimize = async () => {
   }
 }
 
-const addToCart = async (productId, quantity) => {
+const goToOrderReview = () => {
+  ui.toggleAIChat()
+  router.push({
+    name: 'BulkOrderReview',
+    state: {
+      recommendations: optimizations.value,
+      tierInfo: pendingTierInfo.value
+    }
+  })
+}
+
+const addToCart = (rec) => {
   try {
-    cart.addItem({ product_id: productId, quantity })
-    toast.success(`Added ${quantity} units to cart`)
+    cart.addDiscountedItem({
+      product_id: rec.productId,
+      name: rec.productName,
+      price: rec.basePrice ?? rec.discountedPrice,
+      discountedPrice: rec.discountedPrice,
+      discountPercent: rec.discountPercent ?? 0,
+      quantity: rec.recommendedQuantity
+    });
+    toast.success(`Added ${rec.recommendedQuantity} × ${rec.productName} to cart${rec.discountPercent > 0 ? ` (${rec.discountPercent}% off)` : ''}`);
   } catch (error) {
-    toast.error('Failed to add to cart')
+    toast.error('Failed to add to cart');
   }
 }
 </script>

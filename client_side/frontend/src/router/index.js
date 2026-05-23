@@ -38,6 +38,22 @@ const routes = [
     name: 'PaymentGateway',
     component: () => import('@/views/PaymentGateway.vue')
   },
+  {
+    path: '/forgot-password',
+    name: 'ForgotPassword',
+    component: () => import('@/views/ForgotPassword.vue')
+  },
+  {
+    path: '/bulk-order-review',
+    name: 'BulkOrderReview',
+    component: () => import('@/views/BulkOrderReview.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/reset-password',
+    name: 'ResetPassword',
+    component: () => import('@/views/ResetPassword.vue')
+  },
   
   // Protected Routes (require authentication)
   {

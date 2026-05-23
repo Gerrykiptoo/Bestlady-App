@@ -1,6 +1,12 @@
 <template>
   <div class="container-custom py-8">
-    <h1 class="text-3xl font-bold mb-8">My Orders</h1>
+    <div class="flex items-center justify-between mb-8">
+      <h1 class="text-3xl font-bold">My Orders</h1>
+      <button @click="downloadPDF" class="flex items-center gap-2 px-4 py-2 bg-primary-500 hover:bg-primary-600 text-white text-sm font-semibold rounded-xl transition shadow">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+        Download PDF
+      </button>
+    </div>
     
     <div v-if="loading" class="text-center py-12">
       <Loader />
@@ -100,4 +106,14 @@ onMounted(async () => {
     loading.value = false
   }
 })
+
+const downloadPDF = async () => {
+  const res = await api.get('/orders/export/pdf', { responseType: 'blob' })
+  const url = URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }))
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `order_history_${Date.now()}.pdf`
+  a.click()
+  URL.revokeObjectURL(url)
+}
 </script>

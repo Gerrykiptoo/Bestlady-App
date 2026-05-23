@@ -21,6 +21,10 @@ const protect = async (req, res, next) => {
         return res.status(401).json({ message: 'User not found' });
       }
 
+      if (user.is_active === false) {
+        return res.status(403).json({ message: 'Your account has been deactivated. Contact support at info@bestlady.co.ke.' });
+      }
+
       req.user = user;
       return next(); 
     } catch (error) {

@@ -1,34 +1,26 @@
-const { S3Client } = require('@aws-sdk/client-s3');
 const multer = require('multer');
-const multerS3 = require('multer-s3');
 const path = require('path');
-require('dotenv').config();
+const fs = require('fs');
 
-const s3 = new S3Client({
-  region: process.env.SUPABASE_REGION,
-  endpoint: process.env.SUPABASE_ENDPOINT_URL,
-  credentials: {
-    accessKeyId: process.env.SUPABASE_ACCESS_KEY,
-    secretAccessKey: process.env.SUPABASE_SECRET_KEY,
+// Ensure uploads directory exists
+const uploadDir = path.join(__dirname, '../../uploads');
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+}
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, uploadDir);
   },
-  forcePathStyle: true, // required for Supabase
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+    const ext = path.extname(file.originalname);
+    cb(null, `${file.fieldname}-${uniqueSuffix}${ext}`);
+  }
 });
 
 const upload = multer({
-  storage: multerS3({
-    s3: s3,
-    bucket: process.env.SUPABASE_BUCKET_NAME,
-    metadata: (req, file, cb) => {
-      cb(null, { fieldName: file.fieldname });
-    },
-    key: (req, file, cb) => {
-      const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-      const ext = path.extname(file.originalname);
-      cb(null, `products/${uniqueSuffix}${ext}`);
-    },
-    contentType: multerS3.AUTO_CONTENT_TYPE,
-    acl: 'public-read',
-  }),
+  storage: storage,
   limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
   fileFilter: (req, file, cb) => {
     if (!file.originalname.match(/\.(jpg|jpeg|png|gif)$/)) {

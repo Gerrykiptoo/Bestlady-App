@@ -81,12 +81,25 @@
           </div>
         </div>
         
-        <!-- QR Code for Pickup -->
-        <div v-if="order.qr_code" class="bg-white p-6 rounded-lg shadow text-center">
-          <h2 class="text-xl font-semibold mb-4">Pickup Verification</h2>
-          <img :src="order.qr_code" class="w-48 h-48 mx-auto mb-4" />
-          <p class="text-sm text-gray-500 mb-2">Show this QR code at pickup</p>
-          <p class="text-lg font-bold">OTP: {{ order.otp_code }}</p>
+        <!-- Scan to Pay QR — only for unpaid orders -->
+        <div v-if="order.payment_qr && order.payment_status !== 'completed'" class="bg-gradient-to-br from-primary-600 to-primary-800 p-6 rounded-2xl shadow-lg text-center text-white">
+          <div class="flex items-center justify-center gap-2 mb-3">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" /></svg>
+            <h2 class="text-base font-bold uppercase tracking-wider">Scan to Pay</h2>
+          </div>
+          <div class="bg-white rounded-xl p-3 inline-block mb-3">
+            <img :src="order.payment_qr" class="w-44 h-44" />
+          </div>
+          <p class="text-sm text-white/80">Scan with your phone camera to open the payment page with full order details</p>
+          <div class="mt-3 text-lg font-black">KES {{ formatPrice(order.total_amount) }}</div>
+        </div>
+
+        <!-- Order / Pickup Verification QR -->
+        <div v-if="order.qr_code" class="bg-white p-6 rounded-xl shadow text-center border border-gray-100">
+          <h2 class="text-base font-semibold text-gray-700 mb-3">Pickup / Delivery Verification</h2>
+          <img :src="order.qr_code" class="w-40 h-40 mx-auto mb-3 opacity-80" />
+          <p class="text-xs text-gray-400 mb-1">Show this code to the delivery agent or at pickup</p>
+          <p class="text-sm font-bold text-gray-700 bg-gray-100 rounded-lg px-3 py-1 inline-block">OTP: {{ order.otp_code }}</p>
         </div>
         
         <!-- Download Receipt Button -->
@@ -96,6 +109,17 @@
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
             </svg>
             Download Receipt (PDF)
+          </button>
+
+          <!-- Cancel Order Button -->
+          <button
+            v-if="['pending', 'paid'].includes(order.status)"
+            @click="handleCancel"
+            :disabled="cancelLoading"
+            class="w-full py-3 bg-red-50 hover:bg-red-100 text-red-700 font-semibold rounded-lg border border-red-200 transition-colors flex items-center justify-center gap-2"
+          >
+            <span v-if="cancelLoading" class="animate-spin">⌛</span>
+            {{ cancelLoading ? 'Cancelling...' : 'Cancel Order' }}
           </button>
 
           <!-- Pay Now Section for Pending Orders -->
@@ -156,6 +180,7 @@ import { useAuthStore } from '@/stores/auth'
 import api from '@/services/api'
 import { useToast } from 'vue-toast-notification'
 import { formatPrice } from '@/utils/formatters'
+import { getSocket } from '@/services/socket'
 
 const route = useRoute()
 const toast = useToast()
@@ -163,6 +188,7 @@ const auth = useAuthStore()
 const order = ref(null)
 const payPhoneNumber = ref('')
 const payLoading = ref(false)
+const cancelLoading = ref(false)
 const isPolling = ref(false)
 let pollTimer = null
 
@@ -223,6 +249,23 @@ const downloadReceipt = async () => {
   }
 }
 
+const handleCancel = async () => {
+  if (!confirm('Are you sure you want to cancel this order?')) return
+  cancelLoading.value = true
+  try {
+    await api.post(`/orders/${route.params.id}/cancel`)
+    toast.success('Order cancelled successfully')
+    await fetchOrder()
+    if (order.value.payment_method === 'wallet' && order.value.payment_status === 'completed') {
+      refreshBalance()
+    }
+  } catch (error) {
+    toast.error(error.response?.data?.message || 'Failed to cancel order')
+  } finally {
+    cancelLoading.value = false
+  }
+}
+
 const fetchOrder = async () => {
   const { data } = await api.get(`/orders/${route.params.id}`)
   order.value = data
@@ -263,9 +306,33 @@ onMounted(async () => {
     if (order.value?.payment_status === 'processing') {
       startPolling()
     }
+    
+    const socket = getSocket()
+    if (socket) {
+      socket.on('orderUpdate', (data) => {
+        if (data.orderId == route.params.id) {
+          console.log('📦 Order detail update received:', data.status)
+          order.value = { ...order.value, status: data.status, payment_status: data.payment_status }
+          if (data.payment_status === 'completed') {
+            isPolling.value = false
+            if (pollTimer) clearInterval(pollTimer)
+            refreshBalance()
+          }
+        }
+      })
+    }
   } catch (error) {
     console.error('Failed to load order:', error)
     toast.error('Order not found')
+  }
+})
+
+import { onUnmounted } from 'vue'
+onUnmounted(() => {
+  if (pollTimer) clearInterval(pollTimer)
+  const socket = getSocket()
+  if (socket) {
+    socket.off('orderUpdate')
   }
 })
 </script>

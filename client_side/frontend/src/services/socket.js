@@ -4,7 +4,7 @@ import { useToast } from 'vue-toast-notification';
 let socket = null;
 
 export const initSocket = (userId) => {
-  if (socket) return;
+  if (socket) return socket;
 
   socket = io(import.meta.env.VITE_API_URL || 'http://localhost:5000', {
     withCredentials: true
@@ -32,6 +32,8 @@ export const initSocket = (userId) => {
 
   return socket;
 };
+
+export const getSocket = () => socket;
 
 export const disconnectSocket = () => {
   if (socket) {

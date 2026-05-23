@@ -113,6 +113,18 @@ module.exports = (sequelize, DataTypes) => {
         model: 'PickupStations',
         key: 'id'
       }
+    },
+    agent_id: {
+      type: DataTypes.UUID,
+      allowNull: true,
+      references: {
+        model: 'Users',
+        key: 'id'
+      }
+    },
+    commission_earned: {
+      type: DataTypes.DECIMAL(10, 2),
+      defaultValue: 0.00
     }
   }, {
     sequelize,

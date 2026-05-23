@@ -2,6 +2,7 @@ const { initiateSTKPush } = require('../services/mpesaService');
 const { Order, WalletTransaction, User, sequelize } = require('../models');
 const { generateOTP } = require('../utils/otpGenerator');
 const { generateQR } = require('../utils/qrGenerator');
+const emailService = require('../services/emailService');
 
 /**
  * Initiate M-Pesa STK Push payment
@@ -151,15 +152,9 @@ const mpesaCallback = async (req, res) => {
         });
       }
 
-      // Generate OTP and QR code for pickup
+      // Generate OTP and QR code (encodes order URL for easy customer scanning)
       const { secret, otp } = generateOTP();
-      const qrCode = await generateQR(JSON.stringify({
-        orderId: order.id,
-        orderNumber: order.order_number,
-        otp: otp,
-        amount: amount,
-        date: new Date().toISOString()
-      }));
+      const qrCode = await generateQR(`${process.env.FRONTEND_URL || 'http://localhost:5173'}/orders/${order.id}`);
 
       // Update order with payment details
       await order.update({
@@ -207,6 +202,11 @@ const mpesaCallback = async (req, res) => {
       }
 
       console.log(`✅ Order ${order.order_number} updated successfully`);
+
+      // Send payment confirmation email (non-blocking)
+      const updatedOrder = await Order.findByPk(order.id, { transaction: t });
+      emailService.sendPaymentConfirmation(user, updatedOrder, 'mpesa')
+        .catch(err => console.error('M-Pesa payment email error:', err));
 
     } else {
       // Payment failed

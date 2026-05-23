@@ -76,6 +76,30 @@ module.exports = (sequelize, DataTypes) => {
     nickname: {
       type: DataTypes.STRING(100),
       allowNull: true
+    },
+    agent_id: {
+      type: DataTypes.UUID,
+      allowNull: true,
+      references: {
+        model: 'Users',
+        key: 'id'
+      }
+    },
+    commission_rate: {
+      type: DataTypes.DECIMAL(5, 2),
+      defaultValue: 0.00
+    },
+    is_active: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: true
+    },
+    reset_token: {
+      type: DataTypes.STRING,
+      allowNull: true
+    },
+    reset_token_expires: {
+      type: DataTypes.DATE,
+      allowNull: true
     }
   }, {
     sequelize,

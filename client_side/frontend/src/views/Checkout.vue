@@ -7,11 +7,11 @@
       <section class="bg-white p-6 rounded-xl shadow-sm border">
         <h2 class="font-bold text-lg mb-4">1. Delivery Method</h2>
         <div class="grid grid-cols-2 gap-4">
-          <div @click="delivery = 'private_rider'; pickupStationId = ''" :class="delivery === 'private_rider' ? 'border-primary bg-orange-50' : 'border-gray-200'" class="p-4 border-2 rounded-xl cursor-pointer transition">
+          <div @click="delivery = 'private_rider'; pickupStationId = ''" :class="delivery === 'private_rider' ? 'border-primary-500 bg-orange-50' : 'border-gray-200'" class="p-4 border-2 rounded-xl cursor-pointer transition">
             <div class="font-bold">Private Rider</div>
             <div class="text-xs text-gray-500">Fast home delivery</div>
           </div>
-          <div @click="delivery = 'pickup'; deliveryAddress = ''; deliveryLat = null; deliveryLng = null" :class="delivery === 'pickup' ? 'border-primary bg-orange-50' : 'border-gray-200'" class="p-4 border-2 rounded-xl cursor-pointer transition">
+          <div @click="delivery = 'pickup'; deliveryAddress = ''; deliveryLat = null; deliveryLng = null" :class="delivery === 'pickup' ? 'border-primary-500 bg-orange-50' : 'border-gray-200'" class="p-4 border-2 rounded-xl cursor-pointer transition">
             <div class="font-bold">Pickup Station</div>
             <div class="text-xs text-gray-500">Collect at warehouse</div>
           </div>
@@ -30,16 +30,22 @@
           
           <div class="mt-3">
             <label class="block text-sm font-semibold text-gray-700 mb-2">Pick Location on Map (optional)</label>
-            <button 
-              type="button" 
+            <button
+              type="button"
               @click="openMapPicker"
-              class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2"
+              :class="deliveryLat && deliveryLng
+                ? 'bg-green-100 text-green-700 border border-green-300'
+                : 'bg-orange-100 text-orange-700 border border-orange-300'"
+              class="px-4 py-2 rounded-lg text-sm font-semibold transition flex items-center gap-2 hover:opacity-80"
             >
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 7m0 13V7" /></svg>
-              {{ deliveryLat && deliveryLng ? 'Re-pick Location' : 'Select on Map' }}
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+              {{ deliveryLat && deliveryLng ? '📍 Location Pinned – Change' : '🗺️ Pin on Map' }}
             </button>
-            <div v-if="deliveryLat && deliveryLng" class="text-xs text-green-600 mt-2">
-              ✅ Location selected: {{ deliveryLat.toFixed(4) }}, {{ deliveryLng.toFixed(4) }}
+            <div v-if="deliveryLat && deliveryLng" class="text-xs text-green-600 mt-2 flex items-center gap-1">
+              ✅ {{ deliveryLat.toFixed(5) }}, {{ deliveryLng.toFixed(5) }}
             </div>
           </div>
         </div>
@@ -102,13 +108,22 @@
       <section class="bg-white p-6 rounded-xl shadow-sm border">
         <div class="flex justify-between items-center mb-6">
           <span class="text-gray-500 font-medium">Grand Total</span>
-          <span class="text-2xl font-black text-primary">KES {{ formatPrice(cart.total) }}</span>
+          <span class="text-2xl font-black text-primary-500">KES {{ formatPrice(cart.total) }}</span>
         </div>
-        <button @click="placeOrder" :disabled="loading" class="w-full py-4 bg-primary text-white rounded-xl font-bold text-lg hover:opacity-90 disabled:opacity-50 transition shadow-lg hover:shadow-xl">
+        <button @click="placeOrder" :disabled="loading" class="w-full py-4 bg-primary-500 text-white rounded-xl font-bold text-lg hover:bg-primary-600 disabled:opacity-50 transition shadow-lg hover:shadow-xl">
           {{ loading ? 'Processing Order...' : 'Confirm & Place Order' }}
         </button>
       </section>
     </div>
+
+    <!-- Map Picker Modal -->
+    <MapPickerModal
+      :show="showMapModal"
+      :initial-lat="deliveryLat || -1.2921"
+      :initial-lng="deliveryLng || 36.8219"
+      @close="showMapModal = false"
+      @confirm="onMapConfirm"
+    />
 
     <!-- Success/Status Modal -->
     <Modal :show="showModal" @close="handleModalClose" :title="modalTitle" size="sm">
@@ -126,9 +141,9 @@
         <p class="text-gray-600 mb-8 px-4">{{ modalMessage }}</p>
         
         <div class="space-y-3 px-4">
-          <button 
+          <button
             @click="handleModalClose"
-            class="w-full py-3 bg-primary text-white font-bold rounded-xl hover:opacity-90 transition shadow-md"
+            class="w-full py-3 bg-primary-500 text-white font-bold rounded-xl hover:bg-primary-600 transition shadow-md"
           >
             Go to Dashboard
           </button>
@@ -154,6 +169,7 @@ import api from '@/services/api';
 import { useToast } from 'vue-toast-notification';
 import { formatPrice } from '@/utils/formatters';
 import Modal from '@/components/common/Modal.vue';
+import MapPickerModal from '@/components/common/MapPickerModal.vue';
 
 const cart = useCartStore();
 const auth = useAuthStore();
@@ -260,10 +276,13 @@ onMounted(async () => {
   }
 });
 
-const openMapPicker = () => {
-  // Placeholder: In production, integrate with map service
-  toast.info('Map picker will open here. Using sample coordinates for now.')
-  deliveryLat.value = -1.2921;
-  deliveryLng.value = 36.8219;
+const showMapModal = ref(false);
+const openMapPicker = () => { showMapModal.value = true; };
+const onMapConfirm = ({ lat, lng, address }) => {
+  deliveryLat.value = lat;
+  deliveryLng.value = lng;
+  if (address && !deliveryAddress.value) deliveryAddress.value = address;
+  showMapModal.value = false;
+  toast.success('Delivery location pinned!');
 };
 </script>

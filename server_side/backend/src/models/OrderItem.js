@@ -41,6 +41,14 @@ module.exports = (sequelize, DataTypes) => {
       allowNull: false,
       validate: { min: 0 }
     },
+    original_price: {
+      type: DataTypes.DECIMAL(10, 2),
+      allowNull: true
+    },
+    discount_percent: {
+      type: DataTypes.INTEGER,
+      defaultValue: 0
+    },
     subtotal: {
       type: DataTypes.DECIMAL(10, 2),
       allowNull: false,

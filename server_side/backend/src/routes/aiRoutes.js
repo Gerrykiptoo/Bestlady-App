@@ -1,11 +1,15 @@
 const express = require('express');
 const router = express.Router();
-const { getUserDashboardData, getAdminForecast, aiChat, bulkOptimize } = require('../controllers/aiController');
+const { getUserDashboardData, getAdminForecast, aiChat, bulkOptimize, refreshInsights } = require('../controllers/aiController');
 const { protect, admin, optionalProtect } = require('../middleware/authMiddleware');
 
 // @route   GET /api/ai/user/dashboard
 // @access  Public/Optional Auth
 router.get('/user/dashboard', optionalProtect, getUserDashboardData);
+
+// @route   GET /api/ai/insights/refresh
+// @access  Private
+router.get('/insights/refresh', protect, refreshInsights);
 
 // @route   GET /api/ai/admin/forecast
 // @access  Private/Admin

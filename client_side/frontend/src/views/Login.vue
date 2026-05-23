@@ -114,10 +114,15 @@
         </button>
       </form>
 
-      <!-- Register Link -->
-      <div class="mt-6 text-center">
+      <!-- Links -->
+      <div class="mt-6 text-center space-y-2">
         <p class="text-sm text-gray-600">
-          Don't have an account? 
+          <router-link to="/forgot-password" class="font-medium text-primary-600 hover:text-primary-700 transition-colors">
+            Forgot your password?
+          </router-link>
+        </p>
+        <p class="text-sm text-gray-600">
+          Don't have an account?
           <router-link to="/register" class="font-medium text-indigo-600 hover:text-indigo-700 transition-colors">
             Sign up here
           </router-link>

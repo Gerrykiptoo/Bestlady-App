@@ -235,9 +235,14 @@
               <span>to</span>
               <input type="date" v-model="reportEndDate" class="border rounded px-2 py-1 text-sm" />
             </div>
-            <button @click="downloadReport('orders')" class="mt-3 w-full bg-primary-600 text-white py-2 rounded-lg text-sm hover:bg-primary-700">
-              Download Orders CSV
-            </button>
+            <div class="flex gap-2 mt-3">
+              <button @click="downloadReport('orders', 'csv')" class="flex-1 bg-primary-600 text-white py-2 rounded-lg text-sm hover:bg-primary-700">
+                CSV
+              </button>
+              <button @click="downloadReport('orders', 'pdf')" class="flex-1 bg-red-600 text-white py-2 rounded-lg text-sm hover:bg-red-700">
+                PDF
+              </button>
+            </div>
           </div>
           <div class="border rounded-lg p-4">
             <h4 class="font-semibold">Products Sold Report</h4>
@@ -246,15 +251,25 @@
               <span>to</span>
               <input type="date" v-model="reportEndDate" class="border rounded px-2 py-1 text-sm" />
             </div>
-            <button @click="downloadReport('products_sold')" class="mt-3 w-full bg-primary-600 text-white py-2 rounded-lg text-sm hover:bg-primary-700">
-              Download Products Sold CSV
-            </button>
+            <div class="flex gap-2 mt-3">
+              <button @click="downloadReport('products_sold', 'csv')" class="flex-1 bg-primary-600 text-white py-2 rounded-lg text-sm hover:bg-primary-700">
+                CSV
+              </button>
+              <button @click="downloadReport('products_sold', 'pdf')" class="flex-1 bg-red-600 text-white py-2 rounded-lg text-sm hover:bg-red-700">
+                PDF
+              </button>
+            </div>
           </div>
           <div class="border rounded-lg p-4">
             <h4 class="font-semibold">Stock Report</h4>
-            <button @click="downloadReport('stock')" class="mt-8 w-full bg-primary-600 text-white py-2 rounded-lg text-sm hover:bg-primary-700">
-              Download Stock CSV
-            </button>
+            <div class="flex gap-2 mt-8">
+              <button @click="downloadReport('stock', 'csv')" class="flex-1 bg-primary-600 text-white py-2 rounded-lg text-sm hover:bg-primary-700">
+                CSV
+              </button>
+              <button @click="downloadReport('stock', 'pdf')" class="flex-1 bg-red-600 text-white py-2 rounded-lg text-sm hover:bg-red-700">
+                PDF
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -345,6 +360,8 @@
           <div><span class="font-semibold">Joined:</span> {{ formatDate(selectedUser?.createdAt) }}</div>
           <div><span class="font-semibold">Active:</span> {{ selectedUser?.is_active ? '✅ Yes' : '❌ No' }}</div>
           <div><span class="font-semibold">Business Name:</span> {{ selectedUser?.business_name || 'N/A' }}</div>
+          <div v-if="selectedUser?.agent_id"><span class="font-semibold">Agent ID:</span> {{ selectedUser.agent_id }}</div>
+          <div v-if="selectedUser?.commission_rate != null"><span class="font-semibold">Commission Rate:</span> {{ selectedUser.commission_rate }}%</div>
         </div>
         <h4 class="font-semibold text-lg mt-4 mb-2">📦 Orders</h4>
         <div class="overflow-x-auto mb-6">
@@ -379,6 +396,7 @@ import api from '@/services/api'
 import Modal from '@/components/common/Modal.vue'
 import { useToast } from 'vue-toast-notification'
 import { formatPrice, formatDate } from '@/utils/formatters'
+import { getSocket } from '@/services/socket'
 
 Chart.register(...registerables)
 
@@ -559,18 +577,21 @@ const downloadUserData = () => {
 }
 
 // ---------- Reports ----------
-const downloadReport = async (type) => {
+const downloadReport = async (type, format = 'csv') => {
   try {
-    let url = `/admin/reports/financial?reportType=${type}`
+    let url = `/admin/reports/financial?reportType=${type}&format=${format}`
     if (type !== 'stock') url += `&startDate=${reportStartDate.value}&endDate=${reportEndDate.value}`
     const response = await api.get(url, { responseType: 'blob' })
-    const blob = new Blob([response.data], { type: 'text/csv' })
+    const isPdf = format === 'pdf'
+    const mimeType = isPdf ? 'application/pdf' : 'text/csv'
+    const ext = isPdf ? 'pdf' : 'csv'
+    const blob = new Blob([response.data], { type: mimeType })
     const link = document.createElement('a')
     link.href = URL.createObjectURL(blob)
-    link.download = `${type}_report_${new Date().toISOString().slice(0,10)}.csv`
+    link.download = `${type}_report_${new Date().toISOString().slice(0,10)}.${ext}`
     link.click()
     URL.revokeObjectURL(link.href)
-    toast.success('Report downloaded')
+    toast.success(`Report downloaded as ${ext.toUpperCase()}`)
   } catch (error) { toast.error('Failed to download report') }
 }
 
@@ -625,10 +646,28 @@ onMounted(() => {
   fetchCategories()
   fetchUsers()
   fetchAnalytics()
-  pollInterval = setInterval(fetchAnalytics, 30000)
+  
+  const socket = getSocket()
+  if (socket) {
+    socket.on('orderUpdate', () => {
+      console.log('📦 Order update received, refreshing analytics...')
+      fetchAnalytics()
+    })
+    socket.on('walletUpdate', () => {
+       console.log('💰 Wallet update received, refreshing users...')
+       fetchUsers()
+    })
+  }
+  
+  pollInterval = setInterval(fetchAnalytics, 60000) // Increased to 60s since we have real-time now
 })
 
 onUnmounted(() => {
+  const socket = getSocket()
+  if (socket) {
+    socket.off('orderUpdate')
+    socket.off('walletUpdate')
+  }
   if (pollInterval) clearInterval(pollInterval)
   if (revenueChartInstance) revenueChartInstance.destroy()
 })

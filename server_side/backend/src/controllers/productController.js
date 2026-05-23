@@ -16,6 +16,11 @@ const getProducts = async (req, res) => {
       where.name = { [Op.iLike]: `%${search}%` };
     }
 
+    // Admin/Staff can see inactive products if they want (optional)
+    if (req.user && (req.user.role === 'admin' || req.user.role === 'staff')) {
+      delete where.is_active; // Let admin see everything
+    }
+
     // Tier-aware pricing filter could be added here if needed
 
     const products = await Product.findAndCountAll({
@@ -53,7 +58,11 @@ const getProductById = async (req, res) => {
 
 const createProduct = async (req, res) => {
   try {
-    const product = await Product.create(req.body);
+    const productData = { ...req.body };
+    if (req.file) {
+      productData.image_url = `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`;
+    }
+    const product = await Product.create(productData);
     res.status(201).json(product);
   } catch (error) {
     res.status(400).json({ message: error.message });
@@ -66,7 +75,13 @@ const updateProduct = async (req, res) => {
     if (!product) {
       return res.status(404).json({ message: 'Product not found' });
     }
-    await product.update(req.body);
+    
+    const productData = { ...req.body };
+    if (req.file) {
+      productData.image_url = `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`;
+    }
+    
+    await product.update(productData);
     res.json(product);
   } catch (error) {
     res.status(400).json({ message: error.message });

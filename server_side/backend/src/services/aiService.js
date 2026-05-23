@@ -208,11 +208,65 @@ const forecastDemand = async () => {
   return forecasts;
 };
 
+/**
+ * Determine a customer's loyalty discount tier based on lifetime completed orders.
+ * Tier   Min orders   Discount
+ * Bronze     3           5 %
+ * Silver    10           8 %
+ * Gold      25          12 %
+ * Platinum  50          15 %
+ */
+const getUserDiscountTier = async (userId) => {
+  const completedOrders = await Order.count({
+    where: { user_id: userId, payment_status: 'completed' }
+  });
+
+  let tier = null;
+  let discountPercent = 0;
+  let minOrdersForNext = null;
+  let nextTier = null;
+
+  if (completedOrders >= 50) {
+    tier = 'Platinum';
+    discountPercent = 15;
+  } else if (completedOrders >= 25) {
+    tier = 'Gold';
+    discountPercent = 12;
+    minOrdersForNext = 50;
+    nextTier = 'Platinum';
+  } else if (completedOrders >= 10) {
+    tier = 'Silver';
+    discountPercent = 8;
+    minOrdersForNext = 25;
+    nextTier = 'Gold';
+  } else if (completedOrders >= 3) {
+    tier = 'Bronze';
+    discountPercent = 5;
+    minOrdersForNext = 10;
+    nextTier = 'Silver';
+  } else {
+    tier = 'New';
+    discountPercent = 0;
+    minOrdersForNext = 3;
+    nextTier = 'Bronze';
+  }
+
+  return {
+    tier,
+    discountPercent,
+    completedOrders,
+    ordersToNextTier: minOrdersForNext ? Math.max(0, minOrdersForNext - completedOrders) : 0,
+    nextTier,
+    tierEmoji: { Platinum: '💎', Gold: '🥇', Silver: '🥈', Bronze: '🥉', New: '⭐' }[tier]
+  };
+};
+
 module.exports = {
   calculateSalesVelocity,
   predictRestock,
   forecastDemand,
   analyzeCustomerPatterns,
   getRegionalInsights,
-  getPlatformAnalytics
+  getPlatformAnalytics,
+  getUserDiscountTier
 };

@@ -1,15 +1,16 @@
 const { Order, OrderItem, Product, sequelize } = require('../models');
 const { Op } = require('sequelize');
 const { Parser } = require('json2csv');
+const { generateFinancialReportPDF } = require('../services/pdfService');
 
 /**
  * Generate financial report (orders, products sold, stock)
  * @route GET /api/admin/reports/financial
- * @query reportType, startDate, endDate
+ * @query reportType, startDate, endDate, format
  */
 exports.generateFinancialReport = async (req, res) => {
   try {
-    const { startDate, endDate, reportType } = req.query;
+    const { startDate, endDate, reportType, format } = req.query;
     const whereDate = {};
 
     if (startDate && endDate && reportType !== 'stock') {
@@ -29,6 +30,14 @@ exports.generateFinancialReport = async (req, res) => {
           include: [{ model: OrderItem, include: [Product] }],
           order: [['createdAt', 'DESC']]
         });
+        
+        if (format === 'pdf') {
+          const pdfStream = await generateFinancialReportPDF(data, reportType, startDate, endDate);
+          res.setHeader('Content-Type', 'application/pdf');
+          res.setHeader('Content-Disposition', `attachment; filename=orders_report_${Date.now()}.pdf`);
+          return pdfStream.pipe(res);
+        }
+
         // Flatten order data for CSV
         data = data.map(order => ({
           order_number: order.order_number,
@@ -54,12 +63,20 @@ exports.generateFinancialReport = async (req, res) => {
           group: ['product_id', 'Product.id']
         });
         data = productSales.map(item => ({
-          product_name: item.Product.name,
-          sku: item.Product.sku,
+          product_name: item.Product?.name || 'Unknown',
+          sku: item.Product?.sku || '-',
           total_quantity: item.dataValues.total_quantity,
           total_revenue: item.dataValues.total_revenue,
           avg_price: (item.dataValues.total_revenue / item.dataValues.total_quantity)?.toFixed(2) || 0
         }));
+
+        if (format === 'pdf') {
+          const pdfStream = await generateFinancialReportPDF(data, reportType, startDate, endDate);
+          res.setHeader('Content-Type', 'application/pdf');
+          res.setHeader('Content-Disposition', `attachment; filename=products_report_${Date.now()}.pdf`);
+          return pdfStream.pipe(res);
+        }
+
         fields = ['product_name', 'sku', 'total_quantity', 'total_revenue', 'avg_price'];
         filename = `products_sold_${startDate || 'all'}.csv`;
         break;
@@ -69,6 +86,14 @@ exports.generateFinancialReport = async (req, res) => {
           attributes: ['name', 'sku', 'current_stock', 'reorder_point', 'retail_price', 'wholesale_price']
         });
         data = products.map(p => p.toJSON());
+
+        if (format === 'pdf') {
+          const pdfStream = await generateFinancialReportPDF(data, reportType, startDate, endDate);
+          res.setHeader('Content-Type', 'application/pdf');
+          res.setHeader('Content-Disposition', `attachment; filename=stock_report_${Date.now()}.pdf`);
+          return pdfStream.pipe(res);
+        }
+
         fields = ['name', 'sku', 'current_stock', 'reorder_point', 'retail_price', 'wholesale_price'];
         filename = `stock_levels_${new Date().toISOString().slice(0,10)}.csv`;
         break;
