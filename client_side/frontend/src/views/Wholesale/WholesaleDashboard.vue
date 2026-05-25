@@ -1,22 +1,29 @@
 <template>
-  <div class="p-6 bg-gradient-to-br from-gray-50 to-gray-100 min-h-screen">
-    <!-- Welcome Header -->
-    <div class="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
-      <div>
-        <h1 class="text-3xl font-bold bg-gradient-to-r from-primary-600 to-secondary-500 bg-clip-text text-transparent">
-          Welcome back, {{ auth.user?.business_name || 'Wholesale Partner' }}!
-        </h1>
-        <p class="text-gray-500 mt-1">Manage your bulk supply chain and track orders in real-time.</p>
-      </div>
-      <div class="flex items-center gap-3">
-        <span class="px-3 py-1 bg-primary-100 text-primary-700 rounded-full text-sm font-bold animate-pulse">
-          Wholesale Account
-        </span>
+  <div class="min-h-screen bg-slate-50">
+
+    <!-- Page hero -->
+    <div class="page-hero">
+      <div class="container-custom relative z-10 py-10">
+        <p class="section-tag text-white/70">Wholesale Partner Dashboard</p>
+        <div class="flex flex-col sm:flex-row sm:items-end gap-4 justify-between">
+          <div>
+            <h1 class="text-3xl font-black text-white">
+              Welcome back, {{ auth.user?.business_name || 'Wholesale Partner' }}
+            </h1>
+            <p class="text-white/70 mt-1 text-sm">Manage your bulk supply chain and track orders in real-time.</p>
+          </div>
+          <div class="flex items-center gap-2 bg-white/10 border border-white/20 rounded-xl px-4 py-2">
+            <span class="w-2 h-2 rounded-full bg-green-400 animate-pulse flex-shrink-0"></span>
+            <span class="text-sm font-semibold text-white">Wholesale Account</span>
+          </div>
+        </div>
       </div>
     </div>
 
+    <div class="container-custom py-8 space-y-8">
+
     <!-- Stats Cards -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
       <!-- Credit Limit Card -->
       <div class="bg-white rounded-2xl shadow-md p-6 hover:shadow-xl transition-all duration-300 group">
         <div class="flex items-center justify-between mb-3">
@@ -128,7 +135,7 @@
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
                 </svg>
               </div>
-              <h3 class="font-bold text-xl text-gray-800">🤖 AI Purchaser Optimizer</h3>
+              <h3 class="font-bold text-xl text-gray-800">AI Purchaser Optimizer</h3>
             </div>
             <button @click="refreshAIInsights" class="text-xs text-amber-700 font-bold hover:underline" :disabled="isRefreshingAI">
               {{ isRefreshingAI ? 'Refreshing...' : 'Refresh Insights ↻' }}
@@ -217,8 +224,9 @@
             </div>
             <input type="file" ref="fileInput" class="hidden" accept=".csv" @change="handleFileUpload" />
           </div>
-          <button @click="downloadTemplate" class="w-full mt-4 text-xs text-primary-600 hover:underline flex justify-center gap-1">
-            Download CSV Template 📥
+          <button @click="downloadTemplate" class="w-full mt-4 text-xs text-primary-600 hover:underline flex items-center justify-center gap-1">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+            Download CSV Template
           </button>
         </div>
 
@@ -295,6 +303,8 @@
         </table>
       </div>
     </div>
+
+    </div><!-- end container-custom -->
   </div>
 </template>
 

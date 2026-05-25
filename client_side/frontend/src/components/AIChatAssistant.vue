@@ -99,7 +99,7 @@
               <p class="text-xs text-gray-500 mb-3">Your personalized bulk order with loyalty discounts is ready to place and pay.</p>
               <button
                 @click="goToOrderReview"
-                class="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white py-2.5 rounded-xl font-bold text-sm hover:from-purple-700 hover:to-pink-700 transition flex items-center justify-center gap-2"
+                class="btn-primary w-full py-2.5 text-sm"
               >
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" /></svg>
                 Review & Place Order
@@ -130,10 +130,10 @@
               class="flex-1 px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all text-sm"
               :disabled="isTyping"
             />
-            <button 
+            <button
               type="submit"
               :disabled="!userInput.trim() || isTyping"
-              class="bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-xl px-4 py-3 hover:shadow-lg transform hover:scale-105 transition-all disabled:opacity-50 disabled:transform-none disabled:cursor-not-allowed"
+              class="btn-primary px-4 py-3"
             >
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
@@ -142,11 +142,11 @@
           </form>
           
           <!-- Quick action: Optimize My Orders -->
-          <button 
+          <button
             v-if="auth.isAuthenticated"
             @click="runBulkOptimize"
             :disabled="isTyping"
-            class="w-full mt-2 bg-purple-100 hover:bg-purple-200 text-purple-700 py-2.5 rounded-lg font-medium transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            class="btn-secondary w-full mt-2 py-2.5"
           >
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
             Optimize My Orders

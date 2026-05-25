@@ -109,11 +109,17 @@
           </h2>
           <div class="grid grid-cols-2 gap-3 mb-4">
             <div @click="delivery = 'pickup'; deliveryAddress = ''" :class="delivery === 'pickup' ? 'border-purple-500 bg-purple-50' : 'border-gray-200 hover:border-gray-300'" class="p-4 border-2 rounded-xl cursor-pointer transition">
-              <p class="font-bold text-gray-800">📦 Pickup</p>
+              <p class="font-bold text-gray-800 flex items-center gap-1.5">
+                <svg class="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+                Pickup
+              </p>
               <p class="text-xs text-gray-500 mt-0.5">Free · Collect at warehouse</p>
             </div>
             <div @click="delivery = 'private_rider'" :class="delivery === 'private_rider' ? 'border-purple-500 bg-purple-50' : 'border-gray-200 hover:border-gray-300'" class="p-4 border-2 rounded-xl cursor-pointer transition">
-              <p class="font-bold text-gray-800">🛵 Home Delivery</p>
+              <p class="font-bold text-gray-800 flex items-center gap-1.5">
+                <svg class="w-4 h-4 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0"/></svg>
+                Home Delivery
+              </p>
               <p class="text-xs text-gray-500 mt-0.5">KES 250 · Fast delivery</p>
             </div>
           </div>

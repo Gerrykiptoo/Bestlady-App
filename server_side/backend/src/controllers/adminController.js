@@ -201,10 +201,35 @@ const getPlatformAnalytics = async (req, res) => {
       limit: 5
     });
 
-    res.json({ totalUsers, totalProducts, totalOrders, revenue: revenue || 0, topCategories });
+    // Online users from socket tracking
+    const onlineUsers = req.app.get('onlineUsers');
+    const onlineCount = onlineUsers ? new Set(onlineUsers.values()).size : 0;
+
+    res.json({ totalUsers, totalProducts, totalOrders, revenue: revenue || 0, topCategories, onlineCount });
   } catch (error) {
     console.error('Get platform analytics error:', error);
     res.status(500).json({ message: 'Failed to fetch platform analytics' });
+  }
+};
+
+// @desc    Get real-time order status breakdown
+const getOrderStats = async (req, res) => {
+  try {
+    const statuses = ['pending', 'paid', 'processing', 'dispatched', 'delivered', 'cancelled'];
+    const counts = await Promise.all(
+      statuses.map(s => Order.count({ where: { status: s } }))
+    );
+    const stats = {};
+    statuses.forEach((s, i) => { stats[s] = counts[i]; });
+    stats.total = counts.reduce((a, b) => a + b, 0);
+
+    const onlineUsers = req.app.get('onlineUsers');
+    stats.onlineCount = onlineUsers ? new Set(onlineUsers.values()).size : 0;
+
+    res.json(stats);
+  } catch (error) {
+    console.error('Get order stats error:', error);
+    res.status(500).json({ message: 'Failed to fetch order stats' });
   }
 };
 
@@ -216,5 +241,6 @@ module.exports = {
   createUser,
   updateUser,
   deleteUser,
-  getPlatformAnalytics
+  getPlatformAnalytics,
+  getOrderStats
 };

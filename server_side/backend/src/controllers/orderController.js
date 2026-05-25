@@ -124,6 +124,26 @@ const createOrder = async (req, res) => {
 
     await t.commit();
 
+    // Broadcast new order to all staff/admin/agents in real-time
+    const io = req.app.get('io');
+    if (io) {
+      io.to('admins').emit('newOrder', {
+        id: order.id,
+        orderNumber: order.order_number,
+        totalAmount: order.total_amount,
+        userId: userId,
+        clientName: req.user.business_name || req.user.username,
+        clientPhone: req.user.phone || '',
+        agentId: req.user.agent_id || null,
+        status: 'pending',
+        paymentStatus: 'pending',
+        paymentMethod: payment_method,
+        deliveryChannel: delivery_channel,
+        itemCount: orderItems.length,
+        createdAt: new Date().toISOString()
+      });
+    }
+
     // Send order confirmation email (non-blocking)
     Order.findByPk(order.id, { include: [{ model: OrderItem, include: [Product] }] })
       .then(fullOrder => {

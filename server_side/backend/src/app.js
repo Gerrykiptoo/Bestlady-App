@@ -76,6 +76,8 @@ app.use('/api/ai', require('./routes/aiRoutes'));
 app.use('/api/admin', require('./routes/adminRoutes'));
 app.use('/api/stations', require('./routes/stationRoutes'));
 app.use('/api/agents', require('./routes/agentRoutes'));
+app.use('/api/staff', require('./routes/staffRoutes'));
+app.use('/api/content', require('./routes/contentRoutes'));
 
 // ======================
 // 404 Handler – for unmatched routes

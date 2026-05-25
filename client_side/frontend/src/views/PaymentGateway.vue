@@ -43,8 +43,7 @@
         <p class="text-gray-500 mb-1">Order <span class="font-bold text-primary-600">#{{ order.order_number }}</span></p>
         <p class="text-3xl font-black text-green-600 mb-6">KES {{ formatPrice(order.total_amount) }}</p>
         <p class="text-sm text-gray-400 mb-8">Thank you for shopping with BestLady Beauty. Your order is now being processed.</p>
-        <router-link v-if="isLoggedIn" :to="`/orders/${order.id}`"
-          class="inline-block bg-primary-500 hover:bg-primary-600 text-white font-bold px-8 py-3 rounded-xl transition shadow-md">
+        <router-link v-if="isLoggedIn" :to="`/orders/${order.id}`" class="btn-primary px-8 py-3">
           View Order Details
         </router-link>
       </div>
@@ -66,8 +65,9 @@
                 order.payment_status === 'completed' ? 'bg-green-100 text-green-700' :
                 order.payment_status === 'pending' ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-600'
               ]">{{ order.payment_status }}</span>
-              <p class="text-xs text-gray-400 mt-2">
-                {{ order.delivery_channel === 'pickup' ? '📦 Pickup Station' : '🛵 Private Rider' }}
+              <p class="text-xs text-gray-400 mt-2 flex items-center gap-1">
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+                {{ order.delivery_channel === 'pickup' ? 'Pickup Station' : 'Private Rider' }}
               </p>
             </div>
           </div>
@@ -86,7 +86,7 @@
               <!-- Product image -->
               <div class="w-14 h-14 rounded-xl overflow-hidden bg-gray-100 flex-shrink-0 flex items-center justify-center">
                 <img v-if="item.Product?.image_url" :src="item.Product.image_url" class="w-full h-full object-cover" />
-                <span v-else class="text-2xl">🧴</span>
+                <svg v-else class="w-6 h-6 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
               </div>
 
               <div class="flex-1 min-w-0">
@@ -164,7 +164,7 @@
               <button
                 @click="payNow"
                 :disabled="paying || !phone"
-                class="w-full py-4 bg-green-600 hover:bg-green-700 text-white font-black text-lg rounded-xl transition shadow-md hover:shadow-lg disabled:opacity-50 flex items-center justify-center gap-3"
+                class="btn-success w-full py-4 text-lg"
               >
                 <div v-if="paying" class="w-5 h-5 border-2 border-white/40 border-t-white rounded-full animate-spin"></div>
                 <svg v-else class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>

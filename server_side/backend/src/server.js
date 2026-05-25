@@ -19,16 +19,25 @@ const io = new Server(server, {
 // Store io in app for access in controllers
 app.set('io', io);
 
+// Track online users: socketId -> userId
+const onlineUsers = new Map();
+app.set('onlineUsers', onlineUsers);
+
 io.on('connection', (socket) => {
   console.log('🔌 New client connected:', socket.id);
 
   socket.on('join', (userId) => {
     socket.join(userId);
-    console.log(`👤 User ${userId} joined their room`);
+    socket.join('admins'); // all sockets join admin broadcast room
+    onlineUsers.set(socket.id, userId);
+    console.log(`👤 User ${userId} joined their room | online: ${onlineUsers.size}`);
+    io.emit('onlineCount', { count: new Set(onlineUsers.values()).size });
   });
 
   socket.on('disconnect', () => {
-    console.log('🔌 Client disconnected');
+    onlineUsers.delete(socket.id);
+    console.log(`🔌 Client disconnected | online: ${onlineUsers.size}`);
+    io.emit('onlineCount', { count: new Set(onlineUsers.values()).size });
   });
 });
 

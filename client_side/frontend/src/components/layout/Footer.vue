@@ -98,30 +98,30 @@
         <div>
           <h4 class="font-semibold text-lg mb-4 text-white">Support</h4>
           <ul class="space-y-3 text-sm">
-            <li><a href="#" class="text-gray-400 hover:text-primary-400 transition-colors flex items-center gap-2 group">
+            <li><router-link to="/faq" class="text-gray-400 hover:text-primary-400 transition-colors flex items-center gap-2 group">
               <svg class="h-3 w-3 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
               </svg>
               FAQs
-            </a></li>
-            <li><a href="#" class="text-gray-400 hover:text-primary-400 transition-colors flex items-center gap-2 group">
+            </router-link></li>
+            <li><router-link to="/shipping-info" class="text-gray-400 hover:text-primary-400 transition-colors flex items-center gap-2 group">
               <svg class="h-3 w-3 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
               </svg>
               Shipping Info
-            </a></li>
-            <li><a href="#" class="text-gray-400 hover:text-primary-400 transition-colors flex items-center gap-2 group">
+            </router-link></li>
+            <li><router-link to="/returns" class="text-gray-400 hover:text-primary-400 transition-colors flex items-center gap-2 group">
               <svg class="h-3 w-3 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
               </svg>
               Returns Policy
-            </a></li>
-            <li><a href="#" class="text-gray-400 hover:text-primary-400 transition-colors flex items-center gap-2 group">
+            </router-link></li>
+            <li><router-link to="/track-orders" class="text-gray-400 hover:text-primary-400 transition-colors flex items-center gap-2 group">
               <svg class="h-3 w-3 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
               </svg>
               Track Order
-            </a></li>
+            </router-link></li>
           </ul>
         </div>
         

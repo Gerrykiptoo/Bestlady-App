@@ -1,3 +1,226 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* ─────────────────────────────────────────────
+   DESIGN TOKENS
+───────────────────────────────────────────── */
+:root {
+  --brand-purple:   #9333ea;
+  --brand-pink:     #db2777;
+  --brand-gradient: linear-gradient(135deg, #7e22ce 0%, #9333ea 50%, #db2777 100%);
+  --brand-soft:     linear-gradient(135deg, #f3e8ff 0%, #fce7f3 100%);
+
+  /* Surface */
+  --bg-page:    #f8fafc;
+  --bg-card:    #ffffff;
+  --border:     #e2e8f0;
+
+  /* Text */
+  --text-primary:   #0f172a;
+  --text-secondary: #475569;
+  --text-muted:     #94a3b8;
+}
+
+/* ─────────────────────────────────────────────
+   BASE
+───────────────────────────────────────────── */
+@layer base {
+  body {
+    @apply text-slate-800 antialiased;
+    background-color: var(--bg-page);
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  }
+  h1,h2,h3,h4 { @apply font-bold tracking-tight; }
+  *:focus-visible {
+    @apply outline-none ring-2 ring-purple-500 ring-offset-2;
+  }
+}
+
+/* ─────────────────────────────────────────────
+   COMPONENTS
+───────────────────────────────────────────── */
+@layer components {
+
+  /* ── PAGE HERO ── */
+  .page-hero {
+    background: var(--brand-gradient);
+    @apply text-white py-14 px-6 relative overflow-hidden;
+  }
+  .page-hero::before {
+    content: '';
+    @apply absolute inset-0 pointer-events-none;
+    background:
+      radial-gradient(ellipse at 20% 50%, rgba(255,255,255,0.08) 0%, transparent 60%),
+      radial-gradient(ellipse at 80% 20%, rgba(255,255,255,0.06) 0%, transparent 50%);
+  }
+
+  /* ── CARDS ── */
+  .card {
+    @apply bg-white rounded-2xl border border-slate-100;
+    box-shadow: 0 1px 3px 0 rgb(0 0 0/0.07), 0 1px 2px -1px rgb(0 0 0/0.05);
+  }
+  .card-hover {
+    @apply card hover:-translate-y-0.5 transition-all duration-200;
+    &:hover { box-shadow: 0 10px 25px -5px rgb(0 0 0/0.10), 0 8px 10px -6px rgb(0 0 0/0.06); }
+  }
+
+  /* ── BUTTONS — clear color hierarchy ── */
+
+  /* PRIMARY — brand gradient, main CTA */
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2
+           px-6 py-3 rounded-xl font-bold text-sm text-white
+           transition-all duration-150
+           disabled:opacity-50 disabled:cursor-not-allowed;
+    background: var(--brand-gradient);
+    box-shadow: 0 4px 14px 0 rgba(147,51,234,0.30);
+    &:not(:disabled):hover {
+      @apply opacity-90;
+      box-shadow: 0 6px 20px 0 rgba(147,51,234,0.40);
+    }
+  }
+  .btn-primary-lg {
+    @apply btn-primary px-8 py-4 text-base rounded-2xl;
+  }
+
+  /* SUCCESS — green, payment / confirm */
+  .btn-success {
+    @apply inline-flex items-center justify-center gap-2
+           px-6 py-3 rounded-xl font-bold text-sm text-white
+           bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800
+           transition-all duration-150
+           disabled:opacity-50 disabled:cursor-not-allowed;
+    box-shadow: 0 4px 12px 0 rgba(5,150,105,0.25);
+  }
+  .btn-success-lg {
+    @apply btn-success px-8 py-4 text-base rounded-2xl;
+  }
+
+  /* DANGER — red, cancel / delete */
+  .btn-danger {
+    @apply inline-flex items-center justify-center gap-2
+           px-6 py-3 rounded-xl font-bold text-sm text-white
+           bg-red-600 hover:bg-red-700 active:bg-red-800
+           transition-all duration-150
+           disabled:opacity-50 disabled:cursor-not-allowed;
+    box-shadow: 0 4px 12px 0 rgba(220,38,38,0.20);
+  }
+
+  /* SECONDARY — purple outline */
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2
+           px-6 py-3 rounded-xl font-bold text-sm
+           border-2 border-purple-600 text-purple-700
+           hover:bg-purple-50 active:bg-purple-100
+           transition-all duration-150
+           disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  /* OUTLINE — slate outline, neutral actions */
+  .btn-outline {
+    @apply inline-flex items-center justify-center gap-2
+           px-5 py-2.5 rounded-xl font-semibold text-sm
+           border border-slate-200 text-slate-700 bg-white
+           hover:bg-slate-50 hover:border-slate-300 active:bg-slate-100
+           transition-all duration-150
+           disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  /* GHOST — subtle, on light backgrounds */
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2
+           px-4 py-2 rounded-xl font-medium text-sm
+           text-slate-600 hover:text-purple-700 hover:bg-purple-50
+           transition-all duration-150;
+  }
+
+  /* GHOST-WHITE — on dark/hero backgrounds */
+  .btn-ghost-white {
+    @apply inline-flex items-center justify-center gap-2
+           px-5 py-2.5 rounded-xl font-semibold text-sm text-white
+           border border-white/30 bg-white/10
+           hover:bg-white/20 hover:border-white/50
+           backdrop-blur-sm transition-all duration-150;
+  }
+
+  /* INFO — blue, informational / download actions */
+  .btn-info {
+    @apply inline-flex items-center justify-center gap-2
+           px-6 py-3 rounded-xl font-bold text-sm text-white
+           bg-blue-600 hover:bg-blue-700 active:bg-blue-800
+           transition-all duration-150
+           disabled:opacity-50 disabled:cursor-not-allowed;
+    box-shadow: 0 4px 12px 0 rgba(37,99,235,0.20);
+  }
+
+  /* ICON — square icon button */
+  .btn-icon {
+    @apply inline-flex items-center justify-center
+           w-9 h-9 rounded-xl border border-slate-200 bg-white text-slate-500
+           hover:border-purple-300 hover:text-purple-600 hover:bg-purple-50
+           transition-all duration-150;
+  }
+
+  /* ── FORM INPUTS ── */
+  .form-input {
+    @apply w-full px-4 py-3 border border-slate-200 rounded-xl
+           focus:ring-2 focus:ring-purple-400 focus:border-purple-400
+           outline-none transition-all bg-white text-slate-800
+           placeholder-slate-400 text-sm;
+  }
+
+  /* ── LAYOUT ── */
+  .container-custom {
+    @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+  }
+
+  /* ── TYPOGRAPHY HELPERS ── */
+  .section-tag {
+    @apply text-xs font-bold text-purple-600 uppercase tracking-widest mb-3;
+  }
+  .section-title {
+    @apply text-3xl lg:text-4xl font-black text-slate-900;
+  }
+  .brand-text {
+    @apply bg-clip-text text-transparent;
+    background-image: var(--brand-gradient);
+  }
+
+  /* ── STATUS BADGES ── */
+  .badge           { @apply inline-flex items-center text-[11px] font-bold px-2.5 py-0.5 rounded-full; }
+  .badge-pending   { @apply badge bg-amber-100 text-amber-700; }
+  .badge-paid      { @apply badge bg-emerald-100 text-emerald-700; }
+  .badge-processing{ @apply badge bg-blue-100 text-blue-700; }
+  .badge-dispatched{ @apply badge bg-violet-100 text-violet-700; }
+  .badge-delivered { @apply badge bg-teal-100 text-teal-700; }
+  .badge-cancelled { @apply badge bg-red-100 text-red-700; }
+  .badge-ready     { @apply badge bg-cyan-100 text-cyan-700; }
+
+  /* ── UTILITIES ── */
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+}
+
+/* ─────────────────────────────────────────────
+   ANIMATIONS
+───────────────────────────────────────────── */
+@layer utilities {
+  .animate-float       { animation: float 6s ease-in-out infinite; }
+  .animate-pulse-slow  { animation: pulse 3s ease-in-out infinite; }
+}
+
+@keyframes float {
+  0%,100% { transform: translateY(0); }
+  50%     { transform: translateY(-8px); }
+}
+
+/* ─────────────────────────────────────────────
+   TOAST OVERRIDE
+───────────────────────────────────────────── */
+.v-toast__item {
+  border-radius: 12px !important;
+  font-family: 'Inter', sans-serif !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+}

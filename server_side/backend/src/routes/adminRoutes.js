@@ -8,7 +8,8 @@ const {
   createUser,
   updateUser,
   deleteUser,
-  getPlatformAnalytics
+  getPlatformAnalytics,
+  getOrderStats
 } = require('../controllers/adminController');
 const { protect, admin } = require('../middleware/authMiddleware');
 const reportController = require('../controllers/reportController');
@@ -21,6 +22,7 @@ router.put('/users/:id/kyc', protect, admin, updateKYC);
 router.get('/analytics/sales', protect, admin, getSalesAnalytics);
 router.get('/analytics/inventory', protect, admin, getInventoryHealth);
 router.get('/analytics/platform', protect, admin, getPlatformAnalytics);
+router.get('/analytics/order-stats', protect, admin, getOrderStats);
 router.get('/reports/financial', protect, admin, reportController.generateFinancialReport);
 
 module.exports = router;

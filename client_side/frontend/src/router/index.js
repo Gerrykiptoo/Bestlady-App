@@ -54,6 +54,47 @@ const routes = [
     name: 'ResetPassword',
     component: () => import('@/views/ResetPassword.vue')
   },
+  // Public info pages
+  {
+    path: '/about',
+    name: 'About',
+    component: () => import('@/views/About.vue')
+  },
+  {
+    path: '/contact',
+    name: 'Contact',
+    component: () => import('@/views/Contact.vue')
+  },
+  {
+    path: '/blog',
+    name: 'Blog',
+    component: () => import('@/views/Blog.vue')
+  },
+  {
+    path: '/blog/:slug',
+    name: 'BlogDetail',
+    component: () => import('@/views/BlogDetail.vue')
+  },
+  {
+    path: '/faq',
+    name: 'FAQ',
+    component: () => import('@/views/FAQ.vue')
+  },
+  {
+    path: '/shipping-info',
+    name: 'ShippingInfo',
+    component: () => import('@/views/ShippingInfo.vue')
+  },
+  {
+    path: '/returns',
+    name: 'ReturnPolicy',
+    component: () => import('@/views/ReturnPolicy.vue')
+  },
+  {
+    path: '/track-orders',
+    name: 'TrackOrders',
+    component: () => import('@/views/TrackOrders.vue')
+  },
   
   // Protected Routes (require authentication)
   {

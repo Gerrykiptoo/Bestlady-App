@@ -33,7 +33,7 @@
         <!-- Free Shipping Progress (if subtotal > 0) -->
         <div v-if="subtotal > 0 && subtotal < freeShippingThreshold" class="mt-3 p-3 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl">
           <div class="flex items-center justify-between text-xs mb-2">
-            <span class="text-green-700 font-medium">✨ Add KES {{ formatPrice(remainingForFreeShipping) }} more for FREE shipping!</span>
+            <span class="text-green-700 font-medium">Add KES {{ formatPrice(remainingForFreeShipping) }} more for FREE shipping!</span>
             <span class="text-green-600 font-bold">{{ progressPercentage }}%</span>
           </div>
           <div class="w-full bg-green-100 rounded-full h-2 overflow-hidden">
@@ -70,7 +70,7 @@
             :disabled="!promoCode || promoApplied"
             class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition disabled:opacity-50"
           >
-            {{ promoApplied ? 'Applied ✓' : 'Apply' }}
+            {{ promoApplied ? 'Applied' : 'Apply' }}
           </button>
         </div>
         <p v-if="promoApplied" class="text-xs text-green-600 mt-2 flex items-center gap-1">

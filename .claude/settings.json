@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git -C /home/hp/Bestlady status --short)",
+      "Bash(pkill -f \"vite\")",
+      "Bash(node node_modules/.bin/vite --port 5173)",
+      "Bash(curl -s http://localhost:5173)",
+      "Bash(node /home/hp/Bestlady/client_side/frontend/node_modules/.bin/vite --root /home/hp/Bestlady/client_side/frontend --port 5173)",
+      "Bash(echo \"PID: $!\")",
+      "Read(//tmp/**)",
+      "Bash(node /home/hp/Bestlady/client_side/frontend/node_modules/.bin/vite --version)"
+    ]
+  }
+}

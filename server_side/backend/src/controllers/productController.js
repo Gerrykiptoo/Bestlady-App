@@ -60,7 +60,7 @@ const createProduct = async (req, res) => {
   try {
     const productData = { ...req.body };
     if (req.file) {
-      productData.image_url = `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`;
+      productData.image_url = `/uploads/${req.file.filename}`;
     }
     const product = await Product.create(productData);
     res.status(201).json(product);
@@ -78,9 +78,9 @@ const updateProduct = async (req, res) => {
     
     const productData = { ...req.body };
     if (req.file) {
-      productData.image_url = `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`;
+      productData.image_url = `/uploads/${req.file.filename}`;
     }
-    
+
     await product.update(productData);
     res.json(product);
   } catch (error) {
