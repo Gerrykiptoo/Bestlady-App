@@ -6,6 +6,7 @@ const { generateOTP, verifyOTP } = require('../utils/otpGenerator');
 const { generateReceipt } = require('../services/receiptService');
 const { generateOrderHistoryPDF } = require('../services/pdfService');
 const emailService = require('../services/emailService');
+const whatsappService = require('../services/whatsappService');
 const { v4: uuidv4 } = require('uuid');
 
 /**
@@ -144,13 +145,14 @@ const createOrder = async (req, res) => {
       });
     }
 
-    // Send order confirmation email (non-blocking)
+    // Send instant notifications (non-blocking) — email + WhatsApp, fires for both pending and paid
     Order.findByPk(order.id, { include: [{ model: OrderItem, include: [Product] }] })
       .then(fullOrder => {
-        if (fullOrder) {
-          emailService.sendOrderConfirmation(req.user, fullOrder, fullOrder.OrderItems)
-            .catch(err => console.error('Order confirm email error:', err));
-        }
+        if (!fullOrder) return;
+        emailService.sendOrderPlacedNotification(req.user, fullOrder, fullOrder.OrderItems)
+          .catch(err => console.error('Order placed email error:', err));
+        whatsappService.sendOrderPlacedWhatsApp(req.user, fullOrder, fullOrder.OrderItems)
+          .catch(err => console.error('Order placed WhatsApp error:', err));
       });
 
     res.status(201).json(order);
@@ -353,10 +355,12 @@ const payOrder = async (req, res) => {
         });
       }
 
-      // Send payment confirmation email (non-blocking)
+      // Send payment confirmation notifications (non-blocking)
       const freshOrder = await Order.findByPk(order.id);
       emailService.sendPaymentConfirmation(req.user, freshOrder, 'wallet')
         .catch(err => console.error('Payment email error:', err));
+      whatsappService.sendPaymentConfirmedWhatsApp(req.user, freshOrder, 'wallet')
+        .catch(err => console.error('Payment WhatsApp error:', err));
 
       res.json({
         message: 'Payment successful via wallet',
@@ -527,10 +531,11 @@ const updateOrderStatus = async (req, res) => {
     const { status } = req.body;
     await order.update({ status });
 
-    // Send email notification
+    // Send status update notifications (email + WhatsApp)
     const user = await User.findByPk(order.user_id);
     if (user) {
-      emailService.sendOrderStatusUpdate(user, order).catch(err => console.error('Email notify error:', err));
+      emailService.sendOrderStatusUpdate(user, order).catch(err => console.error('Status email error:', err));
+      whatsappService.sendOrderStatusWhatsApp(user, order).catch(err => console.error('Status WhatsApp error:', err));
     }
 
     const io = req.app.get('io');

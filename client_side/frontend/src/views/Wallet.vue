@@ -1,21 +1,22 @@
 <template>
-  <div class="min-h-screen bg-gray-50">
-    <!-- Page hero -->
-    <div class="page-hero">
+  <div class="min-h-screen" style="background: #faf9f7;">
+    <!-- Warm wallet header -->
+    <div style="background: linear-gradient(135deg, #2d0a1f 0%, #4a1232 60%, #3b0f28 100%); border-bottom: 1px solid rgba(244,197,173,0.12); position: relative; overflow: hidden;">
+      <div style="position:absolute;top:-50px;right:-50px;width:220px;height:220px;border-radius:50%;background:rgba(244,197,173,0.05);"></div>
+      <div style="position:absolute;bottom:-30px;left:5%;width:140px;height:140px;border-radius:50%;background:rgba(244,197,173,0.03);"></div>
       <div class="container-custom relative z-10 py-10">
-        <p class="section-tag text-white/70">Finance</p>
+        <p class="text-rose-300/70 text-xs font-bold uppercase tracking-[0.2em] mb-3">My Wallet</p>
         <div class="flex flex-col sm:flex-row sm:items-end gap-4 justify-between">
           <div>
-            <h1 class="text-3xl font-black text-white">My Wallet</h1>
-            <p class="text-5xl font-black text-white mt-2">KES {{ formatPrice(auth.user?.wallet_balance || 0) }}</p>
-            <p class="text-white/60 text-sm mt-1">Available balance</p>
+            <p class="font-serif text-5xl font-bold text-white">KES {{ formatPrice(auth.user?.wallet_balance || 0) }}</p>
+            <p class="text-rose-200/60 text-sm mt-2">Available balance</p>
           </div>
           <div class="flex gap-3">
-            <button @click="showTopUp = true" class="inline-flex items-center gap-1.5 bg-white text-purple-700 font-bold px-5 py-2.5 rounded-xl hover:shadow-lg transition text-sm">
+            <button @click="showTopUp = true" class="inline-flex items-center gap-1.5 bg-white text-purple-900 font-bold px-5 py-2.5 rounded-xl hover:shadow-lg transition text-sm">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
               Top Up
             </button>
-            <button @click="downloadTransactionsPDF" class="btn-ghost-white text-sm">
+            <button @click="downloadTransactionsPDF" class="inline-flex items-center gap-1.5 border border-rose-300/30 text-rose-200 text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-white/10 transition" style="background: rgba(255,255,255,0.06);">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
               PDF
             </button>
@@ -25,9 +26,9 @@
     </div>
 
     <div class="container-custom py-8">
-      <div class="card overflow-hidden">
-        <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-          <h2 class="font-bold text-gray-800">Transaction History</h2>
+      <div class="bg-white rounded-2xl overflow-hidden" style="border: 1px solid #ede9e3;">
+        <div class="px-6 py-4 border-b border-[#ede9e3] flex items-center justify-between">
+          <h2 class="font-serif font-bold text-gray-800">Transaction History</h2>
           <span class="text-xs text-gray-400">{{ transactions.length }} transactions</span>
         </div>
 
@@ -45,7 +46,7 @@
 
         <!-- Empty -->
         <div v-else-if="transactions.length === 0" class="py-20 text-center">
-          <div class="w-16 h-16 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-3">
+          <div class="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-3" style="background: #ede9e3;">
             <svg class="w-8 h-8 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
           </div>
           <p class="text-gray-500 font-medium">No transactions yet</p>

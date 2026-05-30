@@ -83,32 +83,62 @@ const getUserDashboardData = async (req, res) => {
 };
 
 // -------------------- 2. BULK OPTIMIZER --------------------
+const PAID_STATUSES = ['paid', 'processing', 'completed', 'dispatched', 'delivered'];
+
 const bulkOptimize = async (req, res) => {
   try {
     const userId = req.user.id;
+    const priceKey = req.user.tier === 'wholesale' ? 'wholesale_price' : 'retail_price';
 
-    // Get loyalty tier for real discounts
-    const tierInfo = await aiService.getUserDiscountTier(userId);
+    const [tierInfo, orders] = await Promise.all([
+      aiService.getUserDiscountTier(userId),
+      Order.findAll({
+        where: { user_id: userId, payment_status: { [Op.in]: PAID_STATUSES } },
+        include: [{ model: OrderItem, include: [Product] }],
+        order: [['createdAt', 'DESC']],
+        limit: 60
+      })
+    ]);
 
-    const orders = await Order.findAll({
-      where: { user_id: userId, payment_status: 'completed' },
-      include: [{ model: OrderItem, include: [Product] }],
-      order: [['createdAt', 'DESC']],
-      limit: 50
-    });
+    const discountMultiplier = 1 - tierInfo.discountPercent / 100;
 
+    // Cold-start: no order history → recommend popular products
     if (orders.length === 0) {
-      return res.json({
-        recommendations: [],
-        tierInfo,
-        message: 'Place your first orders to unlock AI bulk recommendations and loyalty discounts!'
+      const popular = await Product.findAll({
+        where: { is_active: true, current_stock: { [Op.gt]: 0 } },
+        order: [['createdAt', 'DESC']],
+        limit: 6
       });
+      const coldRecs = popular.map(p => {
+        const basePrice = parseFloat(p[priceKey]);
+        const discountedPrice = parseFloat((basePrice * discountMultiplier).toFixed(2));
+        return {
+          productId: p.id,
+          productName: p.name,
+          productImage: p.image_url,
+          currentStock: p.current_stock,
+          basePrice,
+          discountedPrice,
+          discountPercent: tierInfo.discountPercent,
+          recommendedQuantity: 5,
+          totalCost: parseFloat((discountedPrice * 5).toFixed(2)),
+          totalSavings: 0,
+          pastOrderCount: 0,
+          avgQuantityPerOrder: 0,
+          lastOrdered: null,
+          stockUrgency: p.current_stock <= (p.reorder_point || 10) ? 'low' : 'normal',
+          reasoning: `Popular on BestLady. Place your first order to unlock personalised AI recommendations and loyalty discounts (Bronze at 3 orders = 5% off)!`,
+          confidence: 55
+        };
+      });
+      return res.json({ recommendations: coldRecs, tierInfo, coldStart: true });
     }
 
     // Aggregate product stats from history
     const productStats = {};
     orders.forEach(order => {
       order.OrderItems.forEach(item => {
+        if (!item.Product) return; // product may have been deleted
         const pid = item.product_id;
         if (!productStats[pid]) {
           productStats[pid] = {
@@ -129,28 +159,54 @@ const bulkOptimize = async (req, res) => {
       });
     });
 
-    const discountMultiplier = 1 - tierInfo.discountPercent / 100;
-
-    const recommendations = Object.values(productStats)
+    // Fetch 7-day velocity for each product (in parallel, capped at 8 products for speed)
+    const topStats = Object.values(productStats)
+      .filter(s => s.product.is_active && s.product.current_stock >= 0)
       .sort((a, b) => b.totalQuantity - a.totalQuantity)
-      .slice(0, 6)
-      .map(stat => {
-        const product = stat.product;
-        const basePrice = req.user.tier === 'wholesale'
-          ? parseFloat(product.wholesale_price)
-          : parseFloat(product.retail_price);
+      .slice(0, 8);
 
+    const velocities = await Promise.all(
+      topStats.map(s => aiService.calculateSalesVelocity(s.productId, 14))
+    );
+
+    const recommendations = topStats
+      .map((stat, idx) => {
+        const product = stat.product;
+        const basePrice = parseFloat(product[priceKey]);
         const discountedPrice = parseFloat((basePrice * discountMultiplier).toFixed(2));
         const avgQty = stat.totalQuantity / stat.orderCount;
-        const recommendedQuantity = Math.ceil(avgQty * 1.25); // 25% above average to prevent stockout
+        const velocity = velocities[idx] || 0;
+        // Recommend 2-week supply based on velocity, floor at historical average × 1.2
+        const supplyQty = velocity > 0 ? Math.ceil(velocity * 14) : Math.ceil(avgQty * 1.2);
+        const recommendedQuantity = Math.max(supplyQty, 1);
         const savingsPerUnit = basePrice - discountedPrice;
         const totalSavings = savingsPerUnit * recommendedQuantity;
+        const stockUrgency = product.current_stock === 0 ? 'out_of_stock'
+          : product.current_stock <= (product.reorder_point || 10) ? 'low' : 'normal';
+
+        // Confidence: more history + velocity data = higher confidence
+        const baseConfidence = Math.min(65 + stat.orderCount * 4, 90);
+        const velocityBoost = velocity > 0 ? 5 : 0;
+        const confidence = Math.min(baseConfidence + velocityBoost, 97);
+
+        let reasoning = '';
+        if (stockUrgency === 'out_of_stock') {
+          reasoning = `Currently out of stock — we'll notify you when restocked. Consider a similar alternative.`;
+        } else if (stockUrgency === 'low') {
+          reasoning = `Low stock (${product.current_stock} left)! You've ordered this ${stat.orderCount}× — order now before it sells out.`;
+          if (tierInfo.discountPercent > 0) reasoning += ` ${tierInfo.tierEmoji} ${tierInfo.discountPercent}% loyalty discount saves you KES ${Math.round(totalSavings)}.`;
+        } else if (tierInfo.discountPercent > 0) {
+          reasoning = `${tierInfo.tierEmoji} ${tierInfo.tier} loyalty: ${tierInfo.discountPercent}% off. You've ordered this ${stat.orderCount}× (avg ${Math.round(avgQty)} units). Stocking ${recommendedQuantity} covers ~2 weeks demand and saves you KES ${Math.round(totalSavings)}.`;
+        } else {
+          reasoning = `You've ordered this ${stat.orderCount}× (avg ${Math.round(avgQty)} units/order). Complete ${tierInfo.ordersToNextTier} more order(s) to unlock Bronze loyalty discount!`;
+        }
 
         return {
           productId: stat.productId,
           productName: product.name,
           productImage: product.image_url,
           currentStock: product.current_stock,
+          stockUrgency,
           basePrice,
           discountedPrice,
           discountPercent: tierInfo.discountPercent,
@@ -159,13 +215,21 @@ const bulkOptimize = async (req, res) => {
           totalSavings: parseFloat(totalSavings.toFixed(2)),
           pastOrderCount: stat.orderCount,
           avgQuantityPerOrder: Math.round(avgQty),
+          weeklyVelocity: parseFloat((velocity * 7).toFixed(1)),
           lastOrdered: stat.lastOrdered,
-          reasoning: tierInfo.discountPercent > 0
-            ? `${tierInfo.tierEmoji} ${tierInfo.tier} loyalty: ${tierInfo.discountPercent}% off. You've ordered this ${stat.orderCount}× (avg ${Math.round(avgQty)} units). Ordering ${recommendedQuantity} now saves you KES ${Math.round(totalSavings)}.`
-            : `You've ordered this product ${stat.orderCount}× (avg ${Math.round(avgQty)} units). Complete ${tierInfo.ordersToNextTier} more order(s) to unlock Bronze discount!`,
-          confidence: Math.min(70 + stat.orderCount * 3, 97)
+          reasoning,
+          confidence
         };
-      });
+      })
+      // Put in-stock items first; within same urgency sort by order frequency
+      .sort((a, b) => {
+        const urgencyOrder = { normal: 0, low: 1, out_of_stock: 2 };
+        if (urgencyOrder[a.stockUrgency] !== urgencyOrder[b.stockUrgency]) {
+          return urgencyOrder[a.stockUrgency] - urgencyOrder[b.stockUrgency];
+        }
+        return b.pastOrderCount - a.pastOrderCount;
+      })
+      .slice(0, 6);
 
     res.json({ recommendations, tierInfo });
   } catch (error) {
@@ -190,7 +254,7 @@ const aiChat = async (req, res) => {
       });
 
       recentOrders = await Order.findAll({
-        where: { user_id: userId, payment_status: 'completed' },
+        where: { user_id: userId, payment_status: { [Op.in]: PAID_STATUSES } },
         order: [['createdAt', 'DESC']],
         limit: 5,
         include: [{ model: OrderItem, include: [Product] }]
@@ -202,6 +266,7 @@ const aiChat = async (req, res) => {
     let response = '';
     let quickReplies = [];
     const lowerMessage = message.toLowerCase();
+    const has = (...terms) => terms.some(t => lowerMessage.includes(t));
 
     if (!userId) {
       // ----- Guest chat logic (full) -----
@@ -209,7 +274,7 @@ const aiChat = async (req, res) => {
         const platformData = await aiService.getPlatformAnalytics();
         const { summary } = platformData || {};
         response = `📊 Platform Analytics:\n\n• Active Users: ${summary?.activeUsers || 0}\n• Total Orders (30 days): ${summary?.totalOrders || 0}\n• Total Revenue: ${formatCurrency(summary?.totalRevenue || 0)}\n• Avg Order Value: ${formatCurrency(summary?.avgOrderValue || 0)}\n\nSign up for personalized insights!`;
-      } else if (lowerMessage.includes('how') || lowerMessage.includes('work')) {
+      } else if (has('how', 'work', 'what is bestlady', 'about')) {
         response = "BestLady is an AI-powered beauty supply chain platform. We connect beauty businesses with top products and provide intelligent tools like stock prediction and regional demand forecasts to help you grow. Would you like to create an account to see your personal business insights?";
       } else if (lowerMessage.includes('benefit') || lowerMessage.includes('join')) {
         response = "By joining BestLady, you get access to:\n• Wholesale pricing for bulk orders\n• AI-driven stock alerts to never run out of best-sellers\n• Regional demand analytics to see what's trending in your area\n• 24/7 delivery tracking\n• Seamless payments with M-Pesa";
@@ -242,124 +307,195 @@ const aiChat = async (req, res) => {
     }
 
     // ----- Authenticated user chat logic -----
-    if (lowerMessage.includes('analytics') || lowerMessage.includes('my stats') || lowerMessage.includes('my spend')) {
+    if (has('analytics', 'my stats', 'my spend', 'spending', 'how much have i')) {
       if (customerAnalytics) {
-        response = `📊 Your Business Analytics:\n\n💰 Spending:\n• Total Spent: ${formatCurrency(customerAnalytics.totalSpent)}\n• Avg Order: ${formatCurrency(customerAnalytics.avgOrderValue)}\n• Orders: ${customerAnalytics.totalOrders}\n\n📈 Activity:\n• Monthly Purchases: ${customerAnalytics.purchaseFrequency}\n• Preferred: ${customerAnalytics.preferredPayment}\n\n🏆 Top Categories:\n`;
+        response = `Your Business Analytics:\n\nSpending:\n• Total Spent: ${formatCurrency(customerAnalytics.totalSpent)}\n• Avg Order: ${formatCurrency(customerAnalytics.avgOrderValue)}\n• Orders: ${customerAnalytics.totalOrders}\n\nActivity:\n• Purchases/month: ${customerAnalytics.purchaseFrequency}\n• Preferred payment: ${customerAnalytics.preferredPayment || 'N/A'}\n\nTop Categories:\n`;
         customerAnalytics.topCategories.slice(0, 3).forEach((c, i) => {
           response += `${i + 1}. ${c.name}: ${formatCurrency(c.spent)}\n`;
         });
       } else {
-        response = "Loading your analytics...";
+        response = "No order history found yet. Place your first order to start seeing analytics!";
       }
-    } else if ((lowerMessage.includes('order') || lowerMessage.includes('purchase')) && (lowerMessage.includes('list') || lowerMessage.includes('all') || lowerMessage.includes('history'))) {
+      quickReplies = ['Bulk Optimizer', 'My Discount Tier'];
+
+    } else if (has('order history', 'my orders', 'past orders', 'purchase history', 'all orders') ||
+               (has('order', 'purchase') && has('list', 'all', 'history', 'show'))) {
       if (recentOrders.length > 0) {
-        response = `📋 Your Order History:\n\n`;
+        response = `Your Recent Orders:\n\n`;
         recentOrders.forEach((o, i) => {
-          response += `${i + 1}. #${o.order_number} - ${o.status} - ${formatCurrency(o.total_amount)}\n   ${new Date(o.createdAt).toLocaleDateString()}\n`;
+          response += `${i + 1}. #${o.order_number} — ${o.status.toUpperCase()} — ${formatCurrency(o.total_amount)}\n   ${new Date(o.createdAt).toLocaleDateString('en-KE')}\n`;
         });
-        response += `\n💰 Total Spent: ${formatCurrency(customerAnalytics?.totalSpent || 0)}`;
+        response += `\nTotal Spent: ${formatCurrency(customerAnalytics?.totalSpent || 0)}\nSee full history in the Orders section.`;
       } else {
-        response = "You don't have any completed orders yet.";
+        response = "You don't have any orders yet. Browse our product catalog to place your first order!";
       }
-      quickReplies = ['Browse Products', 'Order Status'];
-    } else if (lowerMessage.includes('order') && (lowerMessage.includes('status') || lowerMessage.includes('track'))) {
+      quickReplies = ['Browse Products', 'Bulk Optimizer'];
+
+    } else if (has('order status', 'track', 'where is my order', 'delivery status', 'shipped')) {
       if (recentOrders.length > 0) {
-        const latestOrder = recentOrders[0];
-        const statusEmoji = latestOrder.status === 'completed' ? '✅' : latestOrder.status === 'paid' ? '💰' : '⏳';
-        response = `📦 Latest Order #${latestOrder.order_number}\n\n${statusEmoji} Status: ${latestOrder.status}\n💵 Payment: ${latestOrder.payment_status}\n💰 Amount: ${formatCurrency(latestOrder.total_amount)}\n📅 Date: ${new Date(latestOrder.createdAt).toLocaleString()}\n🚚 Delivery: ${latestOrder.delivery_channel}`;
+        const o = recentOrders[0];
+        const statusMap = { pending: 'Pending payment', paid: 'Paid — being processed', processing: 'Being prepared', dispatched: 'Out for delivery', delivered: 'Delivered', cancelled: 'Cancelled', completed: 'Completed' };
+        response = `Latest Order: #${o.order_number}\n\nStatus: ${statusMap[o.status] || o.status}\nPayment: ${o.payment_status.toUpperCase()}\nAmount: ${formatCurrency(o.total_amount)}\nDate: ${new Date(o.createdAt).toLocaleString('en-KE')}\nDelivery: ${o.delivery_channel === 'pickup' ? 'Pickup Station' : 'Private Rider'}`;
+        if (recentOrders.length > 1) response += `\n\nYou have ${recentOrders.length - 1} other recent order(s). Say "my orders" to see them all.`;
       } else {
         response = "You don't have any orders yet. Would you like to browse our products?";
       }
-      quickReplies = ['Order History', 'Create Order'];
-    } else if (lowerMessage.includes('discount') || lowerMessage.includes('loyalty') || lowerMessage.includes('tier') || lowerMessage.includes('reward')) {
+      quickReplies = ['Order History', 'Browse Products'];
+
+    } else if (has('discount', 'loyalty', 'tier', 'reward', 'points', 'bronze', 'silver', 'gold', 'platinum')) {
       const tierInfo = await aiService.getUserDiscountTier(userId);
-      response = `${tierInfo.tierEmoji} Your Loyalty Tier: **${tierInfo.tier}**\n\n`;
+      response = `Your Loyalty Tier: ${tierInfo.tierEmoji} ${tierInfo.tier}\n\n`;
       if (tierInfo.discountPercent > 0) {
-        response += `🎉 You earn a **${tierInfo.discountPercent}% discount** on all bulk orders!\n`;
-        response += `📦 Completed orders: ${tierInfo.completedOrders}\n\n`;
+        response += `You earn a ${tierInfo.discountPercent}% discount on all bulk orders!\nCompleted orders: ${tierInfo.completedOrders}\n\n`;
       } else {
-        response += `You currently have no discount. Complete **${tierInfo.ordersToNextTier}** more orders to unlock Bronze tier (5% off)!\n\n`;
+        response += `No discount yet. Complete ${tierInfo.ordersToNextTier} more order(s) to unlock Bronze (5% off)!\n\n`;
       }
       if (tierInfo.nextTier) {
-        response += `🚀 Next tier: **${tierInfo.nextTier}** — ${tierInfo.ordersToNextTier} order(s) away\n\n`;
+        response += `Next tier: ${tierInfo.nextTier} — ${tierInfo.ordersToNextTier} order(s) away\n\n`;
       }
-      response += `Tier breakdown:\n⭐ New → 🥉 Bronze (3 orders, 5%) → 🥈 Silver (10, 8%) → 🥇 Gold (25, 12%) → 💎 Platinum (50, 15%)`;
+      response += `Tier Breakdown:\nNew (0 orders) → Bronze (3, 5% off) → Silver (10, 8% off) → Gold (25, 12% off) → Platinum (50, 15% off)`;
       quickReplies = ['Bulk Optimizer', 'My Orders'];
 
-    } else if (lowerMessage.includes('recommend') || lowerMessage.includes('suggestion')) {
-      // Personalised: use actual purchase history
+    } else if (has('recommend', 'suggestion', 'what should i buy', 'what to order', 'what do you suggest')) {
       const boughtIds = recentOrders.flatMap(o => o.OrderItems.map(i => i.product_id));
       const uniqueBought = [...new Set(boughtIds)];
       const tierInfo = await aiService.getUserDiscountTier(userId);
-
-      // Find products the user hasn't bought recently, sorted by best-sellers
-      const suggestions = await Product.findAll({
-        where: { is_active: true, id: { [Op.notIn]: uniqueBought.length ? uniqueBought : ['00000000-0000-0000-0000-000000000000'] } },
-        limit: 4,
-        order: [['current_stock', 'DESC']] // favour well-stocked items
-      });
-
       const priceKey = userContext.tier === 'wholesale' ? 'wholesale_price' : 'retail_price';
       const discountMultiplier = 1 - tierInfo.discountPercent / 100;
 
-      response = `✨ Personalised for you (${userContext.tier} tier):\n\n`;
-      const list = suggestions.length ? suggestions : await Product.findAll({ where: { is_active: true }, limit: 4 });
+      const suggestions = await Product.findAll({
+        where: {
+          is_active: true,
+          current_stock: { [Op.gt]: 0 },
+          ...(uniqueBought.length ? { id: { [Op.notIn]: uniqueBought } } : {})
+        },
+        limit: 4,
+        order: [['createdAt', 'DESC']]
+      });
+      const list = suggestions.length ? suggestions : await Product.findAll({ where: { is_active: true, current_stock: { [Op.gt]: 0 } }, limit: 4 });
+
+      response = `Personalised picks for you (${userContext.tier} tier):\n\n`;
       list.forEach((p, i) => {
         const base = parseFloat(p[priceKey]);
         const discounted = base * discountMultiplier;
-        response += `${i + 1}. ${p.name}\n   Base: ${formatCurrency(base)}`;
-        if (tierInfo.discountPercent > 0) response += ` → **${formatCurrency(discounted)}** (${tierInfo.discountPercent}% off)`;
-        response += `\n   Stock: ${p.current_stock} units\n\n`;
+        response += `${i + 1}. ${p.name}\n   Price: ${formatCurrency(base)}`;
+        if (tierInfo.discountPercent > 0) response += ` → ${formatCurrency(discounted)} (${tierInfo.discountPercent}% off)`;
+        response += `   Stock: ${p.current_stock} units\n\n`;
       });
-      if (tierInfo.discountPercent > 0) {
-        response += `${tierInfo.tierEmoji} Your ${tierInfo.tier} loyalty discount applies automatically in Bulk Optimizer!`;
-      } else {
-        response += `💡 Complete ${tierInfo.ordersToNextTier} more orders to unlock loyalty discounts!`;
-      }
+      response += tierInfo.discountPercent > 0
+        ? `${tierInfo.tierEmoji} Your ${tierInfo.tier} loyalty discount applies automatically in Bulk Optimizer!`
+        : `Complete ${tierInfo.ordersToNextTier} more orders to unlock loyalty discounts!`;
       quickReplies = ['My Discount Tier', 'Bulk Optimizer'];
-    } else if (lowerMessage.includes('wallet') || lowerMessage.includes('balance') || lowerMessage.includes('top up')) {
-      response = `💳 Wallet Balance: ${formatCurrency(userContext.wallet_balance)}\n\n`;
-      if (parseFloat(userContext.wallet_balance) < 1000) {
-        response += '⚠️ Your balance is low. Would you like to top up?';
-      } else {
-        response += '✅ Your wallet is ready for purchases!';
-      }
-      quickReplies = ['Top Up Wallet'];
-    } else if (lowerMessage.includes('best seller') || lowerMessage.includes('popular') || lowerMessage.includes('trending')) {
+
+    } else if (has('wallet', 'balance', 'top up', 'topup', 'add money', 'deposit')) {
+      response = `Wallet Balance: ${formatCurrency(userContext.wallet_balance)}\n\n`;
+      response += parseFloat(userContext.wallet_balance) < 1000
+        ? 'Your balance is low. Go to Wallet in your dashboard to top up via M-Pesa.'
+        : 'Your wallet is funded and ready for purchases!';
+      quickReplies = ['Top Up Wallet', 'My Orders'];
+
+    } else if (has('best seller', 'popular', 'trending', 'top product', 'most bought', 'what sells')) {
       const bestSellers = await OrderItem.findAll({
         attributes: ['product_id', [sequelize.fn('SUM', sequelize.col('quantity')), 'totalSold']],
-        include: [{ model: Product, attributes: ['name', 'retail_price', 'image_url'] }],
+        include: [{ model: Product, attributes: ['name', 'retail_price', 'image_url'], where: { is_active: true } }],
         group: ['product_id', 'Product.id'],
         order: [[sequelize.fn('SUM', sequelize.col('quantity')), 'DESC']],
         limit: 5
       });
-      response = '🔥 Trending Products:\n\n';
-      bestSellers.forEach((item, i) => {
-        response += `${i + 1}. ${item.Product.name} - ${formatCurrency(item.Product.retail_price)}\n   Sold: ${item.dataValues.totalSold} units\n`;
-      });
-    } else if (lowerMessage.includes('inventory') || lowerMessage.includes('stock') || lowerMessage.includes('low')) {
-      const lowStockProducts = await Product.findAll({
-        where: {
-          is_active: true,
-          current_stock: { [Op.lt]: sequelize.col('reorder_point') }
-        },
+      if (bestSellers.length > 0) {
+        response = 'Trending Products on BestLady:\n\n';
+        bestSellers.forEach((item, i) => {
+          response += `${i + 1}. ${item.Product.name} — ${formatCurrency(item.Product.retail_price)}   (${item.dataValues.totalSold} units sold)\n`;
+        });
+      } else {
+        response = 'No sales data yet. Browse our catalog to see all available products!';
+      }
+      quickReplies = ['Bulk Optimizer', 'Recommendations'];
+
+    } else if (has('stock', 'inventory', 'low stock', 'running out', 'restock')) {
+      const lowStock = await Product.findAll({
+        where: { is_active: true, current_stock: { [Op.lte]: sequelize.col('reorder_point') } },
         limit: 5
       });
-      if (lowStockProducts.length > 0) {
-        response = `⚠️ Low Stock Alert:\n\n`;
-        lowStockProducts.forEach((p, i) => {
-          response += `${i + 1}. ${p.name}\n   Current: ${p.current_stock} | Reorder at: ${p.reorder_point}\n`;
+      if (lowStock.length > 0) {
+        response = 'Low Stock Alert:\n\n';
+        lowStock.forEach((p, i) => {
+          response += `${i + 1}. ${p.name}\n   Current: ${p.current_stock} units | Reorder at: ${p.reorder_point}\n`;
         });
-        response += `\n💡 Consider restocking soon!`;
+        response += '\nConsider restocking before these sell out!';
       } else {
-        response = '✅ All inventory levels are healthy! No low stock alerts.';
+        response = 'All inventory levels are healthy. No low stock alerts right now.';
       }
-      quickReplies = ['Order History', 'Platform Analytics'];
-    } else if (lowerMessage.includes('help')) {
+      quickReplies = ['Bulk Optimizer', 'Order History'];
+
+    } else if (has('search', 'find product', 'find item', 'looking for', 'do you have', 'price of', 'cost of', 'how much is', 'how much does')) {
+      // Extract likely product search term by stripping known filler words
+      const stopWords = ['search', 'find', 'product', 'item', 'looking', 'for', 'do', 'you', 'have', 'price', 'of', 'cost', 'how', 'much', 'is', 'does', 'a', 'the', 'me', 'i', 'want'];
+      const searchTerms = lowerMessage.split(/\s+/).filter(w => !stopWords.includes(w) && w.length > 2).join(' ');
+      const priceKey = userContext.tier === 'wholesale' ? 'wholesale_price' : 'retail_price';
+
+      const found = searchTerms.length > 1 ? await Product.findAll({
+        where: {
+          is_active: true,
+          [Op.or]: [
+            { name: { [Op.iLike]: `%${searchTerms}%` } },
+            { description: { [Op.iLike]: `%${searchTerms}%` } },
+            { category: { [Op.iLike]: `%${searchTerms}%` } }
+          ]
+        },
+        limit: 5
+      }) : [];
+
+      if (found.length > 0) {
+        response = `Found ${found.length} product(s) matching "${searchTerms}":\n\n`;
+        found.forEach((p, i) => {
+          response += `${i + 1}. ${p.name}\n   Price: ${formatCurrency(parseFloat(p[priceKey]))}   Stock: ${p.current_stock} units\n   Category: ${p.category || 'General'}\n\n`;
+        });
+      } else {
+        response = `No products found matching "${searchTerms || message}". Try browsing the catalog for the full product list, or ask me about popular or trending products!`;
+      }
+      quickReplies = ['Trending Products', 'Recommendations'];
+
+    } else if (has('deliver', 'shipping', 'how long', 'when will', 'arrive', 'pickup')) {
+      response = `Delivery Options:\n\n1. Pickup Station (FREE)\n   Pick up your order from your nearest BestLady pickup point. You'll receive an OTP code to collect it.\n\n2. Private Rider (KES 250)\n   Door-to-door delivery to your address. You'll track it in real time.\n\nDelivery time: 1–3 business days after payment confirmation.\nSame-day delivery is available in select Nairobi areas for orders placed before 12PM.`;
+      quickReplies = ['Track My Order', 'My Orders'];
+
+    } else if (has('return', 'refund', 'cancel', 'wrong item', 'damaged')) {
+      response = `Returns & Refunds:\n\nYou can cancel an order before it is dispatched directly from the Orders page.\n\nFor returns after delivery:\n• Contact us within 48 hours of receiving the order\n• Items must be unused and in original packaging\n• Refunds are processed back to your BestLady wallet within 24 hours\n\nEmail: info@bestlady.co.ke`;
+      quickReplies = ['My Orders', 'Contact Support'];
+
+    } else if (has('payment', 'how to pay', 'mpesa', 'stk', 'pay with', 'payment method')) {
+      response = `Payment Methods:\n\n1. M-Pesa — Enter your phone number at checkout. You'll receive an STK push to enter your PIN.\n\n2. BestLady Wallet — Pre-load your wallet balance and pay instantly at checkout.\n\nYour current wallet balance: ${formatCurrency(userContext.wallet_balance)}\n\nAll payments are secured and confirmed in real time.`;
+      quickReplies = ['Top Up Wallet', 'My Orders'];
+
+    } else if (has('help', 'what can you do', 'assist', 'support')) {
       const tierInfo = await aiService.getUserDiscountTier(userId);
-      response = `Hi ${userContext.username}! I'm here to help.\n\n${tierInfo.tierEmoji} Loyalty: **${tierInfo.tier}** (${tierInfo.discountPercent > 0 ? tierInfo.discountPercent + '% discount' : tierInfo.ordersToNextTier + ' orders to Bronze'})\n\n💡 Ask me about:\n\n📦 Orders: status, history, tracking\n💰 Wallet: balance, top up\n📊 Analytics: my spending, my stats\n🏷️ Products: recommendations, best sellers, low stock\n🎁 Loyalty: my discount, my tier, rewards\n\nWhat would you like to know?`;
+      response = `Hi ${userContext.business_name || userContext.username}! Here's what I can help with:\n\n${tierInfo.tierEmoji} Loyalty: ${tierInfo.tier} (${tierInfo.discountPercent > 0 ? tierInfo.discountPercent + '% discount active' : tierInfo.ordersToNextTier + ' orders to Bronze'})\n\nOrders: status, history, tracking\nWallet: balance, top up\nAnalytics: spending, stats\nProducts: search, recommendations, trending, low stock\nLoyalty: discount tier, rewards\nDelivery: options, times\nPayments: M-Pesa, Wallet\nReturns: cancellation, refunds\n\nWhat would you like to know?`;
+
     } else {
-      response = `Hi ${userContext.username}! 👋\n\nI'm your AI assistant. Try asking me:\n\n• "My order status"\n• "My order history"\n• "My analytics"\n• "My wallet balance"\n• "Best sellers"\n• "Low stock alert"\n• "Recommendations"\n\nHow can I help you today?`;
+      // Fuzzy fallback — try a product search on the raw message before giving up
+      const priceKey = userContext.tier === 'wholesale' ? 'wholesale_price' : 'retail_price';
+      const fallbackProducts = message.length > 3 ? await Product.findAll({
+        where: {
+          is_active: true,
+          [Op.or]: [
+            { name: { [Op.iLike]: `%${message.trim()}%` } },
+            { category: { [Op.iLike]: `%${message.trim()}%` } }
+          ]
+        },
+        limit: 3
+      }) : [];
+
+      if (fallbackProducts.length > 0) {
+        response = `Here are products matching "${message}":\n\n`;
+        fallbackProducts.forEach((p, i) => {
+          response += `${i + 1}. ${p.name} — ${formatCurrency(parseFloat(p[priceKey]))}   Stock: ${p.current_stock}\n`;
+        });
+        quickReplies = ['Recommendations', 'Bulk Optimizer'];
+      } else {
+        response = `Hi ${userContext.business_name || userContext.username}! I didn't quite catch that.\n\nTry asking me:\n• "My order status" / "My order history"\n• "My wallet balance" / "Top up wallet"\n• "My analytics" / "My spending"\n• "Best sellers" / "Trending products"\n• "My discount tier" / "Loyalty rewards"\n• "Search [product name]" / "Price of [item]"\n• "Delivery options" / "How to pay"\n• "Returns policy"\n\nHow can I help?`;
+        quickReplies = ['My Orders', 'Recommendations', 'My Discount Tier'];
+      }
     }
 
     res.json({ response, quickReplies });
@@ -381,7 +517,7 @@ const getAdminForecast = async (req, res) => {
 
     const orders = await Order.findAll({
       where: {
-        payment_status: 'completed',
+        payment_status: { [Op.in]: PAID_STATUSES },
         createdAt: { [Op.gte]: ninetyDaysAgo }
       },
       attributes: ['total_amount', 'createdAt', 'order_type', 'status']
@@ -500,12 +636,12 @@ const refreshInsights = async (req, res) => {
     const userId = req.user?.id;
     if (!userId) return res.status(401).json({ message: 'Unauthorized' });
 
-    // Fetch user's most frequently bought products
+    // Fetch user's most frequently bought products (all paid statuses)
     const topItems = await OrderItem.findAll({
       include: [
-        { 
-          model: Order, 
-          where: { user_id: userId, payment_status: 'paid' },
+        {
+          model: Order,
+          where: { user_id: userId, payment_status: { [Op.in]: PAID_STATUSES } },
           attributes: []
         },
         { model: Product }

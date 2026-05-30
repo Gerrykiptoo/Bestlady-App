@@ -4,10 +4,12 @@
       <div class="flex items-center gap-4 h-16">
 
         <!-- Logo -->
-        <router-link to="/" class="flex-shrink-0 flex items-center gap-2 group">
-          <div class="w-8 h-8 rounded-xl flex items-center justify-center text-white font-black text-sm shadow-sm" style="background: var(--brand-gradient)">B</div>
-          <span class="font-black text-xl brand-text">BestLady</span>
-          <span class="hidden sm:inline text-[10px] font-bold bg-primary-100 text-primary-700 px-2 py-0.5 rounded-full">AI</span>
+        <router-link to="/" class="flex-shrink-0 flex items-center gap-2.5 group">
+          <div class="w-9 h-9 rounded-xl flex items-center justify-center text-white font-bold text-base shadow-sm shrink-0" style="background: var(--brand-gradient)">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.121 14.121L19 19m-7-7l7-7m-7 7l-2.879 2.879M12 12L9.121 9.121m0 5.758a3 3 0 10-4.243 4.243 3 3 0 004.243-4.243zm0-5.758a3 3 0 10-4.243-4.243 3 3 0 004.243 4.243z"/></svg>
+          </div>
+          <span class="font-serif font-bold text-xl tracking-tight brand-text">BestLady</span>
+          <span class="hidden sm:inline text-[9px] font-bold bg-primary-100 text-primary-700 px-2 py-0.5 rounded-full tracking-wider">AI</span>
         </router-link>
 
         <!-- Search bar (desktop) -->

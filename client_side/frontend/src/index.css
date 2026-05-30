@@ -11,15 +11,19 @@
   --brand-gradient: linear-gradient(135deg, #7e22ce 0%, #9333ea 50%, #db2777 100%);
   --brand-soft:     linear-gradient(135deg, #f3e8ff 0%, #fce7f3 100%);
 
-  /* Surface */
-  --bg-page:    #f8fafc;
+  /* Warm surface palette — less cold/tech, more beauty brand */
+  --bg-page:    #faf9f7;
   --bg-card:    #ffffff;
-  --border:     #e2e8f0;
+  --border:     #ede9e3;
 
-  /* Text */
-  --text-primary:   #0f172a;
-  --text-secondary: #475569;
-  --text-muted:     #94a3b8;
+  /* Text — warmer dark tone */
+  --text-primary:   #1a1614;
+  --text-secondary: #5c524c;
+  --text-muted:     #9e8f87;
+
+  /* Fonts */
+  --font-display: 'Playfair Display', Georgia, serif;
+  --font-body:    'DM Sans', system-ui, -apple-system, sans-serif;
 }
 
 /* ─────────────────────────────────────────────
@@ -29,9 +33,19 @@
   body {
     @apply text-slate-800 antialiased;
     background-color: var(--bg-page);
-    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    font-family: var(--font-body);
   }
-  h1,h2,h3,h4 { @apply font-bold tracking-tight; }
+
+  /* Headings — Playfair Display gives the editorial, human beauty-brand feel */
+  h1, h2 {
+    font-family: var(--font-display);
+    @apply font-bold tracking-tight;
+  }
+  h3, h4 {
+    font-family: var(--font-body);
+    @apply font-semibold tracking-tight;
+  }
+
   *:focus-visible {
     @apply outline-none ring-2 ring-purple-500 ring-offset-2;
   }
@@ -57,12 +71,13 @@
 
   /* ── CARDS ── */
   .card {
-    @apply bg-white rounded-2xl border border-slate-100;
-    box-shadow: 0 1px 3px 0 rgb(0 0 0/0.07), 0 1px 2px -1px rgb(0 0 0/0.05);
+    @apply bg-white rounded-2xl border;
+    border-color: var(--border);
+    box-shadow: 0 1px 3px 0 rgb(0 0 0/0.06), 0 1px 2px -1px rgb(0 0 0/0.04);
   }
   .card-hover {
     @apply card hover:-translate-y-0.5 transition-all duration-200;
-    &:hover { box-shadow: 0 10px 25px -5px rgb(0 0 0/0.10), 0 8px 10px -6px rgb(0 0 0/0.06); }
+    &:hover { box-shadow: 0 10px 25px -5px rgb(0 0 0/0.09), 0 8px 10px -6px rgb(0 0 0/0.05); }
   }
 
   /* ── BUTTONS — clear color hierarchy ── */
@@ -73,6 +88,7 @@
            px-6 py-3 rounded-xl font-bold text-sm text-white
            transition-all duration-150
            disabled:opacity-50 disabled:cursor-not-allowed;
+    font-family: var(--font-body);
     background: var(--brand-gradient);
     box-shadow: 0 4px 14px 0 rgba(147,51,234,0.30);
     &:not(:disabled):hover {
@@ -91,6 +107,7 @@
            bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800
            transition-all duration-150
            disabled:opacity-50 disabled:cursor-not-allowed;
+    font-family: var(--font-body);
     box-shadow: 0 4px 12px 0 rgba(5,150,105,0.25);
   }
   .btn-success-lg {
@@ -104,6 +121,7 @@
            bg-red-600 hover:bg-red-700 active:bg-red-800
            transition-all duration-150
            disabled:opacity-50 disabled:cursor-not-allowed;
+    font-family: var(--font-body);
     box-shadow: 0 4px 12px 0 rgba(220,38,38,0.20);
   }
 
@@ -115,16 +133,19 @@
            hover:bg-purple-50 active:bg-purple-100
            transition-all duration-150
            disabled:opacity-50 disabled:cursor-not-allowed;
+    font-family: var(--font-body);
   }
 
   /* OUTLINE — slate outline, neutral actions */
   .btn-outline {
     @apply inline-flex items-center justify-center gap-2
            px-5 py-2.5 rounded-xl font-semibold text-sm
-           border border-slate-200 text-slate-700 bg-white
+           border bg-white text-slate-700
            hover:bg-slate-50 hover:border-slate-300 active:bg-slate-100
            transition-all duration-150
            disabled:opacity-50 disabled:cursor-not-allowed;
+    border-color: var(--border);
+    font-family: var(--font-body);
   }
 
   /* GHOST — subtle, on light backgrounds */
@@ -133,6 +154,7 @@
            px-4 py-2 rounded-xl font-medium text-sm
            text-slate-600 hover:text-purple-700 hover:bg-purple-50
            transition-all duration-150;
+    font-family: var(--font-body);
   }
 
   /* GHOST-WHITE — on dark/hero backgrounds */
@@ -142,6 +164,7 @@
            border border-white/30 bg-white/10
            hover:bg-white/20 hover:border-white/50
            backdrop-blur-sm transition-all duration-150;
+    font-family: var(--font-body);
   }
 
   /* INFO — blue, informational / download actions */
@@ -151,23 +174,27 @@
            bg-blue-600 hover:bg-blue-700 active:bg-blue-800
            transition-all duration-150
            disabled:opacity-50 disabled:cursor-not-allowed;
+    font-family: var(--font-body);
     box-shadow: 0 4px 12px 0 rgba(37,99,235,0.20);
   }
 
   /* ICON — square icon button */
   .btn-icon {
     @apply inline-flex items-center justify-center
-           w-9 h-9 rounded-xl border border-slate-200 bg-white text-slate-500
+           w-9 h-9 rounded-xl border bg-white text-slate-500
            hover:border-purple-300 hover:text-purple-600 hover:bg-purple-50
            transition-all duration-150;
+    border-color: var(--border);
   }
 
   /* ── FORM INPUTS ── */
   .form-input {
-    @apply w-full px-4 py-3 border border-slate-200 rounded-xl
+    @apply w-full px-4 py-3 border rounded-xl
            focus:ring-2 focus:ring-purple-400 focus:border-purple-400
            outline-none transition-all bg-white text-slate-800
            placeholder-slate-400 text-sm;
+    border-color: var(--border);
+    font-family: var(--font-body);
   }
 
   /* ── LAYOUT ── */
@@ -178,13 +205,21 @@
   /* ── TYPOGRAPHY HELPERS ── */
   .section-tag {
     @apply text-xs font-bold text-purple-600 uppercase tracking-widest mb-3;
+    font-family: var(--font-body);
   }
   .section-title {
-    @apply text-3xl lg:text-4xl font-black text-slate-900;
+    @apply text-3xl lg:text-4xl font-bold text-slate-900;
+    font-family: var(--font-display);
   }
   .brand-text {
     @apply bg-clip-text text-transparent;
     background-image: var(--brand-gradient);
+  }
+
+  /* Serif heading helper — use on marketing headings */
+  .heading-display {
+    font-family: var(--font-display);
+    @apply font-bold tracking-tight;
   }
 
   /* ── STATUS BADGES ── */
@@ -208,6 +243,7 @@
 @layer utilities {
   .animate-float       { animation: float 6s ease-in-out infinite; }
   .animate-pulse-slow  { animation: pulse 3s ease-in-out infinite; }
+  .font-display        { font-family: var(--font-display); }
 }
 
 @keyframes float {
@@ -220,7 +256,7 @@
 ───────────────────────────────────────────── */
 .v-toast__item {
   border-radius: 12px !important;
-  font-family: 'Inter', sans-serif !important;
+  font-family: var(--font-body) !important;
   font-size: 14px !important;
   font-weight: 600 !important;
 }

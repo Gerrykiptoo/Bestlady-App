@@ -1,11 +1,12 @@
 <template>
-  <div class="min-h-screen bg-gray-50">
-    <!-- Page header -->
-    <div class="page-hero">
+  <div class="min-h-screen" style="background: #faf9f7;">
+    <!-- Warm checkout header -->
+    <div style="background: linear-gradient(135deg, #2d0a1f 0%, #4a1232 50%, #3b0f28 100%); border-bottom: 1px solid rgba(244,197,173,0.12); position: relative; overflow: hidden;">
+      <div style="position:absolute;top:-40px;right:-40px;width:180px;height:180px;border-radius:50%;background:rgba(244,197,173,0.05);"></div>
       <div class="container-custom relative z-10 py-10">
-        <p class="section-tag text-white/70">Almost There</p>
-        <h1 class="text-3xl font-black text-white">Checkout</h1>
-        <p class="text-white/70 mt-1 text-sm">{{ cart.itemCount }} items · KES {{ formatPrice(cart.total) }} total</p>
+        <p class="text-rose-300/70 text-xs font-bold uppercase tracking-[0.2em] mb-3">Almost There</p>
+        <h1 class="font-serif text-3xl font-bold text-white">Checkout</h1>
+        <p class="text-rose-200/60 mt-1.5 text-sm">{{ cart.itemCount }} items · KES {{ formatPrice(cart.total) }} total</p>
       </div>
     </div>
 
@@ -13,9 +14,9 @@
       <div class="space-y-5">
 
         <!-- 1. Delivery Method -->
-        <section class="card p-6">
-          <h2 class="font-bold text-gray-800 mb-4 flex items-center gap-2">
-            <span class="w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-black" style="background: var(--brand-gradient)">1</span>
+        <section class="bg-white rounded-2xl p-6" style="border: 1px solid #ede9e3;">
+          <h2 class="font-serif font-bold text-gray-800 mb-4 flex items-center gap-2">
+            <span class="w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-black" style="background: linear-gradient(135deg, #7e22ce, #db2777);">1</span>
             Delivery Method
           </h2>
           <div class="grid grid-cols-2 gap-3">
@@ -85,9 +86,9 @@
         </section>
 
         <!-- 2. Payment Method -->
-        <section class="card p-6">
-          <h2 class="font-bold text-gray-800 mb-4 flex items-center gap-2">
-            <span class="w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-black" style="background: var(--brand-gradient)">2</span>
+        <section class="bg-white rounded-2xl p-6" style="border: 1px solid #ede9e3;">
+          <h2 class="font-serif font-bold text-gray-800 mb-4 flex items-center gap-2">
+            <span class="w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-black" style="background: linear-gradient(135deg, #7e22ce, #db2777);">2</span>
             Payment Method
           </h2>
           <div class="space-y-3">
@@ -140,9 +141,9 @@
         </section>
 
         <!-- 3. Order Summary & Place Order -->
-        <section class="card p-6">
-          <h2 class="font-bold text-gray-800 mb-5 flex items-center gap-2">
-            <span class="w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-black" style="background: var(--brand-gradient)">3</span>
+        <section class="bg-white rounded-2xl p-6" style="border: 1px solid #ede9e3;">
+          <h2 class="font-serif font-bold text-gray-800 mb-5 flex items-center gap-2">
+            <span class="w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-black" style="background: linear-gradient(135deg, #7e22ce, #db2777);">3</span>
             Order Summary
           </h2>
           <div class="space-y-2.5 text-sm text-gray-600 mb-5">
@@ -159,7 +160,7 @@
               <span class="font-semibold text-gray-900">KES 250.00</span>
             </div>
           </div>
-          <div class="border-t border-gray-100 pt-4 flex justify-between items-center mb-5">
+          <div class="border-t border-[#ede9e3] pt-4 flex justify-between items-center mb-5">
             <span class="font-black text-gray-900 text-lg">Grand Total</span>
             <span class="text-2xl font-black text-primary-600">KES {{ formatPrice(cart.total) }}</span>
           </div>

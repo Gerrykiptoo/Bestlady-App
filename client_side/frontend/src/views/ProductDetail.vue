@@ -1,14 +1,14 @@
 <template>
-  <div class="min-h-screen bg-slate-50">
+  <div class="min-h-screen" style="background: #faf9f7;">
 
-    <!-- Hero -->
-    <div class="page-hero">
-      <div class="container-custom relative z-10 py-10">
-        <p class="section-tag text-white/70">Products</p>
-        <div class="flex items-center gap-2 text-white/70 text-sm">
-          <router-link to="/products" class="hover:text-white transition">Catalogue</router-link>
+    <!-- Warm breadcrumb header -->
+    <div style="background: linear-gradient(135deg, #2d0a1f 0%, #4a1232 50%, #3b0f28 100%); border-bottom: 1px solid rgba(244,197,173,0.12); position: relative; overflow: hidden;">
+      <div style="position:absolute;top:-40px;right:-40px;width:160px;height:160px;border-radius:50%;background:rgba(244,197,173,0.04);"></div>
+      <div class="container-custom relative z-10 py-8">
+        <div class="flex items-center gap-2 text-rose-300/60 text-sm">
+          <router-link to="/products" class="hover:text-rose-200 transition font-medium">Catalogue</router-link>
           <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
-          <span class="text-white font-semibold truncate max-w-[200px]">{{ product?.name || '…' }}</span>
+          <span class="text-white font-semibold truncate max-w-[200px] font-serif">{{ product?.name || '…' }}</span>
         </div>
       </div>
     </div>
@@ -17,16 +17,16 @@
 
       <!-- Loading -->
       <div v-if="!product" class="grid grid-cols-1 md:grid-cols-2 gap-10 animate-pulse">
-        <div class="aspect-square bg-slate-200 rounded-2xl"></div>
+        <div class="aspect-square rounded-2xl" style="background: #ede9e3;"></div>
         <div class="space-y-4 pt-4">
-          <div class="h-7 bg-slate-200 rounded w-2/3"></div>
-          <div class="h-5 bg-slate-200 rounded w-1/3"></div>
-          <div class="h-10 bg-slate-200 rounded w-1/2"></div>
-          <div class="h-4 bg-slate-200 rounded w-full"></div>
-          <div class="h-4 bg-slate-200 rounded w-5/6"></div>
+          <div class="h-7 rounded w-2/3" style="background: #ede9e3;"></div>
+          <div class="h-5 rounded w-1/3" style="background: #ede9e3;"></div>
+          <div class="h-10 rounded w-1/2" style="background: #ede9e3;"></div>
+          <div class="h-4 rounded w-full" style="background: #ede9e3;"></div>
+          <div class="h-4 rounded w-5/6" style="background: #ede9e3;"></div>
           <div class="flex gap-3 pt-4">
-            <div class="flex-1 h-12 bg-slate-200 rounded-xl"></div>
-            <div class="flex-1 h-12 bg-slate-200 rounded-xl"></div>
+            <div class="flex-1 h-12 rounded-xl" style="background: #ede9e3;"></div>
+            <div class="flex-1 h-12 rounded-xl" style="background: #ede9e3;"></div>
           </div>
         </div>
       </div>
@@ -38,7 +38,7 @@
         <div class="card p-3 aspect-square flex items-center justify-center overflow-hidden">
           <img v-if="product.image_url" :src="product.image_url" :alt="product.name"
             class="w-full h-full object-cover rounded-xl" />
-          <div v-else class="w-full h-full bg-slate-100 rounded-xl flex items-center justify-center">
+          <div v-else class="w-full h-full rounded-xl flex items-center justify-center" style="background: #ede9e3;">
             <svg class="w-24 h-24 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
           </div>
         </div>

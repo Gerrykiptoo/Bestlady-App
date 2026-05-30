@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-gray-50">
+  <div class="min-h-screen" style="background: #faf9f7;">
     <!-- Hero -->
     <div class="bg-gradient-to-br from-purple-700 to-pink-600 text-white py-20 px-6 text-center">
       <h1 class="text-4xl font-black mb-3">Get in Touch</h1>
@@ -10,7 +10,7 @@
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-12">
 
         <!-- Contact Form -->
-        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
+        <div class="bg-white rounded-2xl shadow-sm border border-[#ede9e3] p-8">
           <h2 class="font-black text-2xl text-gray-800 mb-6">Send Us a Message</h2>
           <form @submit.prevent="sendMessage" class="space-y-5">
             <div class="grid grid-cols-2 gap-4">
@@ -59,7 +59,7 @@
 
         <!-- Contact Info -->
         <div class="space-y-6">
-          <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+          <div class="bg-white rounded-2xl shadow-sm border border-[#ede9e3] p-6">
             <h3 class="font-bold text-gray-800 mb-5">Contact Information</h3>
             <div class="space-y-5">
               <div class="flex items-start gap-4">

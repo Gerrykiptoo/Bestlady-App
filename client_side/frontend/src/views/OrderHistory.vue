@@ -1,15 +1,16 @@
 <template>
-  <div class="min-h-screen bg-gray-50">
-    <!-- Page hero -->
-    <div class="page-hero">
+  <div class="min-h-screen" style="background: #faf9f7;">
+    <!-- Warm header -->
+    <div style="background: linear-gradient(135deg, #2d0a1f 0%, #4a1232 50%, #3b0f28 100%); border-bottom: 1px solid rgba(244,197,173,0.12); position: relative; overflow: hidden;">
+      <div style="position:absolute;top:-40px;right:-40px;width:180px;height:180px;border-radius:50%;background:rgba(244,197,173,0.05);"></div>
       <div class="container-custom relative z-10 py-10">
-        <p class="section-tag text-white/70">Account</p>
+        <p class="text-rose-300/70 text-xs font-bold uppercase tracking-[0.2em] mb-3">My Account</p>
         <div class="flex items-center justify-between">
           <div>
-            <h1 class="text-3xl font-black text-white">My Orders</h1>
-            <p class="text-white/70 mt-1 text-sm">{{ orders.length }} orders total</p>
+            <h1 class="font-serif text-3xl font-bold text-white">My Orders</h1>
+            <p class="text-rose-200/60 mt-1.5 text-sm">{{ orders.length }} orders total</p>
           </div>
-          <button @click="downloadPDF" class="btn-ghost-white text-sm">
+          <button @click="downloadPDF" class="inline-flex items-center gap-2 border border-rose-300/30 text-rose-200 text-sm font-semibold px-4 py-2.5 rounded-xl transition-all hover:bg-white/10" style="background: rgba(255,255,255,0.06);">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
             Download PDF
           </button>
@@ -20,11 +21,11 @@
     <div class="container-custom py-8">
       <!-- Loading skeletons -->
       <div v-if="loading" class="space-y-4">
-        <div v-for="i in 4" :key="i" class="card h-32 animate-pulse"></div>
+        <div v-for="i in 4" :key="i" class="rounded-2xl h-32 animate-pulse" style="background: #f5ede8;"></div>
       </div>
 
       <!-- Empty state -->
-      <div v-else-if="orders.length === 0" class="card py-20 text-center">
+      <div v-else-if="orders.length === 0" class="bg-white rounded-2xl py-20 text-center" style="border: 1px solid #ede9e3;">
         <div class="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
             <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
           </div>
@@ -35,9 +36,9 @@
 
       <!-- Order list -->
       <div v-else class="space-y-4">
-        <div v-for="order in orders" :key="order.id" class="card hover:shadow-card-hover transition-all duration-200 overflow-hidden">
+        <div v-for="order in orders" :key="order.id" class="bg-white rounded-2xl hover:shadow-md transition-all duration-200 overflow-hidden" style="border: 1px solid #ede9e3;">
           <!-- Order header -->
-          <div class="bg-gradient-to-r from-primary-50 to-secondary-50 px-6 py-3.5 flex flex-wrap items-center justify-between gap-3 border-b border-gray-100">
+          <div class="bg-gradient-to-r from-primary-50 to-secondary-50 px-6 py-3.5 flex flex-wrap items-center justify-between gap-3 border-b border-[#ede9e3]">
             <div class="flex items-center gap-6">
               <div>
                 <p class="text-[10px] text-gray-400 uppercase tracking-wider font-semibold">Order ID</p>

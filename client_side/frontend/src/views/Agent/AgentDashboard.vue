@@ -1,16 +1,20 @@
 <template>
-  <div class="min-h-screen bg-gray-50">
-    <!-- Page hero -->
-    <div class="page-hero">
-      <div class="container-custom relative z-10 py-10">
-        <p class="section-tag text-white/70">Agent Portal</p>
-        <div class="flex flex-col sm:flex-row sm:items-end gap-4 justify-between">
+  <div class="min-h-screen" style="background: #1a0f00;">
+
+    <!-- Amber/gold agent command header -->
+    <div style="background: linear-gradient(135deg, #1a0f00 0%, #3d1f00 50%, #5a2e00 100%); position: relative; overflow: hidden; border-bottom: 1px solid rgba(245,158,11,0.15);">
+      <div style="position:absolute;top:-60px;right:-40px;width:280px;height:280px;border-radius:50%;background:rgba(245,158,11,0.04);"></div>
+      <div style="position:absolute;bottom:-50px;left:8%;width:200px;height:200px;border-radius:50%;background:rgba(251,191,36,0.03);"></div>
+      <div class="container-custom relative z-10 py-12">
+        <p class="text-amber-400 text-xs font-bold uppercase tracking-[0.25em] mb-3">Agent Commission Portal</p>
+        <div class="flex flex-col sm:flex-row sm:items-end gap-5 justify-between">
           <div>
-            <h1 class="text-3xl font-black text-white">Agent Partner Portal</h1>
-            <p class="text-white/70 mt-1 text-sm">Manage clients, track orders, and earn commissions in real time.</p>
+            <h1 class="font-serif text-4xl font-bold text-white leading-tight">Agent Dashboard</h1>
+            <p class="text-amber-300/70 mt-2 text-sm">Your clients, commissions, and live order feed.</p>
           </div>
           <button @click="showAddClientModal = true"
-            class="inline-flex items-center gap-2 bg-white text-primary-700 font-bold px-5 py-2.5 rounded-xl hover:shadow-lg transition text-sm">
+            class="inline-flex items-center gap-2 font-bold px-5 py-2.5 rounded-xl transition text-sm text-amber-950"
+            style="background: linear-gradient(135deg, #f59e0b, #d97706);">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/>
             </svg>
@@ -20,96 +24,106 @@
       </div>
     </div>
 
-    <div class="container-custom py-8 space-y-8">
+    <div class="container-custom py-10 space-y-8">
 
-      <!-- Stats row -->
-      <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div class="card p-5">
-          <p class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Total Clients</p>
-          <p class="text-3xl font-black text-gray-800">{{ clients.length }}</p>
-          <p class="text-xs text-green-600 mt-1 font-medium">All registered businesses</p>
+      <!-- Stats Row — dark amber cards -->
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-5">
+
+        <!-- Total Clients -->
+        <div class="rounded-2xl p-6 border transition hover:border-amber-500/40" style="background: #2a1800; border-color: rgba(245,158,11,0.15);">
+          <p class="text-xs font-bold text-amber-700 uppercase tracking-wider mb-3">Total Clients</p>
+          <p class="font-serif text-3xl font-bold text-white">{{ clients.length }}</p>
+          <p class="text-xs text-amber-600 mt-2 font-medium">Registered businesses</p>
         </div>
-        <div class="card p-5">
-          <p class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Commission Earned</p>
-          <p class="text-3xl font-black text-gray-800">KES {{ formatPrice(totalCommission) }}</p>
-          <p class="text-xs text-gray-400 mt-1">Available for withdrawal</p>
+
+        <!-- Commission Earned — gold highlight -->
+        <div class="rounded-2xl p-6 border relative overflow-hidden" style="background: linear-gradient(135deg, #3d2200, #5c3300); border-color: rgba(245,158,11,0.3);">
+          <div style="position:absolute;top:-20px;right:-20px;width:80px;height:80px;border-radius:50%;background:rgba(245,158,11,0.07);"></div>
+          <p class="text-xs font-bold text-amber-400 uppercase tracking-wider mb-3">Commission Earned</p>
+          <p class="font-serif text-2xl font-bold text-amber-300">KES {{ formatPrice(totalCommission) }}</p>
+          <p class="text-xs text-amber-600 mt-2">Ready to withdraw</p>
         </div>
-        <div class="card p-5 border-l-4 border-primary-500">
-          <p class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 flex items-center gap-1">
-            <span class="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse inline-block"></span>
-            Active Orders
+
+        <!-- Active Orders -->
+        <div class="rounded-2xl p-6 border transition hover:border-amber-500/40" style="background: #2a1800; border-color: rgba(245,158,11,0.15);">
+          <p class="text-xs font-bold text-amber-700 uppercase tracking-wider mb-3 flex items-center gap-1.5">
+            <span class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>Active Orders
           </p>
-          <p class="text-3xl font-black text-gray-800">{{ activeOrdersCount }}</p>
-          <p class="text-xs text-primary-600 mt-1 font-medium">Live tracking enabled</p>
+          <p class="font-serif text-3xl font-bold text-white">{{ activeOrdersCount }}</p>
+          <p class="text-xs text-amber-600 mt-2 font-medium">Live tracking on</p>
         </div>
-        <div class="card p-5">
-          <p class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Performance Tier</p>
-          <p class="text-3xl font-black text-gray-800">Gold</p>
-          <p class="text-xs text-purple-600 mt-1 font-medium">5% commission rate</p>
+
+        <!-- Performance Tier -->
+        <div class="rounded-2xl p-6 border transition hover:border-amber-500/40" style="background: #2a1800; border-color: rgba(245,158,11,0.15);">
+          <p class="text-xs font-bold text-amber-700 uppercase tracking-wider mb-3">Performance Tier</p>
+          <p class="font-serif text-3xl font-bold text-amber-400">Gold</p>
+          <p class="text-xs text-amber-600 mt-2 font-medium">5% commission rate</p>
         </div>
       </div>
 
       <!-- Main two-column layout -->
       <div class="grid grid-cols-1 xl:grid-cols-5 gap-8">
 
-        <!-- LEFT: Client list -->
-        <div class="xl:col-span-2 card overflow-hidden">
-          <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
-            <h3 class="font-bold text-gray-800 flex items-center gap-2">
-              <svg class="w-4 h-4 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <!-- LEFT: Client list — dark amber card -->
+        <div class="xl:col-span-2 rounded-2xl border overflow-hidden" style="background: #2a1800; border-color: rgba(245,158,11,0.15);">
+          <div class="px-5 py-4 border-b flex items-center justify-between" style="border-color: rgba(245,158,11,0.1); background: rgba(245,158,11,0.04);">
+            <h3 class="font-serif font-bold text-white flex items-center gap-2">
+              <svg class="w-4 h-4 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
               </svg>
               My Clients ({{ clients.length }})
             </h3>
             <div class="relative">
-              <svg class="w-3.5 h-3.5 text-gray-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
-              <input v-model="searchQuery" type="text" placeholder="Search..." class="pl-7 pr-3 py-1.5 border border-gray-200 rounded-lg text-xs focus:ring-2 focus:ring-primary-300 outline-none w-32" />
+              <svg class="w-3.5 h-3.5 text-amber-700 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+              <input v-model="searchQuery" type="text" placeholder="Search..." class="pl-7 pr-3 py-1.5 rounded-lg text-xs outline-none w-32 text-amber-100" style="background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.2);" />
             </div>
           </div>
 
-          <div v-if="loading" class="divide-y divide-gray-50">
+          <div v-if="loading" class="divide-y" style="border-color: rgba(245,158,11,0.08);">
             <div v-for="i in 4" :key="i" class="flex items-center gap-3 p-4">
-              <div class="w-9 h-9 rounded-full bg-gray-100 animate-pulse flex-shrink-0"></div>
+              <div class="w-9 h-9 rounded-full animate-pulse flex-shrink-0" style="background: rgba(245,158,11,0.1);"></div>
               <div class="flex-1 space-y-1.5">
-                <div class="h-3 bg-gray-100 rounded animate-pulse w-2/3"></div>
-                <div class="h-2.5 bg-gray-100 rounded animate-pulse w-1/2"></div>
+                <div class="h-3 rounded animate-pulse w-2/3" style="background: rgba(245,158,11,0.08);"></div>
+                <div class="h-2.5 rounded animate-pulse w-1/2" style="background: rgba(245,158,11,0.06);"></div>
               </div>
             </div>
           </div>
 
-          <div v-else-if="filteredClients.length === 0" class="py-10 text-center text-gray-400 text-sm">No clients found.</div>
+          <div v-else-if="filteredClients.length === 0" class="py-10 text-center text-amber-800 text-sm">No clients found.</div>
 
-          <div v-else class="divide-y divide-gray-50 max-h-[480px] overflow-y-auto">
+          <div v-else class="max-h-[480px] overflow-y-auto">
             <div v-for="client in filteredClients" :key="client.id"
-              class="flex items-center gap-3 px-5 py-3.5 hover:bg-gray-50 transition group">
-              <div class="w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-bold flex-shrink-0" style="background: linear-gradient(135deg, #7e22ce, #db2777)">
+              class="flex items-center gap-3 px-5 py-3.5 transition group border-b"
+              style="border-color: rgba(245,158,11,0.06);"
+              @mouseover="e => e.currentTarget.style.background='rgba(245,158,11,0.04)'" @mouseleave="e => e.currentTarget.style.background='transparent'">
+              <div class="w-9 h-9 rounded-full flex items-center justify-center text-amber-950 text-sm font-bold flex-shrink-0" style="background: linear-gradient(135deg, #f59e0b, #d97706);">
                 {{ (client.business_name || client.username || 'U').charAt(0).toUpperCase() }}
               </div>
               <div class="flex-1 min-w-0">
-                <p class="text-sm font-semibold text-gray-800 truncate">{{ client.business_name || client.username }}</p>
-                <p class="text-xs text-gray-400 truncate">{{ client.phone || client.email }}</p>
+                <p class="text-sm font-semibold text-amber-100 truncate">{{ client.business_name || client.username }}</p>
+                <p class="text-xs text-amber-700 truncate">{{ client.phone || client.email }}</p>
               </div>
               <div class="flex items-center gap-2 flex-shrink-0">
-                <span :class="client.is_active !== false ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'" class="text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+                <span :class="client.is_active !== false ? 'text-emerald-400' : 'text-red-400'" class="text-[10px] font-bold px-1.5 py-0.5 rounded-full border" :style="client.is_active !== false ? 'border-color: rgba(52,211,153,0.3);' : 'border-color: rgba(248,113,113,0.3);'">
                   {{ client.is_active !== false ? 'Active' : 'Inactive' }}
                 </span>
-                <button @click="initiateOrderForClient(client)" class="opacity-0 group-hover:opacity-100 text-xs text-primary-600 font-bold hover:underline transition-opacity">Order</button>
+                <button @click="initiateOrderForClient(client)" class="opacity-0 group-hover:opacity-100 text-xs text-amber-400 font-bold hover:text-amber-300 transition-opacity">Order</button>
               </div>
             </div>
           </div>
         </div>
 
         <!-- RIGHT: Live order feed -->
-        <div class="xl:col-span-3 space-y-4">
-          <div class="card overflow-hidden">
-            <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
-              <h3 class="font-bold text-gray-800 flex items-center gap-2">
-                <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+        <div class="xl:col-span-3 space-y-5">
+          <div class="rounded-2xl border overflow-hidden" style="background: #2a1800; border-color: rgba(245,158,11,0.15);">
+            <div class="px-5 py-4 border-b flex items-center justify-between" style="border-color: rgba(245,158,11,0.1); background: rgba(245,158,11,0.04);">
+              <h3 class="font-serif font-bold text-white flex items-center gap-2">
+                <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
                 Live Client Orders
-                <span class="bg-primary-100 text-primary-700 text-xs font-bold px-2 py-0.5 rounded-full">{{ liveOrders.length }}</span>
+                <span class="text-xs font-bold px-2 py-0.5 rounded-full text-amber-400 border" style="border-color: rgba(245,158,11,0.3); background: rgba(245,158,11,0.08);">{{ liveOrders.length }}</span>
               </h3>
               <div class="flex items-center gap-2">
-                <select v-model="orderFilter" class="text-xs border border-gray-200 rounded-lg px-2 py-1.5 focus:ring-2 focus:ring-primary-300 outline-none">
+                <select v-model="orderFilter" class="text-xs rounded-lg px-2 py-1.5 outline-none text-amber-300" style="background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.2);">
                   <option value="all">All Statuses</option>
                   <option value="pending">Pending</option>
                   <option value="paid">Paid</option>
@@ -117,58 +131,56 @@
                   <option value="dispatched">Dispatched</option>
                   <option value="delivered">Delivered</option>
                 </select>
-                <button @click="fetchData" class="p-1.5 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition" title="Refresh">
+                <button @click="fetchData" class="p-1.5 text-amber-700 hover:text-amber-400 rounded-lg transition" title="Refresh">
                   <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
                 </button>
               </div>
             </div>
 
-            <!-- New order flash banner -->
             <Transition name="slide-in">
-              <div v-if="newOrderFlash" class="bg-green-50 border-b border-green-100 px-5 py-2.5 flex items-center gap-2">
-                <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
-                <p class="text-xs font-bold text-green-700">New order received from <span class="text-green-800">{{ newOrderFlash.clientName }}</span> — KES {{ formatPrice(newOrderFlash.totalAmount) }}</p>
+              <div v-if="newOrderFlash" class="border-b px-5 py-2.5 flex items-center gap-2" style="background: rgba(52,211,153,0.08); border-color: rgba(52,211,153,0.15);">
+                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                <p class="text-xs font-bold text-emerald-400">New order from <span class="text-emerald-300">{{ newOrderFlash.clientName }}</span> — KES {{ formatPrice(newOrderFlash.totalAmount) }}</p>
               </div>
             </Transition>
 
-            <div v-if="ordersLoading" class="divide-y divide-gray-50">
+            <div v-if="ordersLoading" class="divide-y" style="border-color: rgba(245,158,11,0.06);">
               <div v-for="i in 5" :key="i" class="flex items-center gap-4 p-4">
-                <div class="w-10 h-10 rounded-xl bg-gray-100 animate-pulse flex-shrink-0"></div>
+                <div class="w-10 h-10 rounded-xl animate-pulse flex-shrink-0" style="background: rgba(245,158,11,0.08);"></div>
                 <div class="flex-1 space-y-1.5">
-                  <div class="h-3 bg-gray-100 rounded animate-pulse w-1/2"></div>
-                  <div class="h-2.5 bg-gray-100 rounded animate-pulse w-1/3"></div>
+                  <div class="h-3 rounded animate-pulse w-1/2" style="background: rgba(245,158,11,0.06);"></div>
+                  <div class="h-2.5 rounded animate-pulse w-1/3" style="background: rgba(245,158,11,0.05);"></div>
                 </div>
-                <div class="h-3 bg-gray-100 rounded animate-pulse w-20"></div>
               </div>
             </div>
-            <div v-else-if="filteredOrders.length === 0" class="py-14 text-center text-gray-400 text-sm">
-              <svg class="w-10 h-10 mx-auto mb-3 opacity-30" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
-              No orders yet for this filter
+            <div v-else-if="filteredOrders.length === 0" class="py-14 text-center text-amber-800 text-sm">
+              <svg class="w-10 h-10 mx-auto mb-3 opacity-30 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+              No orders match this filter
             </div>
-            <div v-else class="divide-y divide-gray-50 max-h-[520px] overflow-y-auto">
+            <div v-else class="max-h-[520px] overflow-y-auto">
               <div v-for="order in filteredOrders" :key="order.id"
-                class="flex items-start gap-4 px-5 py-4 hover:bg-gray-50 transition"
-                :class="order._isNew ? 'bg-green-50' : ''">
-                <!-- Status icon -->
+                class="flex items-start gap-4 px-5 py-4 transition border-b"
+                style="border-color: rgba(245,158,11,0.07);"
+                :style="order._isNew ? 'background: rgba(52,211,153,0.05);' : ''"
+                @mouseover="e => { if (!order._isNew) e.currentTarget.style.background='rgba(245,158,11,0.03)'; }"
+                @mouseleave="e => { if (!order._isNew) e.currentTarget.style.background='transparent'; }">
                 <div :class="statusIconBg(order.status)" class="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5">
                   <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" :d="statusIcon(order.status)"/>
                   </svg>
                 </div>
-                <!-- Info -->
                 <div class="flex-1 min-w-0">
                   <div class="flex items-center gap-2 flex-wrap">
-                    <p class="text-sm font-bold text-gray-800">{{ order.clientName || order.User?.business_name || order.User?.username || 'Unknown' }}</p>
-                    <span v-if="order._isNew" class="text-[10px] font-bold bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full">NEW</span>
+                    <p class="text-sm font-bold text-amber-100">{{ order.clientName || order.User?.business_name || order.User?.username || 'Unknown' }}</p>
+                    <span v-if="order._isNew" class="text-[10px] font-bold bg-emerald-400/10 text-emerald-400 px-1.5 py-0.5 rounded-full border border-emerald-400/30">NEW</span>
                   </div>
-                  <p class="text-xs text-gray-400 mt-0.5">Order <span class="font-mono font-bold text-gray-600">#{{ (order.orderNumber || order.order_number || '').slice(0,12) }}</span> · {{ formatDateTime(order.createdAt) }}</p>
-                  <p class="text-xs text-gray-500 mt-0.5">{{ order.itemCount || (order.OrderItems?.length) || 0 }} item(s) · {{ order.paymentMethod || order.payment_method }} · {{ order.deliveryChannel || order.delivery_channel }}</p>
+                  <p class="text-xs text-amber-800 mt-0.5">Order <span class="font-mono font-bold text-amber-600">#{{ (order.orderNumber || order.order_number || '').slice(0,12) }}</span> · {{ formatDateTime(order.createdAt) }}</p>
+                  <p class="text-xs text-amber-800 mt-0.5">{{ order.itemCount || (order.OrderItems?.length) || 0 }} item(s) · {{ order.paymentMethod || order.payment_method }} · {{ order.deliveryChannel || order.delivery_channel }}</p>
                 </div>
-                <!-- Amount + status -->
                 <div class="flex-shrink-0 text-right">
-                  <p class="text-sm font-black text-gray-900">KES {{ formatPrice(order.totalAmount || order.total_amount) }}</p>
+                  <p class="text-sm font-black text-amber-300">KES {{ formatPrice(order.totalAmount || order.total_amount) }}</p>
                   <span :class="statusBadge(order.status)" class="text-[10px] font-bold px-2 py-0.5 rounded-full mt-1 inline-block capitalize">{{ order.status }}</span>
-                  <p :class="order.paymentStatus === 'completed' || order.payment_status === 'completed' ? 'text-green-600' : 'text-amber-600'" class="text-[10px] font-semibold mt-0.5">
+                  <p :class="order.paymentStatus === 'completed' || order.payment_status === 'completed' ? 'text-emerald-400' : 'text-amber-500'" class="text-[10px] font-semibold mt-0.5">
                     {{ order.paymentStatus === 'completed' || order.payment_status === 'completed' ? 'Paid' : 'Awaiting payment' }}
                   </p>
                 </div>
@@ -176,12 +188,12 @@
             </div>
           </div>
 
-          <!-- Commission summary card -->
-          <div class="p-5 rounded-2xl text-white shadow-lg relative overflow-hidden" style="background: linear-gradient(135deg, #7e22ce 0%, #9333ea 60%, #db2777 100%)">
-            <div class="absolute -top-8 -right-8 w-28 h-28 bg-white/10 rounded-full"></div>
-            <p class="text-sm font-bold text-white/80 mb-1">Agent Tip</p>
-            <p class="text-sm text-white/90 leading-relaxed relative z-10">
-              Registering clients as <strong>Wholesale</strong> earns you up to <strong>15% more commission</strong> due to higher order volumes.
+          <!-- Commission tip card -->
+          <div class="rounded-2xl p-5 text-white relative overflow-hidden" style="background: linear-gradient(135deg, #3d1f00, #5a2e00); border: 1px solid rgba(245,158,11,0.2);">
+            <div style="position:absolute;top:-20px;right:-20px;width:100px;height:100px;border-radius:50%;background:rgba(245,158,11,0.08);"></div>
+            <p class="text-xs font-bold text-amber-400 mb-2 uppercase tracking-wider">Commission Tip</p>
+            <p class="text-sm text-amber-200 leading-relaxed relative z-10">
+              Clients registered as <strong class="text-amber-300">Wholesale</strong> generate up to <strong class="text-amber-300">15% more commission</strong> due to higher average order values.
             </p>
           </div>
         </div>

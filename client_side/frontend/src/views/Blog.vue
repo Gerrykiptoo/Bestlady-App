@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-gray-50">
+  <div class="min-h-screen" style="background: #faf9f7;">
     <!-- Hero -->
     <div class="bg-gradient-to-br from-purple-700 to-pink-600 text-white py-20 px-6 text-center">
       <h1 class="text-4xl font-black mb-3">BestLady Blog</h1>
@@ -9,7 +9,7 @@
     <div class="max-w-5xl mx-auto px-6 py-16">
       <!-- Loading -->
       <div v-if="loading" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <div v-for="i in 6" :key="i" class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden animate-pulse">
+        <div v-for="i in 6" :key="i" class="bg-white rounded-2xl shadow-sm border border-[#ede9e3] overflow-hidden animate-pulse">
           <div class="h-40 bg-gray-200"></div>
           <div class="p-5 space-y-3"><div class="h-4 bg-gray-200 rounded w-3/4"></div><div class="h-3 bg-gray-200 rounded"></div><div class="h-3 bg-gray-200 rounded w-2/3"></div></div>
         </div>
@@ -30,7 +30,7 @@
           v-for="post in posts"
           :key="post.id"
           :to="`/blog/${post.slug}`"
-          class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition group block"
+          class="bg-white rounded-2xl shadow-sm border border-[#ede9e3] overflow-hidden hover:shadow-md transition group block"
         >
           <div class="h-40 bg-gradient-to-br from-purple-100 to-pink-100 flex items-center justify-center">
             <svg class="w-12 h-12 text-purple-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>

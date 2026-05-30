@@ -1,17 +1,18 @@
 <template>
-  <div class="min-h-screen bg-gray-50">
-    <!-- Page hero -->
-    <div class="page-hero">
+  <div class="min-h-screen" style="background: #faf9f7;">
+    <!-- Warm page header -->
+    <div style="background: linear-gradient(135deg, #2d0a1f 0%, #4a1232 50%, #3b0f28 100%); border-bottom: 1px solid rgba(244,197,173,0.12); position: relative; overflow: hidden;">
+      <div style="position:absolute;top:-40px;right:-40px;width:180px;height:180px;border-radius:50%;background:rgba(244,197,173,0.05);"></div>
       <div class="container-custom relative z-10 py-10">
-        <p class="section-tag text-white/70">Shopping</p>
+        <p class="text-rose-300/70 text-xs font-bold uppercase tracking-[0.2em] mb-3">Your Basket</p>
         <div class="flex flex-col sm:flex-row sm:items-end gap-4 justify-between">
           <div>
-            <h1 class="text-3xl font-black text-white">Shopping Cart</h1>
-            <p class="text-white/70 mt-1 text-sm">
+            <h1 class="font-serif text-3xl font-bold text-white">Shopping Cart</h1>
+            <p class="text-rose-200/60 mt-1.5 text-sm">
               {{ cart.itemCount > 0 ? `${cart.itemCount} ${cart.itemCount === 1 ? 'item' : 'items'} in your cart` : 'Your cart is waiting to be filled' }}
             </p>
           </div>
-          <router-link to="/products" class="inline-flex items-center gap-2 bg-white/10 hover:bg-white/20 border border-white/30 text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition-all">
+          <router-link to="/products" class="inline-flex items-center gap-2 border border-rose-300/30 text-rose-200 text-sm font-semibold px-4 py-2.5 rounded-xl transition-all hover:bg-white/10" style="background: rgba(255,255,255,0.06);">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
             Continue Shopping
           </router-link>
@@ -21,7 +22,7 @@
 
     <div class="container-custom py-8">
       <!-- Empty cart -->
-      <div v-if="cart.items.length === 0" class="bg-white rounded-2xl shadow-sm border border-gray-100 py-24 text-center">
+      <div v-if="cart.items.length === 0" class="bg-white rounded-2xl py-24 text-center" style="border: 1px solid #ede9e3;">
         <div class="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-5">
           <svg class="w-10 h-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
@@ -41,7 +42,7 @@
           <div
             v-for="item in cart.items"
             :key="item.product_id"
-            class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 flex gap-4 items-start hover:shadow-md transition-shadow"
+            class="bg-white rounded-2xl p-5 flex gap-4 items-start hover:shadow-md transition-shadow" style="border: 1px solid #ede9e3;"
           >
             <!-- Product image -->
             <div class="w-24 h-24 bg-gray-100 rounded-xl overflow-hidden flex-shrink-0">
@@ -68,7 +69,7 @@
 
               <!-- Quantity controls -->
               <div class="flex items-center gap-3 mt-3">
-                <div class="flex items-center gap-1 bg-gray-50 rounded-lg border border-gray-200 p-1">
+                <div class="flex items-center gap-1 rounded-lg border border-gray-200 p-1">
                   <button @click="cart.updateQuantity(item.product_id, item.quantity - 1)" class="w-7 h-7 rounded-md bg-white border border-gray-200 flex items-center justify-center text-gray-600 hover:border-primary-300 hover:text-primary-600 transition font-bold text-sm">-</button>
                   <span class="w-8 text-center font-bold text-sm">{{ item.quantity }}</span>
                   <button @click="cart.updateQuantity(item.product_id, item.quantity + 1)" class="w-7 h-7 rounded-md bg-white border border-gray-200 flex items-center justify-center text-gray-600 hover:border-primary-300 hover:text-primary-600 transition font-bold text-sm">+</button>
@@ -110,8 +111,8 @@
 
         <!-- Order Summary -->
         <div class="w-full lg:w-80 flex-shrink-0">
-          <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 sticky top-24">
-            <h3 class="font-bold text-lg text-gray-900 mb-5">Order Summary</h3>
+          <div class="bg-white rounded-2xl p-6 sticky top-24" style="border: 1px solid #ede9e3; box-shadow: 0 2px 16px rgba(45,10,31,0.06);">
+            <h3 class="font-serif font-bold text-lg text-gray-900 mb-5">Order Summary</h3>
 
             <div class="space-y-3 text-sm">
               <div class="flex justify-between text-gray-600">
@@ -132,9 +133,9 @@
               </div>
             </div>
 
-            <div class="border-t border-gray-100 mt-4 pt-4 flex justify-between items-center">
+            <div class="border-t border-[#ede9e3] mt-4 pt-4 flex justify-between items-center">
               <span class="font-bold text-gray-900 text-lg">Total</span>
-              <span class="text-2xl font-black text-primary-600">KES {{ formatPrice(cart.total) }}</span>
+              <span class="text-2xl font-black" style="color: #7e22ce;">KES {{ formatPrice(cart.total) }}</span>
             </div>
 
             <!-- Wallet balance hint -->

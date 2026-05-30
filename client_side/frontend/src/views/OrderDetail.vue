@@ -1,20 +1,21 @@
 <template>
-  <div class="min-h-screen bg-slate-50">
+  <div class="min-h-screen" style="background: #faf9f7;">
 
-    <!-- Page hero -->
-    <div class="page-hero">
+    <!-- Warm order header -->
+    <div style="background: linear-gradient(135deg, #2d0a1f 0%, #4a1232 50%, #3b0f28 100%); border-bottom: 1px solid rgba(244,197,173,0.12); position: relative; overflow: hidden;">
+      <div style="position:absolute;top:-40px;right:-40px;width:180px;height:180px;border-radius:50%;background:rgba(244,197,173,0.05);"></div>
       <div class="container-custom relative z-10 py-10">
-        <p class="section-tag text-white/70">Orders</p>
+        <p class="text-rose-300/70 text-xs font-bold uppercase tracking-[0.2em] mb-3">Order Receipt</p>
         <div class="flex flex-col sm:flex-row sm:items-end gap-4 justify-between">
           <div>
-            <h1 class="text-3xl font-black text-white">
+            <h1 class="font-serif text-3xl font-bold text-white">
               Order #{{ order?.order_number || '—' }}
             </h1>
-            <p class="text-white/70 mt-1 text-sm">
+            <p class="text-rose-200/60 mt-1.5 text-sm">
               Placed {{ order ? formatDateTime(order.createdAt) : '…' }}
             </p>
           </div>
-          <router-link to="/orders" class="inline-flex items-center gap-2 bg-white/10 hover:bg-white/20 border border-white/30 text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition-all">
+          <router-link to="/orders" class="inline-flex items-center gap-2 border border-rose-300/30 text-rose-200 text-sm font-semibold px-4 py-2.5 rounded-xl transition-all hover:bg-white/10" style="background: rgba(255,255,255,0.06);">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
             My Orders
           </router-link>
@@ -27,29 +28,29 @@
       <!-- Loading skeleton -->
       <div v-if="loading" class="grid grid-cols-1 lg:grid-cols-3 gap-8 animate-pulse">
         <div class="lg:col-span-2 space-y-5">
-          <div class="card p-6 space-y-3">
-            <div class="h-5 bg-slate-100 rounded w-1/3"></div>
+          <div class="bg-white rounded-2xl p-6 space-y-3" style="border: 1px solid #ede9e3;">
+            <div class="h-5 rounded w-1/3" style="background: #ede9e3;"></div>
             <div class="flex gap-2">
-              <div v-for="i in 5" :key="i" class="flex-1 h-16 bg-slate-100 rounded-xl"></div>
+              <div v-for="i in 5" :key="i" class="flex-1 h-16 rounded-xl" style="background: #ede9e3;"></div>
             </div>
           </div>
-          <div class="card p-6 space-y-4">
-            <div class="h-5 bg-slate-100 rounded w-1/4"></div>
+          <div class="bg-white rounded-2xl p-6 space-y-4" style="border: 1px solid #ede9e3;">
+            <div class="h-5 rounded w-1/4" style="background: #ede9e3;"></div>
             <div v-for="i in 3" :key="i" class="flex gap-4">
-              <div class="w-16 h-16 bg-slate-100 rounded-xl flex-shrink-0"></div>
+              <div class="w-16 h-16 rounded-xl flex-shrink-0" style="background: #ede9e3;"></div>
               <div class="flex-1 space-y-2">
-                <div class="h-4 bg-slate-100 rounded w-2/3"></div>
-                <div class="h-3 bg-slate-100 rounded w-1/3"></div>
+                <div class="h-4 rounded w-2/3" style="background: #ede9e3;"></div>
+                <div class="h-3 rounded w-1/3" style="background: #ede9e3;"></div>
               </div>
             </div>
           </div>
         </div>
         <div class="space-y-5">
-          <div class="card p-6 space-y-3">
-            <div class="h-5 bg-slate-100 rounded w-1/2"></div>
+          <div class="bg-white rounded-2xl p-6 space-y-3" style="border: 1px solid #ede9e3;">
+            <div class="h-5 rounded w-1/2" style="background: #ede9e3;"></div>
             <div v-for="i in 4" :key="i" class="flex justify-between">
-              <div class="h-3 bg-slate-100 rounded w-1/3"></div>
-              <div class="h-3 bg-slate-100 rounded w-1/4"></div>
+              <div class="h-3 rounded w-1/3" style="background: #ede9e3;"></div>
+              <div class="h-3 rounded w-1/4" style="background: #ede9e3;"></div>
             </div>
           </div>
         </div>
@@ -72,15 +73,15 @@
         <div class="lg:col-span-2 space-y-6">
 
           <!-- Status tracker -->
-          <div class="card p-6">
+          <div class="bg-white rounded-2xl p-6" style="border: 1px solid #ede9e3;">
             <div class="flex items-center justify-between mb-6">
-              <h2 class="font-bold text-slate-800">Order Status</h2>
+              <h2 class="font-serif font-bold text-slate-800">Order Status</h2>
               <span :class="statusClass(order.status)" class="text-[11px] font-black uppercase px-3 py-1 rounded-full">{{ order.status }}</span>
             </div>
             <div class="relative">
               <!-- Progress line -->
               <div class="absolute top-4 left-0 right-0 h-0.5 bg-slate-100 mx-8"></div>
-              <div class="absolute top-4 left-0 h-0.5 bg-gradient-to-r from-purple-500 to-pink-500 mx-8 transition-all duration-700"
+              <div class="absolute top-4 left-0 h-0.5 bg-gradient-to-r from-[#7e22ce] to-[#db2777] mx-8 transition-all duration-700"
                 :style="{ width: progressWidth }"></div>
               <!-- Steps -->
               <div class="relative flex justify-between">
@@ -104,14 +105,14 @@
           </div>
 
           <!-- Order items -->
-          <div class="card overflow-hidden">
+          <div class="bg-white rounded-2xl overflow-hidden" style="border: 1px solid #ede9e3;">
             <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
-              <h2 class="font-bold text-slate-800">Order Items</h2>
+              <h2 class="font-serif font-bold text-slate-800">Order Items</h2>
               <span class="text-xs font-bold bg-slate-100 text-slate-600 px-2.5 py-1 rounded-full">{{ order.OrderItems?.length || 0 }} items</span>
             </div>
             <div class="divide-y divide-slate-50">
               <div v-for="item in order.OrderItems" :key="item.id" class="flex gap-4 px-6 py-4 hover:bg-slate-50 transition-colors">
-                <div class="w-16 h-16 bg-slate-100 rounded-xl overflow-hidden flex-shrink-0">
+                <div class="w-16 h-16 rounded-xl overflow-hidden flex-shrink-0" style="background: #ede9e3;">
                   <img v-if="item.Product?.image_url" :src="item.Product.image_url" class="w-full h-full object-cover"
                     @error="e => e.target.style.display='none'" />
                   <div v-else class="w-full h-full flex items-center justify-center">
@@ -120,17 +121,30 @@
                 </div>
                 <div class="flex-1 min-w-0">
                   <p class="font-semibold text-slate-800 truncate">{{ item.Product?.name || 'Product' }}</p>
-                  <p class="text-xs text-slate-400 mt-0.5">Qty: {{ item.quantity }} &nbsp;·&nbsp; KES {{ formatPrice(item.unit_price) }} each</p>
+                  <div class="flex items-center gap-2 mt-0.5 flex-wrap">
+                    <p v-if="item.discount_percent > 0 && item.original_price" class="text-xs text-slate-400 line-through">
+                      KES {{ formatPrice(item.original_price) }}
+                    </p>
+                    <p class="text-xs font-semibold" :class="item.discount_percent > 0 ? 'text-purple-700' : 'text-slate-400'">
+                      KES {{ formatPrice(item.unit_price) }} × {{ item.quantity }}
+                    </p>
+                    <span v-if="item.discount_percent > 0" class="text-[10px] font-bold bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full">
+                      −{{ item.discount_percent }}% AI
+                    </span>
+                  </div>
                 </div>
                 <div class="text-right flex-shrink-0">
                   <p class="font-black text-slate-900">KES {{ formatPrice(item.subtotal) }}</p>
+                  <p v-if="item.discount_percent > 0 && item.original_price" class="text-[10px] text-green-600 font-semibold mt-0.5">
+                    saved KES {{ formatPrice((parseFloat(item.original_price) - parseFloat(item.unit_price)) * item.quantity) }}
+                  </p>
                 </div>
               </div>
             </div>
           </div>
 
           <!-- Payment section for pending orders -->
-          <div v-if="order.status === 'pending'" class="card overflow-hidden border-l-4 border-orange-400">
+          <div v-if="order.status === 'pending'" class="bg-white rounded-2xl overflow-hidden border-l-4 border-orange-400" style="border-top: 1px solid #ede9e3; border-right: 1px solid #ede9e3; border-bottom: 1px solid #ede9e3;">
             <div class="px-6 py-4 border-b border-orange-50 bg-orange-50 flex items-center gap-3">
               <div class="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center">
                 <svg class="w-4 h-4 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
@@ -170,9 +184,9 @@
         <div class="space-y-5">
 
           <!-- Order summary -->
-          <div class="card overflow-hidden">
+          <div class="bg-white rounded-2xl overflow-hidden" style="border: 1px solid #ede9e3;">
             <div class="px-5 py-4 border-b border-slate-100">
-              <h2 class="font-bold text-slate-800">Order Summary</h2>
+              <h2 class="font-serif font-bold text-slate-800">Order Summary</h2>
             </div>
             <div class="p-5 space-y-3">
               <div class="flex justify-between text-sm text-slate-600">
@@ -185,12 +199,27 @@
               </div>
               <div class="flex justify-between text-sm text-slate-600">
                 <span>Delivery</span>
-                <span class="font-medium text-slate-800">KES {{ formatPrice(order.delivery_fee) }}</span>
+                <span class="font-medium text-slate-800">{{ parseFloat(order.delivery_fee) > 0 ? 'KES ' + formatPrice(order.delivery_fee) : 'FREE' }}</span>
               </div>
+
+              <!-- AI Optimizer savings line -->
+              <div v-if="totalAISavings > 0" class="flex justify-between text-sm bg-green-50 -mx-5 px-5 py-2 rounded-lg">
+                <span class="text-green-700 font-semibold flex items-center gap-1.5">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
+                  AI Savings
+                </span>
+                <span class="text-green-700 font-bold">− KES {{ formatPrice(totalAISavings) }}</span>
+              </div>
+
               <div class="border-t border-slate-100 pt-3 flex justify-between">
                 <span class="font-black text-slate-900">Total</span>
                 <span class="font-black text-purple-700 text-lg">KES {{ formatPrice(order.total_amount) }}</span>
               </div>
+            </div>
+
+            <!-- AI savings callout banner -->
+            <div v-if="totalAISavings > 0" class="mx-5 mb-4 rounded-xl p-3 border-l-4 border-purple-500" style="background: #faf5ff;">
+              <p class="text-xs font-bold text-purple-700">You saved KES {{ formatPrice(totalAISavings) }} on this order via AI Optimizer discounts</p>
             </div>
             <!-- Payment / delivery info -->
             <div class="px-5 pb-5 space-y-2">
@@ -210,7 +239,7 @@
           </div>
 
           <!-- QR Codes -->
-          <div v-if="order.payment_qr && order.payment_status !== 'completed'" class="card overflow-hidden">
+          <div v-if="order.payment_qr && order.payment_status !== 'completed'" class="bg-white rounded-2xl overflow-hidden" style="border: 1px solid #ede9e3;">
             <div class="p-1" style="background: var(--brand-gradient)">
               <div class="bg-white rounded-xl p-5 text-center">
                 <p class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">Scan to Pay</p>
@@ -221,11 +250,11 @@
             </div>
           </div>
 
-          <div v-if="order.qr_code" class="card p-5 text-center">
+          <div v-if="order.qr_code" class="bg-white rounded-2xl p-5 text-center" style="border: 1px solid #ede9e3;">
             <p class="text-xs font-bold text-slate-600 uppercase tracking-widest mb-3">Pickup / Delivery Code</p>
             <img :src="order.qr_code" class="w-36 h-36 mx-auto mb-3 opacity-90" />
             <p class="text-xs text-slate-400 mb-2">Show this to the delivery agent or at pickup</p>
-            <p class="text-sm font-black text-slate-800 bg-slate-100 rounded-lg px-3 py-1.5 inline-block tracking-wider">OTP: {{ order.otp_code }}</p>
+            <p class="text-sm font-black text-slate-800 rounded-lg px-3 py-1.5 inline-block tracking-wider" style="background: #ede9e3;">OTP: {{ order.otp_code }}</p>
           </div>
 
           <!-- Actions -->
@@ -278,6 +307,17 @@ const progressWidth = computed(() => {
   const idx = steps.indexOf(order.value?.status)
   if (idx <= 0) return '0%'
   return `${(idx / (steps.length - 1)) * 100}%`
+})
+
+// Sum up AI optimizer savings from discount_percent fields
+const totalAISavings = computed(() => {
+  if (!order.value?.OrderItems) return 0
+  return order.value.OrderItems.reduce((sum, item) => {
+    if (item.discount_percent > 0 && item.original_price) {
+      return sum + (parseFloat(item.original_price) - parseFloat(item.unit_price)) * item.quantity
+    }
+    return sum
+  }, 0)
 })
 
 const statusClass = (status) => {
@@ -402,13 +442,15 @@ onMounted(async () => {
 
     const socket = getSocket()
     if (socket) {
-      socket.on('orderUpdate', (data) => {
-        if (data.orderId == route.params.id) {
-          order.value = { ...order.value, status: data.status, payment_status: data.payment_status }
-          if (data.payment_status === 'completed') {
+      socket.on('orderUpdate', async (data) => {
+        if (String(data.orderId) === String(route.params.id)) {
+          // Re-fetch full order so all fields (payment_status, items, etc.) are fresh
+          await fetchOrder()
+          if (data.message) toast.info(data.message)
+          if (['paid', 'processing', 'dispatched', 'delivered'].includes(data.status)) {
             isPolling.value = false
-            if (pollTimer) clearInterval(pollTimer)
-            refreshBalance()
+            if (pollTimer) { clearInterval(pollTimer); pollTimer = null }
+            if (data.status === 'paid') refreshBalance()
           }
         }
       })

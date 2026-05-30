@@ -1,7 +1,7 @@
 <template>
-  <div class="min-h-screen bg-gray-50">
+  <div class="min-h-screen" style="background: #faf9f7;">
     <!-- Hero banner with avatar -->
-    <div class="bg-gradient-to-br from-purple-700 via-purple-600 to-pink-600 text-white">
+    <div style="background: linear-gradient(135deg, #2d0a1f 0%, #4a1232 50%, #3b0f28 100%); position: relative; overflow: hidden; border-bottom: 1px solid rgba(244,197,173,0.1);">
       <div class="max-w-4xl mx-auto px-6 py-10">
         <div class="flex flex-col sm:flex-row items-center sm:items-start gap-6">
           <!-- Avatar with upload button -->
@@ -67,7 +67,7 @@
 
       <!-- ── Account Settings ── -->
       <div v-if="activeTab === 'settings'" class="space-y-6">
-        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+        <div class="bg-white rounded-2xl shadow-sm border border-[#ede9e3] p-6">
           <h3 class="font-bold text-gray-800 mb-5 text-lg">Account Settings</h3>
           <div class="space-y-4">
             <div>
@@ -76,12 +76,12 @@
             </div>
             <div>
               <label class="block text-sm font-semibold text-gray-700 mb-1.5">Email Address</label>
-              <input :value="auth.user?.email" type="email" disabled class="w-full px-4 py-3 border border-gray-100 rounded-xl bg-gray-50 text-gray-500 cursor-not-allowed" />
+              <input :value="auth.user?.email" type="email" disabled class="w-full px-4 py-3 border border-[#ede9e3] rounded-xl bg-gray-50 text-gray-500 cursor-not-allowed" />
               <p class="text-xs text-gray-400 mt-1">Contact support to change your email</p>
             </div>
             <div>
               <label class="block text-sm font-semibold text-gray-700 mb-1.5">Phone Number</label>
-              <input :value="auth.user?.phone" type="text" disabled class="w-full px-4 py-3 border border-gray-100 rounded-xl bg-gray-50 text-gray-500 cursor-not-allowed" />
+              <input :value="auth.user?.phone" type="text" disabled class="w-full px-4 py-3 border border-[#ede9e3] rounded-xl bg-gray-50 text-gray-500 cursor-not-allowed" />
             </div>
             <button
               @click="saveProfile"
@@ -95,7 +95,7 @@
         </div>
 
         <!-- Password change link -->
-        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 flex items-center justify-between">
+        <div class="bg-white rounded-2xl shadow-sm border border-[#ede9e3] p-6 flex items-center justify-between">
           <div>
             <h4 class="font-semibold text-gray-800">Password</h4>
             <p class="text-sm text-gray-500 mt-0.5">Change your account password</p>
@@ -127,9 +127,9 @@
         </div>
 
         <!-- Tier table -->
-        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+        <div class="bg-white rounded-2xl shadow-sm border border-[#ede9e3] overflow-hidden">
           <table class="w-full text-sm">
-            <thead class="bg-gray-50 border-b border-gray-100">
+            <thead class="border-b border-[#ede9e3]">
               <tr>
                 <th class="text-left px-5 py-3 font-semibold text-gray-600">Tier</th>
                 <th class="text-left px-5 py-3 font-semibold text-gray-600">Min Orders</th>
@@ -162,10 +162,10 @@
         </div>
 
         <div v-if="ordersLoading" class="space-y-3">
-          <div v-for="i in 4" :key="i" class="bg-white rounded-xl h-20 animate-pulse border border-gray-100"></div>
+          <div v-for="i in 4" :key="i" class="bg-white rounded-xl h-20 animate-pulse border border-[#ede9e3]"></div>
         </div>
 
-        <div v-else-if="recentOrders.length === 0" class="bg-white rounded-2xl border border-gray-100 py-14 text-center">
+        <div v-else-if="recentOrders.length === 0" class="bg-white rounded-2xl border border-[#ede9e3] py-14 text-center">
           <p class="text-gray-500 mb-3">No orders yet</p>
           <router-link to="/products" class="btn-primary">
             Start Shopping
@@ -177,7 +177,7 @@
           v-for="order in recentOrders"
           :key="order.id"
           :to="`/orders/${order.id}`"
-          class="flex items-center justify-between bg-white rounded-2xl border border-gray-100 p-5 hover:shadow-md transition group"
+          class="flex items-center justify-between bg-white rounded-2xl border border-[#ede9e3] p-5 hover:shadow-md transition group"
         >
           <div>
             <p class="font-bold text-gray-800 text-sm">#{{ String(order.id).slice(0, 8).toUpperCase() }}</p>
@@ -207,7 +207,7 @@
             </router-link>
           </div>
         </div>
-        <div class="bg-white rounded-2xl border border-gray-100 p-6 text-center">
+        <div class="bg-white rounded-2xl border border-[#ede9e3] p-6 text-center">
           <p class="text-gray-500 text-sm">View your complete transaction history and download PDF statements</p>
           <router-link to="/wallet" class="mt-3 inline-block text-primary-600 font-semibold text-sm hover:underline">
             Go to Wallet →

@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-gray-50">
+  <div class="min-h-screen" style="background: #faf9f7;">
     <!-- Top brand bar -->
     <div class="bg-primary-700 text-white px-6 py-4 flex items-center justify-between shadow-md">
       <div class="flex items-center gap-3">

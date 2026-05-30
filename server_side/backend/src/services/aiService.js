@@ -7,6 +7,8 @@ const { Op } = require('sequelize');
  * @param {number} days - number of days to look back
  * @returns {Promise<number>} average daily sales quantity
  */
+const PAID_STATUSES = ['paid', 'processing', 'completed', 'dispatched', 'delivered'];
+
 const calculateSalesVelocity = async (productId, days = 7) => {
   const since = new Date();
   since.setDate(since.getDate() - days);
@@ -18,11 +20,11 @@ const calculateSalesVelocity = async (productId, days = 7) => {
     },
     include: [{
       model: Order,
-      where: { payment_status: 'completed' }
+      where: { payment_status: { [Op.in]: PAID_STATUSES } }
     }]
   });
 
-  return sales / days;
+  return (sales || 0) / days;
 };
 
 /**
@@ -32,7 +34,7 @@ const calculateSalesVelocity = async (productId, days = 7) => {
  */
 const analyzeCustomerPatterns = async (userId) => {
   const orders = await Order.findAll({
-    where: { user_id: userId, payment_status: 'completed' },
+    where: { user_id: userId, payment_status: { [Op.in]: PAID_STATUSES } },
     include: [{ model: OrderItem, include: [Product] }],
     order: [['createdAt', 'DESC']],
     limit: 30
@@ -218,7 +220,7 @@ const forecastDemand = async () => {
  */
 const getUserDiscountTier = async (userId) => {
   const completedOrders = await Order.count({
-    where: { user_id: userId, payment_status: 'completed' }
+    where: { user_id: userId, payment_status: { [Op.in]: PAID_STATUSES } }
   });
 
   let tier = null;

@@ -1,18 +1,19 @@
 <template>
-  <div class="min-h-screen bg-slate-50">
+  <div class="min-h-screen" style="background: #f8f7f5;">
 
-    <!-- ══ Hero ══ -->
-    <div class="page-hero">
+    <!-- Staff operations header — charcoal with amber accent -->
+    <div style="background: linear-gradient(135deg, #18181b 0%, #27272a 60%, #1c1c1e 100%); position: relative; overflow: hidden; border-bottom: 3px solid #f59e0b;">
+      <div style="position:absolute;top:-50px;right:-50px;width:200px;height:200px;border-radius:50%;background:rgba(245,158,11,0.04);"></div>
       <div class="container-custom relative z-10 py-10">
-        <p class="section-tag text-white/70">Staff Portal</p>
+        <p class="text-amber-400 text-xs font-bold uppercase tracking-[0.25em] mb-3">Operations Centre</p>
         <div class="flex flex-col sm:flex-row sm:items-end gap-4 justify-between">
           <div>
-            <h1 class="text-3xl font-black text-white">Logistics Command</h1>
-            <p class="text-white/70 mt-1 text-sm">Process orders, manage inventory, and publish content in real time.</p>
+            <h1 class="font-serif text-4xl font-bold text-white">Logistics Command</h1>
+            <p class="text-zinc-500 mt-2 text-sm">Pack orders, dispatch fleet, publish content — everything in one queue.</p>
           </div>
-          <div class="flex items-center gap-2 bg-white/10 border border-white/20 rounded-xl px-4 py-2">
-            <span class="w-2 h-2 rounded-full bg-green-400 animate-pulse flex-shrink-0"></span>
-            <span class="text-sm font-semibold text-white">Live feed active</span>
+          <div class="flex items-center gap-2.5 rounded-xl px-4 py-2.5 border border-zinc-700" style="background: rgba(255,255,255,0.04);">
+            <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse flex-shrink-0"></span>
+            <span class="text-sm font-semibold text-zinc-300">Live feed active</span>
           </div>
         </div>
       </div>
@@ -20,71 +21,75 @@
 
     <div class="container-custom py-8 space-y-8">
 
-      <!-- ══ Stat Cards (act as tab buttons) ══ -->
+      <!-- ══ Kanban lane tab buttons ══ -->
       <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
 
-        <!-- Unpaid -->
+        <!-- Unpaid lane -->
         <button @click="activeTab = 'unpaid'"
-          :class="activeTab === 'unpaid' ? 'ring-2 ring-amber-400 shadow-lg' : 'hover:shadow-md'"
-          class="card p-5 text-left transition-all duration-200 group">
+          class="rounded-2xl p-5 text-left transition-all duration-200 border-2"
+          :style="activeTab === 'unpaid' ? 'background: #fff8e6; border-color: #f59e0b; box-shadow: 0 4px 20px rgba(245,158,11,0.15);' : 'background: white; border-color: #e5e7eb;'"
+          :class="activeTab !== 'unpaid' ? 'hover:border-amber-200 hover:shadow-md' : ''">
           <div class="flex items-center justify-between mb-3">
-            <div class="w-10 h-10 bg-amber-100 rounded-xl flex items-center justify-center group-hover:scale-105 transition-transform">
+            <div class="w-10 h-10 rounded-xl flex items-center justify-center" :style="activeTab === 'unpaid' ? 'background: rgba(245,158,11,0.12);' : 'background: #fef3c7;'">
               <svg class="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
               </svg>
             </div>
-            <span class="text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">Unpaid</span>
+            <span class="text-[10px] font-bold px-2 py-0.5 rounded-full border text-amber-700" :style="activeTab === 'unpaid' ? 'border-color: rgba(245,158,11,0.5); background: rgba(245,158,11,0.1);' : 'border-color: #fde68a; background: #fef3c7;'">Unpaid</span>
           </div>
-          <p class="text-3xl font-black text-slate-800">{{ counts.pendingOrders || 0 }}</p>
-          <p class="text-sm text-slate-500 mt-1 font-medium">Awaiting Payment</p>
+          <p class="font-serif text-3xl font-bold text-zinc-800">{{ counts.pendingOrders || 0 }}</p>
+          <p class="text-sm text-zinc-500 mt-1 font-medium">Awaiting Payment</p>
         </button>
 
-        <!-- Paid / To Pack -->
+        <!-- Paid/Pack lane -->
         <button @click="activeTab = 'paid'"
-          :class="activeTab === 'paid' ? 'ring-2 ring-green-400 shadow-lg' : 'hover:shadow-md'"
-          class="card p-5 text-left transition-all duration-200 group">
+          class="rounded-2xl p-5 text-left transition-all duration-200 border-2"
+          :style="activeTab === 'paid' ? 'background: #f0fdf4; border-color: #22c55e; box-shadow: 0 4px 20px rgba(34,197,94,0.12);' : 'background: white; border-color: #e5e7eb;'"
+          :class="activeTab !== 'paid' ? 'hover:border-green-200 hover:shadow-md' : ''">
           <div class="flex items-center justify-between mb-3">
-            <div class="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center group-hover:scale-105 transition-transform">
+            <div class="w-10 h-10 rounded-xl flex items-center justify-center" :style="activeTab === 'paid' ? 'background: rgba(34,197,94,0.12);' : 'background: #dcfce7;'">
               <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
               </svg>
             </div>
-            <span class="text-[10px] font-bold text-green-700 bg-green-50 border border-green-200 px-2 py-0.5 rounded-full">Paid</span>
+            <span class="text-[10px] font-bold px-2 py-0.5 rounded-full border text-green-700" :style="activeTab === 'paid' ? 'border-color: rgba(34,197,94,0.5); background: rgba(34,197,94,0.1);' : 'border-color: #bbf7d0; background: #dcfce7;'">Ready to Pack</span>
           </div>
-          <p class="text-3xl font-black text-slate-800">{{ (counts.paidOrders || 0) + (counts.processingOrders || 0) }}</p>
-          <p class="text-sm text-slate-500 mt-1 font-medium">Ready to Pack</p>
+          <p class="font-serif text-3xl font-bold text-zinc-800">{{ (counts.paidOrders || 0) + (counts.processingOrders || 0) }}</p>
+          <p class="text-sm text-zinc-500 mt-1 font-medium">Paid Orders</p>
         </button>
 
-        <!-- Ready / Dispatch -->
+        <!-- Dispatch lane -->
         <button @click="activeTab = 'logistics'"
-          :class="activeTab === 'logistics' ? 'ring-2 ring-blue-400 shadow-lg' : 'hover:shadow-md'"
-          class="card p-5 text-left transition-all duration-200 group">
+          class="rounded-2xl p-5 text-left transition-all duration-200 border-2"
+          :style="activeTab === 'logistics' ? 'background: #eff6ff; border-color: #3b82f6; box-shadow: 0 4px 20px rgba(59,130,246,0.12);' : 'background: white; border-color: #e5e7eb;'"
+          :class="activeTab !== 'logistics' ? 'hover:border-blue-200 hover:shadow-md' : ''">
           <div class="flex items-center justify-between mb-3">
-            <div class="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center group-hover:scale-105 transition-transform">
+            <div class="w-10 h-10 rounded-xl flex items-center justify-center" :style="activeTab === 'logistics' ? 'background: rgba(59,130,246,0.12);' : 'background: #dbeafe;'">
               <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
               </svg>
             </div>
-            <span class="text-[10px] font-bold text-blue-700 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-full">Dispatch</span>
+            <span class="text-[10px] font-bold px-2 py-0.5 rounded-full border text-blue-700" :style="activeTab === 'logistics' ? 'border-color: rgba(59,130,246,0.5); background: rgba(59,130,246,0.1);' : 'border-color: #bfdbfe; background: #dbeafe;'">Dispatch</span>
           </div>
-          <p class="text-3xl font-black text-slate-800">{{ counts.readyOrders || 0 }}</p>
-          <p class="text-sm text-slate-500 mt-1 font-medium">Ready for Dispatch</p>
+          <p class="font-serif text-3xl font-bold text-zinc-800">{{ counts.readyOrders || 0 }}</p>
+          <p class="text-sm text-zinc-500 mt-1 font-medium">Ready to Ship</p>
         </button>
 
-        <!-- Content / CMS -->
+        <!-- CMS lane -->
         <button @click="activeTab = 'content'"
-          :class="activeTab === 'content' ? 'ring-2 ring-purple-400 shadow-lg' : 'hover:shadow-md'"
-          class="card p-5 text-left transition-all duration-200 group">
+          class="rounded-2xl p-5 text-left transition-all duration-200 border-2"
+          :style="activeTab === 'content' ? 'background: #faf5ff; border-color: #9333ea; box-shadow: 0 4px 20px rgba(147,51,234,0.12);' : 'background: white; border-color: #e5e7eb;'"
+          :class="activeTab !== 'content' ? 'hover:border-purple-200 hover:shadow-md' : ''">
           <div class="flex items-center justify-between mb-3">
-            <div class="w-10 h-10 bg-purple-100 rounded-xl flex items-center justify-center group-hover:scale-105 transition-transform">
+            <div class="w-10 h-10 rounded-xl flex items-center justify-center" :style="activeTab === 'content' ? 'background: rgba(147,51,234,0.12);' : 'background: #f3e8ff;'">
               <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
               </svg>
             </div>
-            <span class="text-[10px] font-bold text-purple-700 bg-purple-50 border border-purple-200 px-2 py-0.5 rounded-full">CMS</span>
+            <span class="text-[10px] font-bold px-2 py-0.5 rounded-full border text-purple-700" :style="activeTab === 'content' ? 'border-color: rgba(147,51,234,0.5); background: rgba(147,51,234,0.1);' : 'border-color: #e9d5ff; background: #f3e8ff;'">CMS</span>
           </div>
-          <p class="text-3xl font-black text-slate-800">{{ contentItems.length }}</p>
-          <p class="text-sm text-slate-500 mt-1 font-medium">Content Items</p>
+          <p class="font-serif text-3xl font-bold text-zinc-800">{{ contentItems.length }}</p>
+          <p class="text-sm text-zinc-500 mt-1 font-medium">Content Items</p>
         </button>
 
       </div>
@@ -93,7 +98,7 @@
       <div v-if="activeTab === 'unpaid'" class="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
         <!-- Order list -->
-        <div class="lg:col-span-2 card overflow-hidden">
+        <div class="lg:col-span-2 bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm">
           <!-- Header -->
           <div class="px-6 py-4 border-b border-amber-100 bg-amber-50 flex items-center justify-between">
             <div class="flex items-center gap-2">
@@ -191,7 +196,7 @@
         <!-- Right sidebar -->
         <div class="space-y-5">
           <!-- Low stock alerts -->
-          <div class="card overflow-hidden">
+          <div class="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm">
             <div class="px-5 py-4 border-b border-slate-100 flex items-center gap-2">
               <svg class="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
               <h4 class="font-bold text-slate-800 text-sm">Low Stock Alerts</h4>
@@ -214,7 +219,7 @@
           </div>
 
           <!-- Tip card -->
-          <div class="card p-5 bg-slate-800 text-white">
+          <div class="rounded-2xl p-5 text-white" style="background: #18181b;">
             <p class="font-bold text-sm mb-2">Logistics Note</p>
             <p class="text-xs text-slate-400 leading-relaxed">Standard delivery window for Nairobi is 2 hours. Ensure all 'Ready' orders are dispatched before 4:00 PM today.</p>
           </div>
@@ -224,7 +229,7 @@
       <!-- ══ PAID ORDERS TAB ══ -->
       <div v-if="activeTab === 'paid'" class="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-        <div class="lg:col-span-2 card overflow-hidden">
+        <div class="lg:col-span-2 bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm">
           <div class="px-6 py-4 border-b border-green-100 bg-green-50 flex items-center justify-between">
             <div class="flex items-center gap-2">
               <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
@@ -315,7 +320,7 @@
 
         <!-- Right sidebar (same stock alerts) -->
         <div class="space-y-5">
-          <div class="card overflow-hidden">
+          <div class="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm">
             <div class="px-5 py-4 border-b border-slate-100 flex items-center gap-2">
               <svg class="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
               <h4 class="font-bold text-slate-800 text-sm">Low Stock Alerts</h4>
@@ -339,7 +344,7 @@
       <!-- ══ LOGISTICS TAB ══ -->
       <div v-if="activeTab === 'logistics'" class="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-        <div class="lg:col-span-2 card overflow-hidden">
+        <div class="lg:col-span-2 bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm">
           <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
             <h3 class="font-bold text-slate-800">All Recent Orders</h3>
             <button @click="fetchStats" class="flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-primary-600 transition px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg">
@@ -398,7 +403,7 @@
         </div>
 
         <div class="space-y-5">
-          <div class="card overflow-hidden">
+          <div class="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm">
             <div class="px-5 py-4 border-b border-slate-100 flex items-center gap-2">
               <svg class="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
               <h4 class="font-bold text-slate-800 text-sm">Low Stock Alerts</h4>
@@ -416,7 +421,7 @@
               </div>
             </div>
           </div>
-          <div class="card p-5" style="background: #1e293b">
+          <div class="rounded-2xl p-5 text-white" style="background: #18181b;">
             <p class="font-bold text-sm text-white mb-2">Logistics Note</p>
             <p class="text-xs text-slate-400 leading-relaxed">Standard delivery for Nairobi is 2 hrs. Dispatch all 'Ready' orders before 4:00 PM.</p>
           </div>
@@ -441,7 +446,7 @@
             </button>
           </div>
 
-          <div class="card overflow-hidden">
+          <div class="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm">
             <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
               <h3 class="font-bold text-slate-800">{{ contentTypes.find(c => c.key === activeContentType)?.label }}</h3>
               <button @click="openContentEditor()" class="btn-primary text-sm px-4 py-2">
@@ -485,7 +490,7 @@
 
         <!-- Content sidebar -->
         <div class="space-y-4">
-          <div class="card p-5">
+          <div class="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
             <h4 class="font-bold text-slate-800 mb-3 text-sm">Content Tips</h4>
             <ul class="space-y-2 text-xs text-slate-500">
               <li class="flex items-start gap-2">

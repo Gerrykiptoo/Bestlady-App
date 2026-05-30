@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-gray-50">
+  <div class="min-h-screen" style="background: #faf9f7;">
     <!-- Brand header -->
     <div class="bg-gradient-to-r from-purple-700 to-pink-600 text-white px-6 py-4 shadow-md">
       <div class="max-w-2xl mx-auto flex items-center justify-between">

@@ -8,7 +8,12 @@
       "Bash(node /home/hp/Bestlady/client_side/frontend/node_modules/.bin/vite --root /home/hp/Bestlady/client_side/frontend --port 5173)",
       "Bash(echo \"PID: $!\")",
       "Read(//tmp/**)",
-      "Bash(node /home/hp/Bestlady/client_side/frontend/node_modules/.bin/vite --version)"
+      "Bash(node /home/hp/Bestlady/client_side/frontend/node_modules/.bin/vite --version)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:5173)",
+      "Bash(google-chrome --headless=new --disable-gpu --no-sandbox --window-size=1440,900 --screenshot=/tmp/home_page.png \"http://localhost:5173\")",
+      "Bash(google-chrome --headless=new --disable-gpu --no-sandbox --window-size=1440,900 --virtual-time-budget=5000 --screenshot=/tmp/home_full.png http://localhost:5173)",
+      "Bash(node -e ' *)",
+      "Bash(node -e \"require\\('twilio'\\); console.log\\('twilio OK'\\)\")"
     ]
   }
 }

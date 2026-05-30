@@ -3,6 +3,7 @@ const { Order, WalletTransaction, User, sequelize } = require('../models');
 const { generateOTP } = require('../utils/otpGenerator');
 const { generateQR } = require('../utils/qrGenerator');
 const emailService = require('../services/emailService');
+const whatsappService = require('../services/whatsappService');
 
 /**
  * Initiate M-Pesa STK Push payment
@@ -203,10 +204,12 @@ const mpesaCallback = async (req, res) => {
 
       console.log(`✅ Order ${order.order_number} updated successfully`);
 
-      // Send payment confirmation email (non-blocking)
+      // Send payment confirmation notifications (non-blocking)
       const updatedOrder = await Order.findByPk(order.id, { transaction: t });
       emailService.sendPaymentConfirmation(user, updatedOrder, 'mpesa')
         .catch(err => console.error('M-Pesa payment email error:', err));
+      whatsappService.sendPaymentConfirmedWhatsApp(user, updatedOrder, 'mpesa')
+        .catch(err => console.error('M-Pesa payment WhatsApp error:', err));
 
     } else {
       // Payment failed

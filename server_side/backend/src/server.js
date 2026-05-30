@@ -41,31 +41,41 @@ io.on('connection', (socket) => {
   });
 });
 
-// Connect to database and start server
-sequelize
-  .authenticate()
-  .then(() => {
-    console.log('✅ Database connected successfully');
+// Connect to database with retry logic, then start server
+const connectWithRetry = async (retries = 5, delay = 3000) => {
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      await sequelize.authenticate();
+      console.log('✅ Database connected successfully');
 
-    server.listen(PORT, () => {
-      console.log(`🚀 Server running on port ${PORT}`);
-    });
-
-    const gracefulShutdown = () => {
-      console.log('🛑 Received shutdown signal, closing server...');
-      server.close(() => {
-        console.log('👋 Server closed');
-        sequelize.close().then(() => {
-          console.log('🗄️ Database connection closed');
-          process.exit(0);
-        });
+      server.listen(PORT, () => {
+        console.log(`🚀 Server running on port ${PORT}`);
       });
-    };
 
-    process.on('SIGTERM', gracefulShutdown);
-    process.on('SIGINT', gracefulShutdown);
-  })
-  .catch((err) => {
-    console.error('❌ Database connection failed:', err);
-    process.exit(1);
-  });
+      const gracefulShutdown = () => {
+        console.log('🛑 Received shutdown signal, closing server...');
+        server.close(() => {
+          console.log('👋 Server closed');
+          sequelize.close().then(() => {
+            console.log('🗄️ Database connection closed');
+            process.exit(0);
+          });
+        });
+      };
+      process.on('SIGTERM', gracefulShutdown);
+      process.on('SIGINT', gracefulShutdown);
+      return; // success
+    } catch (err) {
+      console.error(`❌ Database connection attempt ${attempt}/${retries} failed:`, err.message);
+      if (attempt < retries) {
+        console.log(`   Retrying in ${delay / 1000}s...`);
+        await new Promise(r => setTimeout(r, delay));
+      } else {
+        console.error('   All retries exhausted. Check DB_HOST / internet connection and restart.');
+        process.exit(1);
+      }
+    }
+  }
+};
+
+connectWithRetry();

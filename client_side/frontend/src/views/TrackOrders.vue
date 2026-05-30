@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-gray-50">
+  <div class="min-h-screen" style="background: #faf9f7;">
     <div class="bg-gradient-to-br from-purple-700 to-pink-600 text-white py-20 px-6 text-center">
       <h1 class="text-4xl font-black mb-3">How to Track Your Orders</h1>
       <p class="text-purple-100 max-w-lg mx-auto">Real-time order tracking from payment confirmation to your door — here's exactly how it works.</p>
@@ -12,7 +12,7 @@
       </div>
 
       <div v-else-if="cmsContent.length > 0" class="space-y-6">
-        <div v-for="section in cmsContent" :key="section.id" class="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
+        <div v-for="section in cmsContent" :key="section.id" class="bg-white rounded-2xl shadow-sm border border-[#ede9e3] p-8">
           <h2 class="text-xl font-bold text-gray-800 mb-4">{{ section.title }}</h2>
           <div class="text-gray-600 text-sm leading-relaxed" v-html="section.body"></div>
         </div>
@@ -21,7 +21,7 @@
       <!-- Default guide -->
       <template v-else>
         <!-- Order lifecycle -->
-        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
+        <div class="bg-white rounded-2xl shadow-sm border border-[#ede9e3] p-8">
           <h2 class="text-xl font-bold text-gray-800 mb-6">Order Lifecycle</h2>
           <div class="space-y-6">
             <div v-for="stage in stages" :key="stage.status" class="flex items-start gap-5">
@@ -39,7 +39,7 @@
         </div>
 
         <!-- How to track -->
-        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
+        <div class="bg-white rounded-2xl shadow-sm border border-[#ede9e3] p-8">
           <h2 class="text-xl font-bold text-gray-800 mb-6">Tracking Your Order</h2>
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div class="p-5 bg-purple-50 rounded-xl border border-purple-100">
@@ -65,10 +65,10 @@
         </div>
 
         <!-- Pickup verification -->
-        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
+        <div class="bg-white rounded-2xl shadow-sm border border-[#ede9e3] p-8">
           <h2 class="text-xl font-bold text-gray-800 mb-4">Pickup Verification OTP</h2>
           <p class="text-sm text-gray-600 mb-4">For pickup orders, you'll receive a unique OTP (one-time password) and a QR code in your order details page.</p>
-          <div class="bg-gray-50 rounded-xl p-5 border border-gray-100">
+          <div class="rounded-xl p-5 border border-[#ede9e3]">
             <p class="text-sm font-semibold text-gray-700 mb-2">At the pickup station:</p>
             <ol class="list-decimal list-inside text-sm text-gray-600 space-y-1">
               <li>Show the QR code or OTP to the staff member</li>
@@ -90,7 +90,7 @@
             <p class="text-xs text-white/70">See all past & current orders</p>
           </div>
         </router-link>
-        <router-link to="/contact" class="bg-white border border-gray-100 rounded-2xl p-5 flex items-center gap-4 hover:shadow-md transition">
+        <router-link to="/contact" class="bg-white border border-[#ede9e3] rounded-2xl p-5 flex items-center gap-4 hover:shadow-md transition">
           <div class="w-10 h-10 bg-purple-100 rounded-xl flex items-center justify-center">
             <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" /></svg>
           </div>

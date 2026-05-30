@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-gray-50">
+  <div class="min-h-screen" style="background: #faf9f7;">
     <div class="bg-gradient-to-br from-purple-700 to-pink-600 text-white py-20 px-6 text-center">
       <h1 class="text-4xl font-black mb-3">Return & Refund Policy</h1>
       <p class="text-purple-100 max-w-lg mx-auto">We want you to be completely satisfied. Here's how returns and refunds work at BestLady.</p>

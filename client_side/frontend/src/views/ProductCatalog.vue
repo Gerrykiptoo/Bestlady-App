@@ -1,14 +1,14 @@
 <template>
-  <div class="min-h-screen bg-gray-50">
+  <div class="min-h-screen" style="background: #faf9f7;">
     <!-- Sticky top bar: search + category pills -->
-    <div class="bg-white border-b shadow-sm sticky top-0 z-10">
+    <div class="sticky top-0 z-10 border-b" style="background: #faf9f7; border-color: #ede9e3; box-shadow: 0 1px 8px rgba(45,10,31,0.06);">
       <div class="max-w-7xl mx-auto px-6 py-3 flex items-center gap-4">
-        <h2 class="text-lg font-bold text-gray-800 flex-shrink-0 hidden sm:block">Catalog</h2>
+        <h2 class="font-serif text-lg font-bold hidden sm:block" style="color: #1a0f14;">Beauty Catalogue</h2>
         <div class="flex-1 relative max-w-xl">
           <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
           </svg>
-          <input v-model="searchInput" @input="onSearchInput" type="text" placeholder="Search products by name..." class="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition" />
+          <input v-model="searchInput" @input="onSearchInput" type="text" placeholder="Search products by name..." class="w-full pl-9 pr-4 py-2 rounded-xl text-sm outline-none transition" style="border: 1px solid #ede9e3; background: white;" />
           <button v-if="searchInput" @click="clearSearch" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
           </button>

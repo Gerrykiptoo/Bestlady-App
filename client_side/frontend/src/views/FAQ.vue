@@ -1,9 +1,11 @@
 <template>
-  <div class="min-h-screen bg-gray-50">
+  <div class="min-h-screen" style="background: #faf9f7;">
     <!-- Hero -->
-    <div class="bg-gradient-to-br from-purple-700 to-pink-600 text-white py-20 px-6 text-center">
-      <h1 class="text-4xl font-black mb-3">Frequently Asked Questions</h1>
-      <p class="text-purple-100 max-w-lg mx-auto">Everything you need to know about BestLady — ordering, payment, delivery, and more.</p>
+    <div style="background: linear-gradient(135deg, #2d0a1f 0%, #4a1232 50%, #3b0f28 100%); position: relative; overflow: hidden; border-bottom: 1px solid rgba(244,197,173,0.1);" class="py-20 px-6 text-center">
+      <div style="position:absolute;top:-40px;right:10%;width:180px;height:180px;border-radius:50%;background:rgba(244,197,173,0.05);"></div>
+      <p class="text-rose-300/70 text-xs font-bold uppercase tracking-[0.2em] mb-4 relative z-10">Help Centre</p>
+      <h1 class="font-serif text-4xl font-bold text-white mb-3 relative z-10">Frequently Asked Questions</h1>
+      <p class="text-rose-200/70 max-w-lg mx-auto relative z-10">Everything you need to know about BestLady — ordering, payment, delivery, and more.</p>
     </div>
 
     <div class="max-w-3xl mx-auto px-6 py-16">
@@ -14,7 +16,7 @@
 
       <!-- Dynamic FAQs from CMS -->
       <div v-else-if="faqs.length > 0" class="space-y-3 mb-12">
-        <div v-for="faq in faqs" :key="faq.id" class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+        <div v-for="faq in faqs" :key="faq.id" class="bg-white rounded-2xl shadow-sm border border-[#ede9e3] overflow-hidden">
           <button @click="openFaq = openFaq === faq.id ? null : faq.id"
             class="w-full px-6 py-5 text-left flex items-center justify-between hover:bg-gray-50 transition">
             <span class="font-semibold text-gray-800">{{ faq.title }}</span>
@@ -28,7 +30,7 @@
 
       <!-- Default FAQs when none from CMS -->
       <div v-else class="space-y-3 mb-12">
-        <div v-for="faq in defaultFaqs" :key="faq.id" class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+        <div v-for="faq in defaultFaqs" :key="faq.id" class="bg-white rounded-2xl shadow-sm border border-[#ede9e3] overflow-hidden">
           <button @click="openFaq = openFaq === faq.id ? null : faq.id"
             class="w-full px-6 py-5 text-left flex items-center justify-between hover:bg-gray-50 transition">
             <span class="font-semibold text-gray-800">{{ faq.q }}</span>
