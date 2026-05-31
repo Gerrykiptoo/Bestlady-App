@@ -5,6 +5,7 @@
     <Footer />
     <AIChatAssistant />
     <OnboardingTour />
+    <ContactWidget />
   </div>
 </template>
 
@@ -14,6 +15,7 @@ import Navbar from '@/components/layout/Navbar.vue'
 import Footer from '@/components/layout/Footer.vue'
 import AIChatAssistant from '@/components/AIChatAssistant.vue'
 import OnboardingTour from '@/components/OnboardingTour.vue'
+import ContactWidget from '@/components/common/ContactWidget.vue'
 import { useAuthStore } from '@/stores/auth'
 import { initSocket, disconnectSocket } from '@/services/socket'
 

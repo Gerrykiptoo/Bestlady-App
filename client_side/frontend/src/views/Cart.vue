@@ -39,10 +39,28 @@
       <div v-else class="flex flex-col lg:flex-row gap-8">
         <!-- Cart Items -->
         <div class="flex-1 space-y-4">
+
+          <!-- Optimized confirmation banner -->
+          <div v-if="optimized && totalSavings > 0"
+            class="rounded-2xl p-4 flex items-center gap-3 border"
+            style="background: #ecfdf5; border-color: #a7f3d0;">
+            <div class="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style="background: #059669;">
+              <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+            </div>
+            <div class="flex-1">
+              <p class="font-bold text-emerald-800 text-sm">AI Optimization Applied</p>
+              <p class="text-xs text-emerald-600">Your discounted prices below are locked in and will appear on your receipt.</p>
+            </div>
+            <p class="font-black text-emerald-700 text-lg">−KES {{ formatPrice(totalSavings) }}</p>
+          </div>
+
           <div
             v-for="item in cart.items"
             :key="item.product_id"
-            class="bg-white rounded-2xl p-5 flex gap-4 items-start hover:shadow-md transition-shadow" style="border: 1px solid #ede9e3;"
+            class="bg-white rounded-2xl p-5 flex gap-4 items-start hover:shadow-md transition-shadow"
+            :style="item.discountedPrice && item.discountedPrice < item.price
+              ? 'border: 1px solid #a7f3d0; box-shadow: 0 1px 8px rgba(5,150,105,0.08);'
+              : 'border: 1px solid #ede9e3;'"
           >
             <!-- Product image -->
             <div class="w-24 h-24 bg-gray-100 rounded-xl overflow-hidden flex-shrink-0">
@@ -90,21 +108,42 @@
             </div>
           </div>
 
-          <!-- AI Optimizer widget -->
-          <div class="bg-gradient-to-r from-purple-700 to-pink-600 text-white p-5 rounded-2xl shadow-lg relative overflow-hidden">
+          <!-- AI Optimizer widget — discounts the cart in place -->
+          <div class="text-white p-5 rounded-2xl shadow-lg relative overflow-hidden" style="background: linear-gradient(135deg, #4a0e2b 0%, #7e1d4a 55%, #9c2c5c 100%);">
             <div class="absolute -top-4 -right-4 w-24 h-24 bg-white/10 rounded-full pointer-events-none"></div>
             <div class="absolute -bottom-6 -left-6 w-32 h-32 bg-white/5 rounded-full pointer-events-none"></div>
-            <div class="relative flex items-center justify-between gap-4">
-              <div>
-                <h3 class="font-bold flex items-center gap-2 mb-1">
-                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
-                  AI Purchase Optimizer
-                </h3>
-                <p class="text-sm text-white/80">Unlock bulk discounts and loyalty rewards based on your tier.</p>
+
+            <div class="relative">
+              <div class="flex items-center justify-between gap-4">
+                <div class="flex-1">
+                  <h3 class="font-bold flex items-center gap-2 mb-1 font-serif text-lg">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
+                    AI Purchase Optimizer
+                  </h3>
+                  <p v-if="!optimized" class="text-sm text-rose-100/80">
+                    Apply your <span class="font-bold capitalize">{{ auth.user?.tier || 'retail' }}</span> tier discount to everything in your cart.
+                  </p>
+                  <p v-else class="text-sm text-emerald-200 font-semibold">
+                    ✓ Optimized! You saved KES {{ formatPrice(totalSavings) }} on this order.
+                  </p>
+                </div>
+                <button
+                  @click="optimizeCart"
+                  :disabled="optimizing || cart.items.length === 0"
+                  class="flex-shrink-0 bg-white text-rose-700 text-sm font-bold px-5 py-2.5 rounded-xl transition hover:shadow-lg disabled:opacity-50"
+                >
+                  <span v-if="optimizing" class="flex items-center gap-1.5">
+                    <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+                    Optimizing…
+                  </span>
+                  <span v-else>{{ optimized ? 'Re-optimize' : 'Optimize Cart' }}</span>
+                </button>
               </div>
-              <router-link to="/dashboard" class="flex-shrink-0 bg-white/20 hover:bg-white/30 text-white text-xs font-bold px-4 py-2 rounded-xl transition">
-                Optimize
-              </router-link>
+
+              <!-- AI reasoning, shown after optimizing -->
+              <div v-if="optimizeNote" class="mt-3 pt-3 border-t border-white/15">
+                <p class="text-xs text-rose-100/90 leading-relaxed">{{ optimizeNote }}</p>
+              </div>
             </div>
           </div>
         </div>
@@ -175,15 +214,22 @@
 </template>
 
 <script setup>
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { useCartStore } from '@/stores/cart';
 import { useAuthStore } from '@/stores/auth';
 import { formatPrice } from '@/utils/formatters';
+import { useToast } from 'vue-toast-notification';
+import api from '@/services/api';
 
 const cart = useCartStore();
 const auth = useAuthStore();
 const router = useRouter();
+const toast = useToast();
+
+const optimizing  = ref(false);
+const optimized   = ref(false);
+const optimizeNote = ref('');
 
 const totalSavings = computed(() => {
   return cart.items.reduce((sum, item) => {
@@ -193,4 +239,52 @@ const totalSavings = computed(() => {
     return sum;
   }, 0);
 });
+
+// Send the first 6 cart items to the AI optimizer, which applies the user's
+// tier discount, then write the discounted prices back into the cart.
+const optimizeCart = async () => {
+  if (cart.items.length === 0) return;
+  if (!auth.user) {
+    toast.info('Please log in to use AI optimization and unlock your tier discount.');
+    return router.push('/login');
+  }
+
+  optimizing.value = true;
+  try {
+    const cartItems = cart.items.slice(0, 6).map(i => ({
+      product_id: i.product_id,
+      name: i.name,
+      price: i.price,
+      quantity: i.quantity,
+    }));
+
+    const { data } = await api.post('/ai/bulk-optimize', { cartItems });
+    const optimizedItems = data.cartOptimized || [];
+
+    if (optimizedItems.length === 0) {
+      optimizeNote.value = data.tierInfo?.discountPercent === 0
+        ? `You're at ${data.tierInfo?.tier || 'Starter'} level — place ${data.tierInfo?.ordersToNextTier || 3} order(s) to unlock your first loyalty discount.`
+        : 'No discounts could be applied to your current cart items.';
+      toast.info(optimizeNote.value);
+      return;
+    }
+
+    // Write discounted prices back into the cart
+    optimizedItems.forEach(opt => {
+      const cartItem = cart.items.find(i => i.product_id === opt.productId);
+      if (cartItem && opt.discountedPrice < opt.basePrice) {
+        cart.applyDiscount(opt.productId, opt.discountedPrice, opt.discountPercent);
+      }
+    });
+
+    optimized.value = true;
+    const pct = data.tierInfo?.discountPercent || 0;
+    optimizeNote.value = `${data.tierInfo?.tierEmoji || ''} ${data.tierInfo?.tier || 'Loyalty'} tier: ${pct}% applied to ${optimizedItems.length} item${optimizedItems.length > 1 ? 's' : ''}. The discount is locked in and will appear on your receipt.`;
+    toast.success(`Saved KES ${Math.round(data.totalCartSavings || totalSavings.value)} with your ${data.tierInfo?.tier || 'loyalty'} discount!`);
+  } catch (err) {
+    toast.error(err.response?.data?.message || 'Optimization failed. Please try again.');
+  } finally {
+    optimizing.value = false;
+  }
+};
 </script>

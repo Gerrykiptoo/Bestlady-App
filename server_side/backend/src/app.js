@@ -148,10 +148,28 @@ if (process.env.NODE_ENV !== 'production') {
 }
 
 // ======================
-// 404 Handler – for unmatched routes
+// Serve built Vue frontend in production (single process — no separate frontend server)
+// ======================
+if (process.env.NODE_ENV === 'production') {
+  const frontendDist = path.join(__dirname, '../../client_side/frontend/dist');
+  app.use(express.static(frontendDist, { maxAge: '1d' }));
+  // SPA fallback — any non-API route serves index.html
+  app.get('*', (req, res) => {
+    if (!req.path.startsWith('/api') && !req.path.startsWith('/health')) {
+      res.sendFile(path.join(frontendDist, 'index.html'));
+    }
+  });
+}
+
+// ======================
+// 404 Handler – for unmatched API routes
 // ======================
 app.use((req, res, next) => {
-  res.status(404).json({ message: `Route ${req.originalUrl} not found` });
+  if (req.path.startsWith('/api')) {
+    return res.status(404).json({ message: `Route ${req.originalUrl} not found` });
+  }
+  // In dev, non-API 404s are normal (frontend handles routing via Vite)
+  next();
 });
 
 // ======================

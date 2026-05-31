@@ -1,7 +1,12 @@
 const express = require('express');
 const router = express.Router();
-const { getUserDashboardData, getAdminForecast, aiChat, bulkOptimize, refreshInsights } = require('../controllers/aiController');
+const { getUserDashboardData, getAdminForecast, aiChat, bulkOptimize, refreshInsights, getMarketIntelligence } = require('../controllers/aiController');
 const { protect, admin, optionalProtect } = require('../middleware/authMiddleware');
+
+// @route   GET /api/ai/market
+// @desc    Cosmetics market intelligence — our sales mix vs industry benchmarks
+// @access  Public/Optional Auth
+router.get('/market', optionalProtect, getMarketIntelligence);
 
 // @route   GET /api/ai/user/dashboard
 // @access  Public/Optional Auth

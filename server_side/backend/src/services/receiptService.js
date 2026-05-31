@@ -179,12 +179,23 @@ const generateReceipt = async (order, user, items) => {
   if (totalDiscountSaved > 0) {
     y += 70;
     if (y > 700) { doc.addPage(); y = 60; }
-    doc.rect(50, y, 350, 36).fill(BRAND_LIGHT);
-    doc.rect(50, y, 4, 36).fill(BRAND_PURPLE);
+    const tierLabel = (user.tier || 'retail').charAt(0).toUpperCase() + (user.tier || 'retail').slice(1);
+    // Effective discount % = savings / pre-discount subtotal of discounted items
+    const preDiscountTotal = items.reduce((s, it) =>
+      it.discount_percent > 0 && it.original_price
+        ? s + parseFloat(it.original_price) * it.quantity
+        : s, 0);
+    const effectivePct = preDiscountTotal > 0
+      ? Math.round((totalDiscountSaved / preDiscountTotal) * 100)
+      : 0;
+
+    doc.rect(50, y, 380, 40).fill(BRAND_LIGHT);
+    doc.rect(50, y, 4, 40).fill(BRAND_PURPLE);
     doc.fontSize(9).font('Helvetica-Bold').fillColor(BRAND_PURPLE)
-      .text('AI Optimizer Savings', 62, y + 5);
+      .text(`AI Optimizer — ${tierLabel} Tier Savings`, 62, y + 6);
     doc.font('Helvetica').fillColor(TEXT_MID).fontSize(8.5)
-      .text(`Your loyalty tier saved you KES ${Math.round(totalDiscountSaved).toLocaleString()} on this order.`, 62, y + 18);
+      .text(`Your ${tierLabel} loyalty tier applied a ${effectivePct}% discount, saving you KES ${Math.round(totalDiscountSaved).toLocaleString()} on this order.`,
+        62, y + 20, { width: 360 });
   }
 
   // ── Footer ───────────────────────────────────────────────────────

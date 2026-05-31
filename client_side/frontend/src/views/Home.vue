@@ -263,8 +263,9 @@
     <section class="py-16 bg-[#faf9f7]">
       <div class="container-custom">
         <div class="text-center mb-12">
-          <p class="section-tag">What Customers Say</p>
-          <h2 class="font-serif text-4xl font-bold text-gray-900">Real Businesses. Real Results.</h2>
+          <p class="section-tag">From Our Customers</p>
+          <h2 class="font-serif text-4xl font-bold text-gray-900">In Their Own Words</h2>
+          <p class="text-[#5c524c] max-w-lg mx-auto mt-3 text-sm">Business owners across Kenya who use BestLady every week.</p>
         </div>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div v-for="t in testimonials" :key="t.name"
@@ -484,21 +485,21 @@ const howItWorks = [
 
 const testimonials = [
   {
-    name: 'Wanjiku Kamau',
-    role: 'Salon Owner, Westlands',
-    quote: 'I used to spend Saturdays calling suppliers. Now I reorder from BestLady in 3 minutes on my phone. The AI even tells me when I\'m about to run out of Argan oil.',
+    name: 'Michelle M.M',
+    role: 'Salon Owner, Kilimani',
+    quote: 'Honestly I was skeptical at first — I\'d been burned by suppliers before. But my first order arrived the next morning, packed properly, everything correct. That was 8 months ago and I haven\'t looked back. My shelves have never been this stocked.',
     avatar: 'linear-gradient(135deg, #9333ea, #db2777)',
   },
   {
-    name: 'Brian Otieno',
-    role: 'Wholesale Distributor, Mombasa',
-    quote: 'The wholesale pricing is genuinely competitive, and the bulk optimizer saves me a lot of thinking. My Gold tier discount pays for itself every month.',
+    name: 'Aron Musau',
+    role: 'Wholesale Distributor, Mombasa Road',
+    quote: 'I supply about 40 salons across Nairobi. Before BestLady I was juggling three different suppliers and still running short. Now one order covers everything — the bulk pricing is fair and the system actually remembers what I usually buy.',
     avatar: 'linear-gradient(135deg, #f59e0b, #d97706)',
   },
   {
-    name: 'Amina Hassan',
-    role: 'Supermarket Buyer, Kisumu',
-    quote: 'Delivery is always on time and the products are exactly as described. The WhatsApp order alerts are super helpful — I know the moment my order is confirmed.',
+    name: 'James Osango',
+    role: 'Retail Shop Owner, Kisumu CBD',
+    quote: 'The WhatsApp message I got when my order was dispatched — that small thing changed how I plan my week. I know exactly when stock is coming. My customers have noticed the difference too, I\'m never out of the basics anymore.',
     avatar: 'linear-gradient(135deg, #10b981, #059669)',
   },
 ]

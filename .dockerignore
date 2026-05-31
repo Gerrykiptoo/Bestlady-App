@@ -1,0 +1,17 @@
+node_modules
+*/node_modules
+**/node_modules
+client_side/frontend/dist
+client_side/frontend/.env*
+server_side/backend/.env
+**/.git
+**/.DS_Store
+**/logs
+**/*.log
+venv
+testing
+*.md
+.dockerignore
+Dockerfile
+docker-compose*.yml
+ecosystem.config.js

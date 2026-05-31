@@ -87,8 +87,13 @@ const PAID_STATUSES = ['paid', 'processing', 'completed', 'dispatched', 'deliver
 
 const bulkOptimize = async (req, res) => {
   try {
-    const userId = req.user.id;
-    const priceKey = req.user.tier === 'wholesale' ? 'wholesale_price' : 'retail_price';
+    const userId  = req.user.id;
+    const tier    = req.user.tier || 'retail';
+    const priceKey = tier === 'wholesale' ? 'wholesale_price' : 'retail_price';
+
+    // cartItems: array of { product_id, name, price, quantity } sent by the frontend
+    // We read the first 6 — this is the "cart-aware" optimization
+    const cartItems = Array.isArray(req.body.cartItems) ? req.body.cartItems.slice(0, 6) : [];
 
     const [tierInfo, orders] = await Promise.all([
       aiService.getUserDiscountTier(userId),
@@ -102,65 +107,118 @@ const bulkOptimize = async (req, res) => {
 
     const discountMultiplier = 1 - tierInfo.discountPercent / 100;
 
-    // Cold-start: no order history → recommend popular products
+    // ── PHASE 1: Optimize what is already in the cart ──────────────────────────
+    // Fetch live product records for each cart item so we have current stock + price
+    let cartOptimized = [];
+    if (cartItems.length > 0) {
+      const cartProductIds = cartItems.map(i => i.product_id).filter(Boolean);
+      const cartProducts   = await Product.findAll({
+        where: { id: { [Op.in]: cartProductIds }, is_active: true }
+      });
+      const productMap = {};
+      cartProducts.forEach(p => { productMap[p.id] = p; });
+
+      cartOptimized = cartItems
+        .map(ci => {
+          const product = productMap[ci.product_id];
+          if (!product) return null;
+
+          const basePrice       = parseFloat(product[priceKey]);
+          const discountedPrice = parseFloat((basePrice * discountMultiplier).toFixed(2));
+          const savings         = parseFloat(((basePrice - discountedPrice) * ci.quantity).toFixed(2));
+          const stockUrgency    = product.current_stock === 0 ? 'out_of_stock'
+            : product.current_stock <= (product.reorder_point || 10) ? 'low' : 'normal';
+
+          let reasoning = '';
+          if (tierInfo.discountPercent > 0) {
+            reasoning = `${tierInfo.tierEmoji} ${tierInfo.tier} tier gives you ${tierInfo.discountPercent}% off this item — saving you KES ${Math.round(savings)} on your ${ci.quantity} unit${ci.quantity > 1 ? 's' : ''}.`;
+          } else {
+            reasoning = `Complete ${tierInfo.ordersToNextTier} more order${tierInfo.ordersToNextTier > 1 ? 's' : ''} to unlock your first loyalty discount.`;
+          }
+          if (stockUrgency === 'low') reasoning += ` Only ${product.current_stock} left in stock — grab yours before it runs out.`;
+
+          return {
+            productId:           product.id,
+            productName:         product.name,
+            productImage:        product.image_url,
+            currentStock:        product.current_stock,
+            stockUrgency,
+            basePrice,
+            discountedPrice,
+            discountPercent:     tierInfo.discountPercent,
+            recommendedQuantity: ci.quantity,      // keep customer's chosen qty
+            totalCost:           parseFloat((discountedPrice * ci.quantity).toFixed(2)),
+            totalSavings:        savings,
+            isCartItem:          true,             // flag so frontend can highlight these
+            reasoning,
+            confidence:          tierInfo.discountPercent > 0 ? 95 : 70
+          };
+        })
+        .filter(Boolean)
+        .filter(r => r.stockUrgency !== 'out_of_stock');
+    }
+
+    // ── PHASE 2: History-based additional recommendations ──────────────────────
+    // Cold-start: no order history → recommend popular products not already in cart
+    const cartProductIds = new Set(cartItems.map(i => i.product_id));
+
     if (orders.length === 0) {
       const popular = await Product.findAll({
-        where: { is_active: true, current_stock: { [Op.gt]: 0 } },
+        where: {
+          is_active: true,
+          current_stock: { [Op.gt]: 0 },
+          ...(cartProductIds.size > 0 ? { id: { [Op.notIn]: [...cartProductIds] } } : {})
+        },
         order: [['createdAt', 'DESC']],
         limit: 6
       });
       const coldRecs = popular.map(p => {
-        const basePrice = parseFloat(p[priceKey]);
+        const basePrice       = parseFloat(p[priceKey]);
         const discountedPrice = parseFloat((basePrice * discountMultiplier).toFixed(2));
         return {
-          productId: p.id,
-          productName: p.name,
-          productImage: p.image_url,
+          productId: p.id, productName: p.name, productImage: p.image_url,
           currentStock: p.current_stock,
-          basePrice,
-          discountedPrice,
-          discountPercent: tierInfo.discountPercent,
+          basePrice, discountedPrice, discountPercent: tierInfo.discountPercent,
           recommendedQuantity: 5,
-          totalCost: parseFloat((discountedPrice * 5).toFixed(2)),
-          totalSavings: 0,
-          pastOrderCount: 0,
-          avgQuantityPerOrder: 0,
-          lastOrdered: null,
+          totalCost: parseFloat((discountedPrice * 5).toFixed(2)), totalSavings: 0,
+          pastOrderCount: 0, avgQuantityPerOrder: 0, lastOrdered: null,
           stockUrgency: p.current_stock <= (p.reorder_point || 10) ? 'low' : 'normal',
           reasoning: `Popular on BestLady. Place your first order to unlock personalised AI recommendations and loyalty discounts (Bronze at 3 orders = 5% off)!`,
           confidence: 55
         };
       });
-      return res.json({ recommendations: coldRecs, tierInfo, coldStart: true });
+      return res.json({
+        cartOptimized,
+        recommendations: coldRecs,
+        tierInfo,
+        coldStart: true,
+        totalCartSavings: cartOptimized.reduce((s, r) => s + r.totalSavings, 0)
+      });
     }
 
-    // Aggregate product stats from history
+    // Aggregate product stats from history, skip items already in cart
     const productStats = {};
     orders.forEach(order => {
       order.OrderItems.forEach(item => {
-        if (!item.Product) return; // product may have been deleted
+        if (!item.Product) return;
         const pid = item.product_id;
+        if (cartProductIds.has(pid)) return; // already optimized in phase 1
         if (!productStats[pid]) {
           productStats[pid] = {
-            productId: pid,
-            product: item.Product,
-            totalQuantity: 0,
-            totalSpent: 0,
-            orderCount: 0,
-            lastOrdered: order.createdAt
+            productId: pid, product: item.Product,
+            totalQuantity: 0, totalSpent: 0, orderCount: 0, lastOrdered: order.createdAt
           };
         }
         productStats[pid].totalQuantity += item.quantity;
-        productStats[pid].totalSpent += parseFloat(item.subtotal);
-        productStats[pid].orderCount += 1;
+        productStats[pid].totalSpent    += parseFloat(item.subtotal);
+        productStats[pid].orderCount    += 1;
         if (new Date(order.createdAt) > new Date(productStats[pid].lastOrdered)) {
           productStats[pid].lastOrdered = order.createdAt;
         }
       });
     });
 
-    // Fetch 7-day velocity for each product (in parallel, capped at 8 products for speed)
-    const topStats = Object.values(productStats)
+    const topStats   = Object.values(productStats)
       .filter(s => s.product.is_active && s.product.current_stock >= 0)
       .sort((a, b) => b.totalQuantity - a.totalQuantity)
       .slice(0, 8);
@@ -172,66 +230,52 @@ const bulkOptimize = async (req, res) => {
     const recommendations = topStats
       .map((stat, idx) => {
         const product = stat.product;
-        const basePrice = parseFloat(product[priceKey]);
+        const basePrice       = parseFloat(product[priceKey]);
         const discountedPrice = parseFloat((basePrice * discountMultiplier).toFixed(2));
-        const avgQty = stat.totalQuantity / stat.orderCount;
-        const velocity = velocities[idx] || 0;
-        // Recommend 2-week supply based on velocity, floor at historical average × 1.2
-        const supplyQty = velocity > 0 ? Math.ceil(velocity * 14) : Math.ceil(avgQty * 1.2);
+        const avgQty          = stat.totalQuantity / stat.orderCount;
+        const velocity        = velocities[idx] || 0;
+        const supplyQty       = velocity > 0 ? Math.ceil(velocity * 14) : Math.ceil(avgQty * 1.2);
         const recommendedQuantity = Math.max(supplyQty, 1);
-        const savingsPerUnit = basePrice - discountedPrice;
-        const totalSavings = savingsPerUnit * recommendedQuantity;
-        const stockUrgency = product.current_stock === 0 ? 'out_of_stock'
+        const totalSavings    = (basePrice - discountedPrice) * recommendedQuantity;
+        const stockUrgency    = product.current_stock === 0 ? 'out_of_stock'
           : product.current_stock <= (product.reorder_point || 10) ? 'low' : 'normal';
-
-        // Confidence: more history + velocity data = higher confidence
-        const baseConfidence = Math.min(65 + stat.orderCount * 4, 90);
-        const velocityBoost = velocity > 0 ? 5 : 0;
-        const confidence = Math.min(baseConfidence + velocityBoost, 97);
+        const confidence      = Math.min(65 + stat.orderCount * 4 + (velocity > 0 ? 5 : 0), 97);
 
         let reasoning = '';
         if (stockUrgency === 'out_of_stock') {
-          reasoning = `Currently out of stock — we'll notify you when restocked. Consider a similar alternative.`;
+          reasoning = `Currently out of stock — we'll notify you when restocked.`;
         } else if (stockUrgency === 'low') {
-          reasoning = `Low stock (${product.current_stock} left)! You've ordered this ${stat.orderCount}× — order now before it sells out.`;
-          if (tierInfo.discountPercent > 0) reasoning += ` ${tierInfo.tierEmoji} ${tierInfo.discountPercent}% loyalty discount saves you KES ${Math.round(totalSavings)}.`;
+          reasoning = `Low stock (${product.current_stock} left)! You've ordered this ${stat.orderCount}×.`;
+          if (tierInfo.discountPercent > 0) reasoning += ` ${tierInfo.tierEmoji} ${tierInfo.discountPercent}% discount saves KES ${Math.round(totalSavings)}.`;
         } else if (tierInfo.discountPercent > 0) {
-          reasoning = `${tierInfo.tierEmoji} ${tierInfo.tier} loyalty: ${tierInfo.discountPercent}% off. You've ordered this ${stat.orderCount}× (avg ${Math.round(avgQty)} units). Stocking ${recommendedQuantity} covers ~2 weeks demand and saves you KES ${Math.round(totalSavings)}.`;
+          reasoning = `${tierInfo.tierEmoji} ${tierInfo.tier} loyalty: ${tierInfo.discountPercent}% off. Ordered ${stat.orderCount}× (avg ${Math.round(avgQty)} units). ${recommendedQuantity} units covers ~2 weeks, saving KES ${Math.round(totalSavings)}.`;
         } else {
-          reasoning = `You've ordered this ${stat.orderCount}× (avg ${Math.round(avgQty)} units/order). Complete ${tierInfo.ordersToNextTier} more order(s) to unlock Bronze loyalty discount!`;
+          reasoning = `You've ordered this ${stat.orderCount}×. Complete ${tierInfo.ordersToNextTier} more order(s) to unlock Bronze discount!`;
         }
 
         return {
-          productId: stat.productId,
-          productName: product.name,
-          productImage: product.image_url,
-          currentStock: product.current_stock,
-          stockUrgency,
-          basePrice,
-          discountedPrice,
-          discountPercent: tierInfo.discountPercent,
+          productId: stat.productId, productName: product.name, productImage: product.image_url,
+          currentStock: product.current_stock, stockUrgency,
+          basePrice, discountedPrice, discountPercent: tierInfo.discountPercent,
           recommendedQuantity,
           totalCost: parseFloat((discountedPrice * recommendedQuantity).toFixed(2)),
           totalSavings: parseFloat(totalSavings.toFixed(2)),
-          pastOrderCount: stat.orderCount,
-          avgQuantityPerOrder: Math.round(avgQty),
+          pastOrderCount: stat.orderCount, avgQuantityPerOrder: Math.round(avgQty),
           weeklyVelocity: parseFloat((velocity * 7).toFixed(1)),
-          lastOrdered: stat.lastOrdered,
-          reasoning,
-          confidence
+          lastOrdered: stat.lastOrdered, reasoning, confidence
         };
       })
-      // Put in-stock items first; within same urgency sort by order frequency
       .sort((a, b) => {
-        const urgencyOrder = { normal: 0, low: 1, out_of_stock: 2 };
-        if (urgencyOrder[a.stockUrgency] !== urgencyOrder[b.stockUrgency]) {
-          return urgencyOrder[a.stockUrgency] - urgencyOrder[b.stockUrgency];
-        }
-        return b.pastOrderCount - a.pastOrderCount;
+        const o = { normal: 0, low: 1, out_of_stock: 2 };
+        return o[a.stockUrgency] !== o[b.stockUrgency]
+          ? o[a.stockUrgency] - o[b.stockUrgency]
+          : b.pastOrderCount - a.pastOrderCount;
       })
       .slice(0, 6);
 
-    res.json({ recommendations, tierInfo });
+    const totalCartSavings = cartOptimized.reduce((s, r) => s + r.totalSavings, 0);
+
+    res.json({ cartOptimized, recommendations, tierInfo, totalCartSavings });
   } catch (error) {
     console.error('Bulk optimize error:', error);
     res.status(500).json({ message: error.message });
@@ -270,7 +314,20 @@ const aiChat = async (req, res) => {
 
     if (!userId) {
       // ----- Guest chat logic (full) -----
-      if (lowerMessage.includes('analytics') || lowerMessage.includes('insight')) {
+      if (has('market', 'industry', 'demand vs', 'opportunity', 'market share', 'how does our', 'compare to the market')) {
+        const intel = await aiService.getMarketIntelligence();
+        if (intel.comparison.length === 0) {
+          response = 'Our beauty market intelligence compares category sales against Kenyan industry demand benchmarks. Sign up to see how your own product mix stacks up against the market!';
+        } else {
+          response = 'BestLady Market Intelligence — our sales vs the Kenyan beauty market:\n\n';
+          intel.comparison.slice(0, 4).forEach(c => {
+            const icon = c.signal === 'over_indexed' ? '🟢' : c.signal === 'opportunity' ? '🟡' : '⚪';
+            const mkt = c.marketShare !== null ? ` (us ${c.ourShare}% vs market ${c.marketShare}%)` : '';
+            response += `${icon} ${c.category}${mkt}\n`;
+          });
+          response += '\nSign up to get this analysis tailored to your own business.';
+        }
+      } else if (lowerMessage.includes('analytics') || lowerMessage.includes('insight')) {
         const platformData = await aiService.getPlatformAnalytics();
         const { summary } = platformData || {};
         response = `📊 Platform Analytics:\n\n• Active Users: ${summary?.activeUsers || 0}\n• Total Orders (30 days): ${summary?.totalOrders || 0}\n• Total Revenue: ${formatCurrency(summary?.totalRevenue || 0)}\n• Avg Order Value: ${formatCurrency(summary?.avgOrderValue || 0)}\n\nSign up for personalized insights!`;
@@ -353,7 +410,7 @@ const aiChat = async (req, res) => {
       if (tierInfo.nextTier) {
         response += `Next tier: ${tierInfo.nextTier} — ${tierInfo.ordersToNextTier} order(s) away\n\n`;
       }
-      response += `Tier Breakdown:\nNew (0 orders) → Bronze (3, 5% off) → Silver (10, 8% off) → Gold (25, 12% off) → Platinum (50, 15% off)`;
+      response += `Tier Breakdown:\nNew (0 orders, 3% off) → Bronze (3, 5% off) → Silver (10, 8% off) → Gold (25, 12% off) → Platinum (50, 15% off)`;
       quickReplies = ['Bulk Optimizer', 'My Orders'];
 
     } else if (has('recommend', 'suggestion', 'what should i buy', 'what to order', 'what do you suggest')) {
@@ -393,6 +450,26 @@ const aiChat = async (req, res) => {
         ? 'Your balance is low. Go to Wallet in your dashboard to top up via M-Pesa.'
         : 'Your wallet is funded and ready for purchases!';
       quickReplies = ['Top Up Wallet', 'My Orders'];
+
+    } else if (has('market', 'industry', 'demand vs', 'opportunity', 'competitor', 'how are we doing', 'market share', 'compare', 'gap')) {
+      const intel = await aiService.getMarketIntelligence();
+      if (intel.comparison.length === 0) {
+        response = 'Not enough sales data yet to compare against the market. Once orders start flowing, I\'ll show you how your category mix stacks up against Kenyan beauty-industry demand.';
+      } else {
+        response = 'Market Intelligence — your sales vs the Kenyan beauty market:\n\n';
+        intel.comparison.slice(0, 5).forEach(c => {
+          const icon = c.signal === 'over_indexed' ? '🟢' : c.signal === 'opportunity' ? '🟡' : '⚪';
+          const mkt = c.marketShare !== null ? ` (you ${c.ourShare}% vs market ${c.marketShare}%)` : '';
+          response += `${icon} ${c.category}${mkt}\n   ${c.insight}\n\n`;
+        });
+        if (intel.untapped.length > 0) {
+          response += `Untapped categories the market wants:\n`;
+          intel.untapped.slice(0, 3).forEach(u => {
+            response += `• ${u.category} — ~${u.marketShare}% of market, ${u.growth} growth\n`;
+          });
+        }
+      }
+      quickReplies = ['Trending Products', 'Bulk Optimizer', 'Low Stock'];
 
     } else if (has('best seller', 'popular', 'trending', 'top product', 'most bought', 'what sells')) {
       const bestSellers = await OrderItem.findAll({
@@ -686,10 +763,35 @@ const refreshInsights = async (req, res) => {
   }
 };
 
+// -------------------- MARKET INTELLIGENCE --------------------
+// Compares our category sales mix vs cosmetics-industry demand benchmarks
+const getMarketIntelligence = async (req, res) => {
+  try {
+    const intel = await aiService.getMarketIntelligence();
+
+    // A plain-language headline summarizing the biggest opportunity & strength
+    const opportunities = intel.comparison.filter(c => c.signal === 'opportunity');
+    const strengths     = intel.comparison.filter(c => c.signal === 'over_indexed');
+
+    let headline = 'Your product mix is broadly tracking the Kenyan beauty market.';
+    if (opportunities.length > 0) {
+      headline = `Biggest opportunity: ${opportunities[0].category} — the market wants more than you currently stock.`;
+    } else if (strengths.length > 0) {
+      headline = `Your strongest category vs the market is ${strengths[0].category}. Keep it well stocked.`;
+    }
+
+    res.json({ ...intel, headline });
+  } catch (error) {
+    console.error('Market intelligence controller error:', error);
+    res.status(500).json({ message: 'Could not load market intelligence' });
+  }
+};
+
 module.exports = {
   getUserDashboardData,
   bulkOptimize,
   aiChat,
   getAdminForecast,
-  refreshInsights
+  refreshInsights,
+  getMarketIntelligence
 };

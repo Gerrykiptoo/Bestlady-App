@@ -63,6 +63,15 @@ export const useCartStore = defineStore('cart', {
       }
       this.save();
     },
+    // Apply an AI tier discount to an item already in the cart (keeps quantity)
+    applyDiscount(productId, discountedPrice, discountPercent) {
+      const item = this.items.find(i => i.product_id === productId);
+      if (item) {
+        item.discountedPrice = discountedPrice;
+        item.discountPercent = discountPercent;
+        this.save();
+      }
+    },
     removeItem(productId) {
       this.items = this.items.filter(item => item.product_id !== productId);
       this.save();

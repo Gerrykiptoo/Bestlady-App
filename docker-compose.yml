@@ -1,0 +1,65 @@
+version: '3.9'
+
+services:
+  # ── BestLady App (API + built frontend) ──────────────────────
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        VITE_BACKEND_URL: ${VITE_BACKEND_URL:-}
+        VITE_BUSINESS_WHATSAPP: ${VITE_BUSINESS_WHATSAPP:-254703888085}
+        VITE_BUSINESS_EMAIL: ${VITE_BUSINESS_EMAIL:-kipgerry02@gmail.com}
+        VITE_BUSINESS_PHONE: ${VITE_BUSINESS_PHONE:-+254703888085}
+    image: bestlady:latest
+    container_name: bestlady-app
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    env_file:
+      - server_side/backend/.env
+    environment:
+      NODE_ENV: production
+    volumes:
+      # Persist uploaded images
+      - uploads_data:/app/uploads
+      # Persist logs
+      - logs_data:/app/logs
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    networks:
+      - bestlady-net
+
+  # ── Redis (caching + Bull queues) ────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: bestlady-redis
+    restart: unless-stopped
+    command: redis-server --maxmemory 128mb --maxmemory-policy allkeys-lru
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - bestlady-net
+
+volumes:
+  uploads_data:
+  logs_data:
+  redis_data:
+
+networks:
+  bestlady-net:
+    driver: bridge

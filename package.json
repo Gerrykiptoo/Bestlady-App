@@ -1,6 +1,21 @@
 {
+  "name": "bestlady",
+  "version": "1.0.0",
+  "description": "BestLady Beauty Supply Chain Platform",
+  "scripts": {
+    "build": "cd client_side/frontend && npm run build",
+    "start": "NODE_ENV=production node server_side/backend/src/server.js",
+    "dev:backend": "cd server_side/backend && npm run dev",
+    "dev:frontend": "cd client_side/frontend && npm run dev",
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "prod": "npm run build && npm start",
+    "docker:build": "docker build -t bestlady .",
+    "docker:run": "docker run -p 5000:5000 --env-file server_side/backend/.env bestlady",
+    "docker:compose": "docker-compose up --build"
+  },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.996.0",
+    "concurrently": "^8.2.2",
     "multer": "^2.0.2",
     "multer-s3": "^3.0.1"
   }

@@ -361,36 +361,67 @@ const fetchDashboardData = async () => {
 const refreshAIInsights = async () => {
   isRefreshingAI.value = true;
   try {
-    const { data } = await api.post('/ai/bulk-optimize');
-    const recs = data.recommendations || [];
+    const cartStore = useCartStore();
+    // Send the first 6 cart items so the optimizer can apply tier discounts to them
+    const cartItems = cartStore.items.slice(0, 6).map(i => ({
+      product_id: i.product_id,
+      name: i.name,
+      price: i.price,
+      quantity: i.quantity
+    }));
 
-    if (recs.length === 0) {
+    const { data } = await api.post('/ai/bulk-optimize', { cartItems });
+
+    // cartOptimized = tier-discounted versions of current cart items
+    const cartOpt = data.cartOptimized || [];
+    const recs    = data.recommendations || [];
+    const allItems = [...cartOpt, ...recs];
+
+    if (allItems.length === 0) {
       aiRecommendation.value = 'Place your first order to unlock personalized AI recommendations and loyalty discounts!';
       suggestedOptimization.value = null;
     } else {
-      aiRecommendation.value = recs[0].reasoning || `We have ${recs.length} smart reorder suggestions for you.`;
+      // Prefer the cart-item reasoning if any cart items were optimized
+      aiRecommendation.value = cartOpt.length > 0
+        ? cartOpt[0].reasoning
+        : (recs[0]?.reasoning || `We have ${recs.length} smart reorder suggestions for you.`);
 
-      const totalSavings = recs.reduce((s, r) => s + (r.totalSavings || 0), 0);
-      const totalBase    = recs.reduce((s, r) => s + (r.basePrice * r.recommendedQuantity), 0);
-      const savingsPct   = totalBase > 0 ? Math.round((totalSavings / totalBase) * 100) : (data.tierInfo?.discountPercent || 0);
+      const totalSavings   = allItems.reduce((s, r) => s + (r.totalSavings || 0), 0);
+      const totalBase      = allItems.reduce((s, r) => s + (r.basePrice * r.recommendedQuantity), 0);
+      const savingsPct     = data.tierInfo?.discountPercent || (totalBase > 0 ? Math.round((totalSavings / totalBase) * 100) : 0);
+
+      const cartNote = cartOpt.length > 0
+        ? `${cartOpt.length} cart item${cartOpt.length > 1 ? 's' : ''} discounted`
+        : '';
+      const recNote = recs.length > 0
+        ? `${recs.length} reorder suggestion${recs.length > 1 ? 's' : ''}`
+        : '';
+      const parts = [cartNote, recNote].filter(Boolean).join(' + ');
 
       suggestedOptimization.value = {
-        description: `${recs.length} product${recs.length > 1 ? 's' : ''} ready to reorder${savingsPct > 0 ? ` — save ${savingsPct}% with your ${data.tierInfo?.tier || 'loyalty'} discount` : ' based on your purchase history'}.`,
+        description: savingsPct > 0
+          ? `${parts} — save ${savingsPct}% with your ${data.tierInfo?.tier || 'loyalty'} tier discount.`
+          : `${parts} based on your purchase history.`,
         savingsPercent: savingsPct,
-        items: recs
+        totalCartSavings: data.totalCartSavings || 0,
+        items: allItems
           .filter(r => r.stockUrgency !== 'out_of_stock')
           .map(r => ({
-            product_id: r.productId,
-            name: r.productName,
-            price: r.basePrice,
+            product_id:    r.productId,
+            name:          r.productName,
+            price:         r.basePrice,
             discountedPrice: r.discountedPrice,
             discountPercent: r.discountPercent,
-            quantity: r.recommendedQuantity,
-            image_url: r.productImage
+            quantity:      r.recommendedQuantity,
+            image_url:     r.productImage,
+            isCartItem:    r.isCartItem || false
           }))
       };
     }
-    toast.success('Insights refreshed!');
+    const savedMsg = data.totalCartSavings > 0
+      ? `Cart optimized! Saving KES ${Math.round(data.totalCartSavings)} on your current items.`
+      : 'Insights refreshed!';
+    toast.success(savedMsg);
   } catch {
     toast.error('Could not refresh AI insights. Try again.');
   } finally {

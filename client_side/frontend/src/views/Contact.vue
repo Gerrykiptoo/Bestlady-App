@@ -77,7 +77,10 @@
                 </div>
                 <div>
                   <p class="text-xs text-gray-500 font-semibold uppercase tracking-wider">Phone / WhatsApp</p>
-                  <p class="text-gray-800 font-medium">+254 700 000 000</p>
+                  <a href="https://wa.me/254703888085" target="_blank" class="text-gray-800 font-medium hover:text-green-600 transition flex items-center gap-1.5">
+                    +254 703 888 085
+                    <span class="text-[10px] bg-green-100 text-green-700 font-bold px-1.5 py-0.5 rounded-full">WhatsApp</span>
+                  </a>
                 </div>
               </div>
               <div class="flex items-start gap-4">
