@@ -258,7 +258,8 @@ const optimizeCart = async () => {
       quantity: i.quantity,
     }));
 
-    const { data } = await api.post('/ai/bulk-optimize', { cartItems });
+    // cartOnly:true → fast path, skips the heavy history/velocity work
+    const { data } = await api.post('/ai/bulk-optimize', { cartItems, cartOnly: true });
     const optimizedItems = data.cartOptimized || [];
 
     if (optimizedItems.length === 0) {

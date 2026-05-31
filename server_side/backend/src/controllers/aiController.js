@@ -95,17 +95,58 @@ const bulkOptimize = async (req, res) => {
     // We read the first 6 — this is the "cart-aware" optimization
     const cartItems = Array.isArray(req.body.cartItems) ? req.body.cartItems.slice(0, 6) : [];
 
-    const [tierInfo, orders] = await Promise.all([
-      aiService.getUserDiscountTier(userId),
-      Order.findAll({
-        where: { user_id: userId, payment_status: { [Op.in]: PAID_STATUSES } },
-        include: [{ model: OrderItem, include: [Product] }],
-        order: [['createdAt', 'DESC']],
-        limit: 60
-      })
-    ]);
+    // cartOnly = fast path for the Cart page: discount the cart items only, skip the
+    // heavy history fetch + velocity queries (those power the dashboard reorder list).
+    const cartOnly = req.body.cartOnly === true;
 
+    // Always need the tier. Only fetch order history when NOT in cartOnly mode.
+    const tierInfo = await aiService.getUserDiscountTier(userId);
     const discountMultiplier = 1 - tierInfo.discountPercent / 100;
+
+    // ── FAST PATH: cart-only optimization (used by the Cart page) ──────────────
+    if (cartOnly) {
+      let cartOptimized = [];
+      if (cartItems.length > 0) {
+        const ids = cartItems.map(i => i.product_id).filter(Boolean);
+        const products = await Product.findAll({ where: { id: { [Op.in]: ids }, is_active: true } });
+        const pmap = {};
+        products.forEach(p => { pmap[p.id] = p; });
+
+        cartOptimized = cartItems.map(ci => {
+          const product = pmap[ci.product_id];
+          if (!product) return null;
+          const basePrice       = parseFloat(product[priceKey]);
+          const discountedPrice = parseFloat((basePrice * discountMultiplier).toFixed(2));
+          const savings         = parseFloat(((basePrice - discountedPrice) * ci.quantity).toFixed(2));
+          const stockUrgency    = product.current_stock === 0 ? 'out_of_stock'
+            : product.current_stock <= (product.reorder_point || 10) ? 'low' : 'normal';
+          return {
+            productId: product.id, productName: product.name, productImage: product.image_url,
+            currentStock: product.current_stock, stockUrgency,
+            basePrice, discountedPrice, discountPercent: tierInfo.discountPercent,
+            recommendedQuantity: ci.quantity,
+            totalCost: parseFloat((discountedPrice * ci.quantity).toFixed(2)),
+            totalSavings: savings, isCartItem: true,
+            reasoning: `${tierInfo.tierEmoji} ${tierInfo.tier} tier — ${tierInfo.discountPercent}% off, saving KES ${Math.round(savings)} on this item.`,
+            confidence: 95
+          };
+        }).filter(Boolean).filter(r => r.stockUrgency !== 'out_of_stock');
+      }
+      return res.json({
+        cartOptimized,
+        recommendations: [],
+        tierInfo,
+        totalCartSavings: cartOptimized.reduce((s, r) => s + r.totalSavings, 0)
+      });
+    }
+
+    // ── FULL PATH: cart + history-based reorder recommendations (dashboard) ────
+    const orders = await Order.findAll({
+      where: { user_id: userId, payment_status: { [Op.in]: PAID_STATUSES } },
+      include: [{ model: OrderItem, include: [Product] }],
+      order: [['createdAt', 'DESC']],
+      limit: 60
+    });
 
     // ── PHASE 1: Optimize what is already in the cart ──────────────────────────
     // Fetch live product records for each cart item so we have current stock + price

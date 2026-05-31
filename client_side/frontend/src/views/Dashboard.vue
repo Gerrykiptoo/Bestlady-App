@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-gray-50 flex items-center justify-center">
+  <div class="min-h-screen flex items-center justify-center" style="background: #faf9f7;">
     <div class="text-center">
       <div class="w-16 h-16 rounded-2xl flex items-center justify-center text-white font-black text-2xl mx-auto mb-5 shadow-lg" style="background: var(--brand-gradient)">B</div>
       <div class="flex items-center justify-center gap-2 mb-3">
