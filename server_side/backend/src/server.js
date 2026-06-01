@@ -1,3 +1,7 @@
+// Force IPv4 DNS resolution first — Render containers can't reach IPv6, which
+// otherwise breaks Gmail SMTP (ENETUNREACH on an IPv6 address) and other hosts.
+require('dns').setDefaultResultOrder('ipv4first');
+
 const http = require('http');
 const { Server } = require('socket.io');
 const app = require('./app');
