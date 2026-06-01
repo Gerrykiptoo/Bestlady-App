@@ -308,7 +308,24 @@ const runBulkOptimize = async () => {
     scrollToBottom()
   } catch (error) {
     console.error('Bulk optimize error:', error)
-    toast.error('Failed to fetch recommendations')
+    const status = error.response?.status
+    if (status === 401) {
+      messages.value.push({
+        role: 'assistant',
+        content: '🔒 Your session has expired. Please log out and log back in, then try the optimizer again.',
+        timestamp: new Date()
+      })
+      scrollToBottom()
+    } else {
+      const serverMsg = error.response?.data?.message
+      messages.value.push({
+        role: 'assistant',
+        content: `⚠️ Couldn't generate recommendations right now${serverMsg ? ' (' + serverMsg + ')' : ''}. Please try again in a moment.`,
+        timestamp: new Date()
+      })
+      scrollToBottom()
+      toast.error(serverMsg || 'Failed to fetch recommendations')
+    }
   } finally {
     isTyping.value = false
   }
