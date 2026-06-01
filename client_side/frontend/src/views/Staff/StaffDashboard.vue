@@ -752,9 +752,15 @@ const setupSocket = () => {
     fetchStats()
   }
 
+  const onDeliveryConfirmed = (data) => {
+    toast.success(data.message || 'Delivery confirmed by customer', { duration: 7000 })
+    fetchStats()
+  }
+
   socket.on('newOrder', onNewOrder)
   socket.on('orderUpdate', onOrderUpdate)
-  socketListeners = [['newOrder', onNewOrder], ['orderUpdate', onOrderUpdate]]
+  socket.on('deliveryConfirmed', onDeliveryConfirmed)
+  socketListeners = [['newOrder', onNewOrder], ['orderUpdate', onOrderUpdate], ['deliveryConfirmed', onDeliveryConfirmed]]
 }
 
 onMounted(() => {

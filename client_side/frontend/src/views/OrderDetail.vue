@@ -253,12 +253,27 @@
           <div v-if="order.qr_code" class="bg-white rounded-2xl p-5 text-center" style="border: 1px solid #ede9e3;">
             <p class="text-xs font-bold text-slate-600 uppercase tracking-widest mb-3">Pickup / Delivery Code</p>
             <img :src="order.qr_code" class="w-36 h-36 mx-auto mb-3 opacity-90" />
-            <p class="text-xs text-slate-400 mb-2">Show this to the delivery agent or at pickup</p>
+            <p class="text-xs text-slate-400 mb-2">Scan to open this order, or show it at pickup. After receiving your items, tap <span class="font-semibold text-emerald-600">"Order Delivered to Owner"</span> below.</p>
             <p class="text-sm font-black text-slate-800 rounded-lg px-3 py-1.5 inline-block tracking-wider" style="background: #ede9e3;">OTP: {{ order.otp_code }}</p>
           </div>
 
           <!-- Actions -->
           <div class="space-y-3">
+            <!-- Confirm Delivery (shown when out for delivery / ready) -->
+            <button v-if="['dispatched','ready','processing'].includes(order.status)" @click="handleConfirmDelivery" :disabled="confirmLoading"
+              class="w-full flex items-center justify-center gap-2 py-3.5 font-bold text-white rounded-xl transition hover:opacity-90 disabled:opacity-50"
+              style="background: linear-gradient(135deg, #059669, #10b981);">
+              <svg v-if="confirmLoading" class="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+              <svg v-else class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+              {{ confirmLoading ? 'Confirming…' : 'Order Delivered to Owner' }}
+            </button>
+
+            <!-- Delivered confirmation badge -->
+            <div v-else-if="order.status === 'delivered'" class="w-full flex items-center justify-center gap-2 py-3 font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-xl">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+              Delivered — Thank You!
+            </div>
+
             <button @click="downloadReceipt"
               class="w-full flex items-center justify-center gap-2 py-3 font-bold text-white rounded-xl transition hover:opacity-90"
               style="background: var(--brand-gradient)">
@@ -298,6 +313,7 @@ const loading = ref(true)
 const payPhoneNumber = ref('')
 const payLoading = ref(false)
 const cancelLoading = ref(false)
+const confirmLoading = ref(false)
 const isPolling = ref(false)
 let pollTimer = null
 
@@ -403,6 +419,19 @@ const handleCancel = async () => {
     toast.error(error.response?.data?.message || 'Failed to cancel order')
   } finally {
     cancelLoading.value = false
+  }
+}
+
+const handleConfirmDelivery = async () => {
+  confirmLoading.value = true
+  try {
+    await api.post(`/orders/${route.params.id}/confirm-delivery`)
+    toast.success('Delivery confirmed — admin & staff have been notified. Thank you!')
+    await fetchOrder()
+  } catch (error) {
+    toast.error(error.response?.data?.message || 'Could not confirm delivery')
+  } finally {
+    confirmLoading.value = false
   }
 }
 

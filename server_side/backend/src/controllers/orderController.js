@@ -495,6 +495,52 @@ const verifyOrder = async (req, res) => {
 };
 
 /**
+ * Customer confirms they received their delivery (scanned via pickup/delivery QR).
+ * Marks the order delivered and notifies admin + staff that the rider delivered it.
+ * @route POST /api/orders/:id/confirm-delivery
+ */
+const confirmDelivery = async (req, res) => {
+  try {
+    const order = await Order.findByPk(req.params.id);
+    if (!order) return res.status(404).json({ message: 'Order not found' });
+
+    if (order.user_id !== req.user.id && !['admin', 'staff'].includes(req.user.role)) {
+      return res.status(403).json({ message: 'Not authorized to confirm this delivery' });
+    }
+    if (order.status === 'delivered') {
+      return res.status(400).json({ message: 'This order is already marked as delivered' });
+    }
+    if (!['dispatched', 'ready', 'processing'].includes(order.status)) {
+      return res.status(400).json({ message: `Order cannot be confirmed delivered from status "${order.status}"` });
+    }
+
+    await order.update({ status: 'delivered' });
+
+    const io = req.app.get('io');
+    if (io) {
+      io.to(order.user_id).emit('orderUpdate', {
+        orderId: order.id, orderNumber: order.order_number, status: 'delivered'
+      });
+      io.to('admins').emit('deliveryConfirmed', {
+        orderId: order.id,
+        orderNumber: order.order_number,
+        message: `Order #${order.order_number} confirmed delivered by the customer.`,
+        confirmedAt: new Date()
+      });
+      io.to('admins').emit('notification', {
+        type: 'delivery',
+        message: `✅ Order #${order.order_number} delivered successfully (confirmed by customer).`
+      });
+    }
+
+    res.json({ message: 'Delivery confirmed — thank you!', order });
+  } catch (error) {
+    console.error('Confirm delivery error:', error);
+    res.status(500).json({ message: error.message });
+  }
+};
+
+/**
  * Download order receipt as PDF
  */
 const downloadReceipt = async (req, res) => {
@@ -811,6 +857,7 @@ module.exports = {
   payOrder,
   handleMpesaCallback,
   verifyOrder,
+  confirmDelivery,
   downloadReceipt,
   updateOrderStatus,
   createOrderForClient,

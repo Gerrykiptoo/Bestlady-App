@@ -10,6 +10,7 @@ const {
   updateOrderStatus,
   handleMpesaCallback,
   verifyOrder,
+  confirmDelivery,
   downloadReceipt,
   createOrderForClient,
   bulkCreateOrder,
@@ -36,6 +37,7 @@ router.get('/export/pdf', protect, exportOrdersPDF);
 router.get('/:id', protect, getOrderById);
 router.post('/:id/pay', protect, payOrder);
 router.post('/:id/verify', protect, verifyOrder);
+router.post('/:id/confirm-delivery', protect, confirmDelivery);
 router.get('/:id/receipt', protect, downloadReceipt);
 router.put('/:id/status', protect, authorize('admin', 'staff'), updateOrderStatus);
 router.post('/:id/cancel', protect, cancelOrder);

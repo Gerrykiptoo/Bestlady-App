@@ -795,6 +795,11 @@ onMounted(() => {
     socket.on('orderUpdate', fetchAnalytics)
     socket.on('walletUpdate', fetchUsers)
     socket.on('onlineCount', ({ count }) => { onlineCount.value = count })
+    // Rider delivered + customer confirmed → refresh and notify
+    socket.on('deliveryConfirmed', (data) => {
+      toast.success(data.message || 'A delivery was confirmed by a customer')
+      fetchAnalytics()
+    })
   }
   pollInterval = setInterval(fetchAnalytics, 60000)
 })
