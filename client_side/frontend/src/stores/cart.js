@@ -1,4 +1,8 @@
 import { defineStore } from 'pinia';
+import api from '@/services/api';
+
+// Only sync to the server when the user is logged in
+const isLoggedIn = () => !!localStorage.getItem('accessToken');
 
 export const useCartStore = defineStore('cart', {
   state: () => ({
@@ -92,7 +96,26 @@ export const useCartStore = defineStore('cart', {
       this.save();
     },
 
-    // ── Save for Later ───────────────────────────────────────────
+    // ── Save for Later (synced to server when logged in) ─────────
+    // Load the user's saved items from the server and merge with local
+    async loadSavedFromServer() {
+      if (!isLoggedIn()) return;
+      try {
+        const { data } = await api.get('/saved');
+        // Server is the source of truth when logged in
+        this.savedItems = data.map(s => ({
+          product_id: s.product_id,
+          name: s.name,
+          price: Number(s.price) || 0,
+          discountedPrice: s.discountedPrice != null ? Number(s.discountedPrice) : undefined,
+          discountPercent: s.discountPercent || 0,
+          image_url: s.image_url,
+          quantity: s.quantity || 1
+        }));
+        this.save();
+      } catch { /* offline / not critical — keep local */ }
+    },
+
     // Move an item out of the active cart into the saved list
     saveForLater(productId) {
       const item = this.items.find(i => i.product_id === productId);
@@ -102,6 +125,18 @@ export const useCartStore = defineStore('cart', {
       }
       this.items = this.items.filter(i => i.product_id !== productId);
       this.save();
+      // Sync to server (fire-and-forget)
+      if (isLoggedIn()) {
+        api.post('/saved', {
+          product_id: item.product_id,
+          name: item.name,
+          price: item.price,
+          discountedPrice: item.discountedPrice,
+          discountPercent: item.discountPercent || 0,
+          image_url: item.image_url,
+          quantity: item.quantity || 1
+        }).catch(() => {});
+      }
     },
     // Move a saved item back into the active cart
     moveToCart(productId) {
@@ -115,10 +150,12 @@ export const useCartStore = defineStore('cart', {
       }
       this.savedItems = this.savedItems.filter(s => s.product_id !== productId);
       this.save();
+      if (isLoggedIn()) api.delete(`/saved/${productId}`).catch(() => {});
     },
     removeSaved(productId) {
       this.savedItems = this.savedItems.filter(s => s.product_id !== productId);
       this.save();
+      if (isLoggedIn()) api.delete(`/saved/${productId}`).catch(() => {});
     },
 
     save() {

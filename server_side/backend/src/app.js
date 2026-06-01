@@ -126,6 +126,7 @@ app.use('/api/stations', require('./routes/stationRoutes'));
 app.use('/api/agents', require('./routes/agentRoutes'));
 app.use('/api/staff', require('./routes/staffRoutes'));
 app.use('/api/content', require('./routes/contentRoutes'));
+app.use('/api/saved', require('./routes/savedItemRoutes'));
 
 // ======================
 // Dev notification test route — POST /api/test/notify

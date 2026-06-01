@@ -250,7 +250,7 @@
 </template>
 
 <script setup>
-import { computed, ref } from 'vue';
+import { computed, ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useCartStore } from '@/stores/cart';
 import { useAuthStore } from '@/stores/auth';
@@ -262,6 +262,11 @@ const cart = useCartStore();
 const auth = useAuthStore();
 const router = useRouter();
 const toast = useToast();
+
+// When logged in, pull saved-for-later items from the server (cross-device sync)
+onMounted(() => {
+  if (auth.isAuthenticated) cart.loadSavedFromServer();
+});
 
 const optimizing  = ref(false);
 const optimized   = ref(false);
