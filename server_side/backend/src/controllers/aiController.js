@@ -91,13 +91,17 @@ const bulkOptimize = async (req, res) => {
     const tier    = req.user.tier || 'retail';
     const priceKey = tier === 'wholesale' ? 'wholesale_price' : 'retail_price';
 
+    // Guard: req.body is undefined when the request has no JSON body
+    // (e.g. the AI assistant calls this endpoint with no payload).
+    const body = req.body || {};
+
     // cartItems: array of { product_id, name, price, quantity } sent by the frontend
     // We read the first 6 — this is the "cart-aware" optimization
-    const cartItems = Array.isArray(req.body.cartItems) ? req.body.cartItems.slice(0, 6) : [];
+    const cartItems = Array.isArray(body.cartItems) ? body.cartItems.slice(0, 6) : [];
 
     // cartOnly = fast path for the Cart page: discount the cart items only, skip the
     // heavy history fetch + velocity queries (those power the dashboard reorder list).
-    const cartOnly = req.body.cartOnly === true;
+    const cartOnly = body.cartOnly === true;
 
     // Always need the tier. Only fetch order history when NOT in cartOnly mode.
     const tierInfo = await aiService.getUserDiscountTier(userId);

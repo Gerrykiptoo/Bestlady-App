@@ -270,7 +270,7 @@ const runBulkOptimize = async () => {
 
   isTyping.value = true
   try {
-    const { data } = await api.post('/ai/bulk-optimize')
+    const { data } = await api.post('/ai/bulk-optimize', {})
 
     const recs = data.recommendations ?? data
     const tier = data.tierInfo ?? null
