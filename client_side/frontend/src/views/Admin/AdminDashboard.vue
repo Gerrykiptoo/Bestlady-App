@@ -333,70 +333,132 @@
 
     <!-- ================= PRODUCT MODAL ================= -->
     <Modal :show="productModalVisible" @close="closeProductModal">
-      <div class="p-6 max-h-[80vh] overflow-y-auto">
-        <h3 class="text-xl font-bold mb-6">{{ editingProduct ? 'Edit Product' : 'Add Product' }}</h3>
-        <form @submit.prevent="saveProduct" class="space-y-4">
-          <div>
-            <label class="block text-sm font-semibold mb-1">Product Name *</label>
-            <input v-model="productForm.name" type="text" required class="w-full border border-gray-200 rounded-xl px-3 py-2.5 focus:ring-2 focus:ring-purple-400 outline-none" />
+      <div class="max-h-[85vh] overflow-y-auto">
+        <!-- Header -->
+        <div class="px-6 py-5 flex items-center gap-3" style="background: linear-gradient(135deg, #7c3aed, #a78bfa);">
+          <div class="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center">
+            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>
           </div>
           <div>
-            <label class="block text-sm font-semibold mb-1">SKU *</label>
-            <input v-model="productForm.sku" type="text" required class="w-full border border-gray-200 rounded-xl px-3 py-2.5 focus:ring-2 focus:ring-purple-400 outline-none" />
+            <h3 class="font-serif text-xl font-bold text-white">{{ editingProduct ? 'Edit Product' : 'Add New Product' }}</h3>
+            <p class="text-xs text-white/70">{{ editingProduct ? 'Update the details below' : 'Fill in the details to list a new product' }}</p>
           </div>
+        </div>
+
+        <form @submit.prevent="saveProduct" class="p-6 space-y-5">
+          <!-- Image dropzone -->
           <div>
-            <label class="block text-sm font-semibold mb-1">Description</label>
-            <textarea v-model="productForm.description" rows="3" class="w-full border border-gray-200 rounded-xl px-3 py-2.5 focus:ring-2 focus:ring-purple-400 outline-none resize-none"></textarea>
+            <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Product Image</label>
+            <label class="flex items-center gap-4 p-4 rounded-2xl border-2 border-dashed border-gray-200 hover:border-purple-300 hover:bg-purple-50/40 transition cursor-pointer">
+              <div class="w-20 h-20 rounded-xl bg-gray-50 flex items-center justify-center overflow-hidden flex-shrink-0 border border-gray-100">
+                <img v-if="imagePreview || productForm.image_url" :src="imagePreview || productForm.image_url" class="w-full h-full object-cover" />
+                <svg v-else class="w-7 h-7 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+              </div>
+              <div>
+                <p class="text-sm font-semibold text-purple-700">Click to upload image</p>
+                <p class="text-xs text-gray-400 mt-0.5">PNG, JPG up to 5MB</p>
+              </div>
+              <input type="file" @change="onImageSelect" accept="image/*" class="hidden" />
+            </label>
           </div>
+
+          <div>
+            <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Product Name *</label>
+            <input v-model="productForm.name" type="text" required placeholder="e.g. Argan Oil Hair Serum 100ml"
+              class="w-full border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-purple-400 focus:border-purple-400 outline-none transition" />
+          </div>
+
           <div class="grid grid-cols-2 gap-4">
             <div>
-              <label class="block text-sm font-semibold mb-1">Category</label>
-              <select v-model="productForm.category_id" class="w-full border border-gray-200 rounded-xl px-3 py-2.5 focus:ring-2 focus:ring-purple-400 outline-none">
+              <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">SKU *</label>
+              <input v-model="productForm.sku" type="text" required placeholder="ARG-100"
+                class="w-full border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-purple-400 focus:border-purple-400 outline-none transition" />
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Category</label>
+              <select v-model="productForm.category_id" class="w-full border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm bg-white focus:ring-2 focus:ring-purple-400 focus:border-purple-400 outline-none transition">
                 <option value="">Select category</option>
                 <option v-for="cat in categories" :key="cat.id" :value="cat.id">{{ cat.name }}</option>
               </select>
             </div>
-            <div>
-              <label class="block text-sm font-semibold mb-1">Unit</label>
-              <select v-model="productForm.unit" class="w-full border border-gray-200 rounded-xl px-3 py-2.5 focus:ring-2 focus:ring-purple-400 outline-none">
-                <option value="piece">Piece</option>
-                <option value="dozen">Dozen</option>
-                <option value="box">Box</option>
-              </select>
-            </div>
           </div>
-          <div class="grid grid-cols-2 gap-4">
-            <div>
-              <label class="block text-sm font-semibold mb-1">Retail Price (KES)</label>
-              <input v-model.number="productForm.retail_price" type="number" step="0.01" required class="w-full border border-gray-200 rounded-xl px-3 py-2.5 focus:ring-2 focus:ring-purple-400 outline-none" />
-            </div>
-            <div>
-              <label class="block text-sm font-semibold mb-1">Wholesale Price (KES)</label>
-              <input v-model.number="productForm.wholesale_price" type="number" step="0.01" required class="w-full border border-gray-200 rounded-xl px-3 py-2.5 focus:ring-2 focus:ring-purple-400 outline-none" />
-            </div>
-          </div>
-          <div class="grid grid-cols-2 gap-4">
-            <div>
-              <label class="block text-sm font-semibold mb-1">Current Stock</label>
-              <input v-model.number="productForm.current_stock" type="number" required class="w-full border border-gray-200 rounded-xl px-3 py-2.5 focus:ring-2 focus:ring-purple-400 outline-none" />
-            </div>
-            <div>
-              <label class="block text-sm font-semibold mb-1">Reorder Point</label>
-              <input v-model.number="productForm.reorder_point" type="number" class="w-full border border-gray-200 rounded-xl px-3 py-2.5 focus:ring-2 focus:ring-purple-400 outline-none" />
-            </div>
-          </div>
+
           <div>
-            <label class="block text-sm font-semibold mb-1">Product Image</label>
-            <input type="file" @change="onImageSelect" accept="image/*" class="w-full text-sm" />
-            <img v-if="imagePreview" :src="imagePreview" class="mt-2 h-24 object-cover rounded-xl" />
+            <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Description</label>
+            <textarea v-model="productForm.description" rows="3" placeholder="Short description shown to customers…"
+              class="w-full border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-purple-400 focus:border-purple-400 outline-none resize-none transition"></textarea>
           </div>
+
+          <!-- Pricing -->
+          <div class="rounded-2xl bg-gray-50 p-4 space-y-4">
+            <p class="text-xs font-bold text-gray-500 uppercase tracking-wider">Pricing & Stock</p>
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <label class="block text-xs font-semibold text-gray-600 mb-1.5">Retail Price (KES)</label>
+                <input v-model.number="productForm.retail_price" type="number" step="0.01" required
+                  class="w-full border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-purple-400 outline-none bg-white transition" />
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-gray-600 mb-1.5">Wholesale Price (KES)</label>
+                <input v-model.number="productForm.wholesale_price" type="number" step="0.01" required
+                  class="w-full border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-purple-400 outline-none bg-white transition" />
+              </div>
+            </div>
+            <div class="grid grid-cols-3 gap-4">
+              <div>
+                <label class="block text-xs font-semibold text-gray-600 mb-1.5">Current Stock</label>
+                <input v-model.number="productForm.current_stock" type="number" required
+                  class="w-full border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-purple-400 outline-none bg-white transition" />
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-gray-600 mb-1.5">Reorder At</label>
+                <input v-model.number="productForm.reorder_point" type="number"
+                  class="w-full border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-purple-400 outline-none bg-white transition" />
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-gray-600 mb-1.5">Unit</label>
+                <select v-model="productForm.unit" class="w-full border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm bg-white focus:ring-2 focus:ring-purple-400 outline-none transition">
+                  <option value="piece">Piece</option>
+                  <option value="dozen">Dozen</option>
+                  <option value="box">Box</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
           <div class="flex justify-end gap-3 pt-4 border-t border-gray-100">
-            <button type="button" @click="closeProductModal" class="px-5 py-2.5 border border-gray-200 rounded-xl hover:bg-gray-50 transition text-sm font-semibold">Cancel</button>
-            <button type="submit" class="px-5 py-2.5 bg-purple-600 text-white rounded-xl hover:bg-purple-700 transition text-sm font-semibold">Save</button>
+            <button type="button" @click="closeProductModal" class="px-5 py-2.5 border border-gray-200 rounded-xl hover:bg-gray-50 transition text-sm font-semibold text-gray-600">Cancel</button>
+            <button type="submit" class="px-6 py-2.5 text-white rounded-xl transition text-sm font-bold hover:opacity-90 flex items-center gap-2" style="background: linear-gradient(135deg, #7c3aed, #a78bfa);">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+              {{ editingProduct ? 'Save Changes' : 'Create Product' }}
+            </button>
           </div>
         </form>
       </div>
     </Modal>
+
+    <!-- ================= DELETE PRODUCT CONFIRMATION ================= -->
+    <div v-if="productToDelete" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" @click.self="productToDelete = null">
+      <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
+        <div class="p-6 text-center">
+          <div class="w-16 h-16 rounded-2xl bg-red-100 flex items-center justify-center mx-auto mb-4">
+            <svg class="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+          </div>
+          <h3 class="font-serif text-xl font-bold text-gray-900 mb-1">Delete this product?</h3>
+          <p class="text-sm text-gray-500 mb-1">
+            <span class="font-semibold text-gray-700">{{ productToDelete.name || 'This product' }}</span> will be removed from your catalogue.
+          </p>
+          <p class="text-xs text-gray-400 mb-6">This action cannot be undone.</p>
+          <div class="flex gap-3">
+            <button @click="productToDelete = null" class="flex-1 py-2.5 border border-gray-200 rounded-xl hover:bg-gray-50 transition text-sm font-semibold text-gray-600">Cancel</button>
+            <button @click="confirmDeleteProduct" :disabled="deletingProduct" class="flex-1 py-2.5 bg-red-500 hover:bg-red-600 disabled:opacity-50 text-white rounded-xl transition text-sm font-bold flex items-center justify-center gap-2">
+              <svg v-if="deletingProduct" class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+              {{ deletingProduct ? 'Deleting…' : 'Delete' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
 
     <!-- ================= USER DETAILS MODAL ================= -->
     <Modal :show="userDetailsModalVisible" @close="closeUserDetailsModal" size="lg">
@@ -580,13 +642,26 @@ const saveProduct = async () => {
   } catch (err) { toast.error(err.response?.data?.message || 'Failed to save product') }
 }
 
-const deleteProduct = async (id) => {
-  if (confirm('Delete this product?')) {
-    try {
-      await api.delete(`/products/${id}`)
-      toast.success('Product deleted')
-      fetchProducts()
-    } catch { toast.error('Failed to delete product') }
+// Styled delete confirmation (replaces browser confirm)
+const productToDelete = ref(null)
+const deletingProduct = ref(false)
+
+const deleteProduct = (id) => {
+  productToDelete.value = products.value.find(p => p.id === id) || { id }
+}
+
+const confirmDeleteProduct = async () => {
+  if (!productToDelete.value) return
+  deletingProduct.value = true
+  try {
+    await api.delete(`/products/${productToDelete.value.id}`)
+    toast.success('Product deleted')
+    productToDelete.value = null
+    fetchProducts()
+  } catch {
+    toast.error('Failed to delete product')
+  } finally {
+    deletingProduct.value = false
   }
 }
 
