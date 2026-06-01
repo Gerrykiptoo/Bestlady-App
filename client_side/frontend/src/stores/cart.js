@@ -2,9 +2,12 @@ import { defineStore } from 'pinia';
 
 export const useCartStore = defineStore('cart', {
   state: () => ({
-    items: JSON.parse(localStorage.getItem('cart')) || []
+    items: JSON.parse(localStorage.getItem('cart')) || [],
+    // Items the customer parked to buy later (e.g. no funds yet) — persisted
+    savedItems: JSON.parse(localStorage.getItem('savedItems')) || []
   }),
   getters: {
+    savedCount: (state) => state.savedItems.length,
     totalItems: (state) => state.items.reduce((acc, item) => acc + (Number(item.quantity) || 0), 0),
     itemCount: (state) => state.items.reduce((acc, item) => acc + (Number(item.quantity) || 0), 0),
     subtotal: (state) => state.items.reduce((acc, item) => {
@@ -88,8 +91,39 @@ export const useCartStore = defineStore('cart', {
       this.items = [];
       this.save();
     },
+
+    // ── Save for Later ───────────────────────────────────────────
+    // Move an item out of the active cart into the saved list
+    saveForLater(productId) {
+      const item = this.items.find(i => i.product_id === productId);
+      if (!item) return;
+      if (!this.savedItems.find(s => s.product_id === productId)) {
+        this.savedItems.push({ ...item });
+      }
+      this.items = this.items.filter(i => i.product_id !== productId);
+      this.save();
+    },
+    // Move a saved item back into the active cart
+    moveToCart(productId) {
+      const saved = this.savedItems.find(s => s.product_id === productId);
+      if (!saved) return;
+      const existing = this.items.find(i => i.product_id === productId);
+      if (existing) {
+        existing.quantity += saved.quantity || 1;
+      } else {
+        this.items.push({ ...saved });
+      }
+      this.savedItems = this.savedItems.filter(s => s.product_id !== productId);
+      this.save();
+    },
+    removeSaved(productId) {
+      this.savedItems = this.savedItems.filter(s => s.product_id !== productId);
+      this.save();
+    },
+
     save() {
       localStorage.setItem('cart', JSON.stringify(this.items));
+      localStorage.setItem('savedItems', JSON.stringify(this.savedItems));
     }
   }
 });

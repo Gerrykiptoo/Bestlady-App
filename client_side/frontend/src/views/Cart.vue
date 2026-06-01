@@ -92,6 +92,10 @@
                   <span class="w-8 text-center font-bold text-sm">{{ item.quantity }}</span>
                   <button @click="cart.updateQuantity(item.product_id, item.quantity + 1)" class="w-7 h-7 rounded-md bg-white border border-gray-200 flex items-center justify-center text-gray-600 hover:border-primary-300 hover:text-primary-600 transition font-bold text-sm">+</button>
                 </div>
+                <button @click="cart.saveForLater(item.product_id)" class="text-xs text-purple-600 hover:text-purple-800 transition flex items-center gap-1 font-medium">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"/></svg>
+                  Save for later
+                </button>
                 <button @click="cart.removeItem(item.product_id)" class="text-xs text-red-500 hover:text-red-700 transition flex items-center gap-1 font-medium">
                   <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                   Remove
@@ -205,6 +209,38 @@
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/></svg>
                 Free Returns
               </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ Saved for Later ══ -->
+      <div v-if="cart.savedItems.length > 0" class="mt-10">
+        <div class="flex items-center gap-2 mb-4">
+          <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"/></svg>
+          <h2 class="font-serif font-bold text-lg" style="color: #1a0f14;">Saved for Later</h2>
+          <span class="text-xs font-bold bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full">{{ cart.savedItems.length }}</span>
+        </div>
+        <p class="text-sm text-gray-500 mb-4">Items you parked to buy later. They stay here until you're ready.</p>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div v-for="item in cart.savedItems" :key="item.product_id"
+            class="bg-white rounded-2xl p-4 flex gap-3 items-center" style="border: 1px solid #ede9e3;">
+            <div class="w-16 h-16 bg-gray-100 rounded-xl overflow-hidden flex-shrink-0">
+              <img v-if="item.image_url" :src="item.image_url" :alt="item.name" class="w-full h-full object-cover" @error="e => e.target.style.display='none'" />
+              <div v-else class="w-full h-full flex items-center justify-center">
+                <svg class="w-6 h-6 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+              </div>
+            </div>
+            <div class="flex-1 min-w-0">
+              <h3 class="font-bold text-gray-800 text-sm truncate">{{ item.name }}</h3>
+              <p class="text-sm text-primary-600 font-semibold mt-0.5">KES {{ formatPrice(item.discountedPrice ?? item.price) }}</p>
+              <div class="flex items-center gap-3 mt-2">
+                <button @click="cart.moveToCart(item.product_id)" class="text-xs font-bold text-white px-3 py-1.5 rounded-lg transition hover:opacity-90" style="background: linear-gradient(135deg, #7e22ce, #db2777);">
+                  Move to Cart
+                </button>
+                <button @click="cart.removeSaved(item.product_id)" class="text-xs text-gray-400 hover:text-red-500 transition font-medium">Remove</button>
+              </div>
             </div>
           </div>
         </div>
