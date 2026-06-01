@@ -32,13 +32,16 @@ app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-      scriptSrc: ["'self'", "'unsafe-inline'", 'unpkg.com'],
-      styleSrc: ["'self'", "'unsafe-inline'", 'unpkg.com'],
-      imgSrc: ["'self'", 'data:', '*.supabase.co', '*.openstreetmap.org', '*.tile.openstreetmap.org'],
-      connectSrc: ["'self'", ...ALLOWED_ORIGINS, '*.ngrok-free.app', '*.ngrok-free.dev'],
+      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", 'unpkg.com'],
+      styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com', 'unpkg.com'],
+      fontSrc: ["'self'", 'https://fonts.gstatic.com', 'data:'],
+      imgSrc: ["'self'", 'data:', 'blob:', 'https:'],
+      connectSrc: ["'self'", 'https:', 'wss:', ...ALLOWED_ORIGINS, '*.ngrok-free.app', '*.ngrok-free.dev'],
+      workerSrc: ["'self'", 'blob:'],
     }
   },
-  crossOriginEmbedderPolicy: false
+  crossOriginEmbedderPolicy: false,
+  crossOriginResourcePolicy: { policy: 'cross-origin' },
 }));
 app.use(compression());
 app.use(morgan('dev'));
