@@ -9,6 +9,16 @@ const emailService = require('../services/emailService');
 const whatsappService = require('../services/whatsappService');
 const { v4: uuidv4 } = require('uuid');
 
+// Build the public base URL for QR codes. Prefers the actual request host
+// (so QRs always point to wherever the app is deployed), falls back to env,
+// then localhost for local dev. `trust proxy` makes req.protocol = https on Render.
+const getBaseUrl = (req) => {
+  if (req && req.get && req.get('host')) {
+    return `${req.protocol}://${req.get('host')}`;
+  }
+  return process.env.FRONTEND_URL?.split(',')[0] || 'http://localhost:5173';
+};
+
 /**
  * Create a new order
  */
@@ -113,7 +123,7 @@ const createOrder = async (req, res) => {
     }, { transaction: t });
 
     // Generate Payment QR for the order
-    const qrCode = await generateQR(`${process.env.FRONTEND_URL || 'http://localhost:5173'}/orders/${order.id}`);
+    const qrCode = await generateQR(`${getBaseUrl(req)}/orders/${order.id}`);
     await order.update({ qr_code: qrCode }, { transaction: t });
 
     for (const item of orderItems) {
@@ -237,11 +247,13 @@ const getOrderById = async (req, res) => {
       return res.status(404).json({ message: 'Order not found' });
     }
 
-    // Generate a dedicated payment QR (public URL — scannable by anyone)
-    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    // Regenerate both QRs fresh from the current host so they always point to
+    // the live deployment (old orders had localhost baked into the stored image).
+    const frontendUrl = getBaseUrl(req);
     const payment_qr = await generateQR(`${frontendUrl}/payment/${order.id}`);
+    const qr_code = await generateQR(`${frontendUrl}/orders/${order.id}`);
 
-    res.json({ ...order.toJSON(), payment_qr });
+    res.json({ ...order.toJSON(), payment_qr, qr_code });
   } catch (error) {
     console.error('Get order error:', error);
     res.status(500).json({ message: error.message });
@@ -335,7 +347,7 @@ const payOrder = async (req, res) => {
         }, { transaction: t });
 
         const { secret, otp } = generateOTP();
-        const qrCode = await generateQR(`${process.env.FRONTEND_URL || 'http://localhost:5173'}/orders/${order.id}`);
+        const qrCode = await generateQR(`${getBaseUrl(req)}/orders/${order.id}`);
 
         await order.update({
           status: 'paid',
@@ -418,7 +430,7 @@ const handleMpesaCallback = async (req, res) => {
       }
 
       const { secret, otp } = generateOTP();
-      const qrCode = await generateQR(`${process.env.FRONTEND_URL || 'http://localhost:5173'}/orders/${order.id}`);
+      const qrCode = await generateQR(`${getBaseUrl(req)}/orders/${order.id}`);
 
       await order.update({
         status: 'paid',
