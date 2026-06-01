@@ -166,8 +166,11 @@ if (process.env.NODE_ENV === 'production') {
   if (frontendDist) {
     console.log('🖥️  Serving frontend from:', frontendDist);
     app.use(express.static(frontendDist, { maxAge: '1d' }));
-    // SPA fallback — any non-API route serves index.html
-    app.get('*', (req, res, next) => {
+    // SPA fallback — any non-API GET serves index.html.
+    // Use app.use (no path pattern) for Express 5 compatibility — the bare '*'
+    // wildcard in app.get('*') is rejected by path-to-regexp v8.
+    app.use((req, res, next) => {
+      if (req.method !== 'GET') return next();
       if (req.path.startsWith('/api') || req.path.startsWith('/health')) return next();
       res.sendFile(path.join(frontendDist, 'index.html'));
     });
