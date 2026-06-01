@@ -3,6 +3,12 @@ const dotenv = require('dotenv');
 
 dotenv.config();
 
+// Switch between sandbox and production via env.
+// Set MPESA_ENV=production (with real Daraja credentials) to charge real phones.
+const MPESA_BASE = process.env.MPESA_ENV === 'production'
+  ? 'https://api.safaricom.co.ke'
+  : 'https://sandbox.safaricom.co.ke';
+
 const getMpesaToken = async () => {
   const consumerKey = process.env.MPESA_CONSUMER_KEY;
   const consumerSecret = process.env.MPESA_CONSUMER_SECRET;
@@ -10,15 +16,12 @@ const getMpesaToken = async () => {
 
   try {
     const response = await axios.get(
-      'https://sandbox.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials',
-      {
-        headers: {
-          Authorization: `Basic ${auth}`,
-        },
-      }
+      `${MPESA_BASE}/oauth/v1/generate?grant_type=client_credentials`,
+      { headers: { Authorization: `Basic ${auth}` }, timeout: 20000 }
     );
     return response.data.access_token;
   } catch (error) {
+    console.error('M-Pesa auth failed:', error.response?.data || error.message);
     throw new Error('M-Pesa auth failed');
   }
 };
@@ -57,9 +60,9 @@ const initiateSTKPush = async (phone, amount, reference, callbackUrl) => {
 
   try {
     const response = await axios.post(
-      'https://sandbox.safaricom.co.ke/mpesa/stkpush/v1/processrequest',
+      `${MPESA_BASE}/mpesa/stkpush/v1/processrequest`,
       payload,
-      { headers: { Authorization: `Bearer ${token}` } }
+      { headers: { Authorization: `Bearer ${token}` }, timeout: 30000 }
     );
     return response.data;
   } catch (error) {

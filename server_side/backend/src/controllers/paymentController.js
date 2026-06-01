@@ -58,11 +58,17 @@ const initiatePayment = async (req, res) => {
       return res.status(400).json({ message: 'Invalid phone number format' });
     }
 
+    // Build the callback URL from the live request host so the payment
+    // confirmation reaches THIS deployment (not a stale ngrok/localhost URL)
+    const callbackUrl = process.env.MPESA_CALLBACK_URL
+      || `${req.protocol}://${req.get('host')}/api/payment/callback`;
+
     // Initiate STK Push
     const response = await initiateSTKPush(
-      formattedPhone, 
-      amount, 
-      order.order_number.slice(0, 12) // M-Pesa limits to 12 chars
+      formattedPhone,
+      amount,
+      order.order_number.slice(0, 12), // M-Pesa limits to 12 chars
+      callbackUrl
     );
 
     // Store CheckoutRequestID in order for callback verification
