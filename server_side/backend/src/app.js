@@ -98,9 +98,13 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString(), env: process.env.NODE_ENV || 'development' });
 });
 
-app.get('/', (req, res) => {
-  res.json({ message: 'BestLady API is running', health: '/health' });
-});
+// API root message — only in dev/when no frontend is bundled.
+// In production the SPA fallback serves the Vue app at '/'.
+if (process.env.NODE_ENV !== 'production') {
+  app.get('/', (req, res) => {
+    res.json({ message: 'BestLady API is running', health: '/health' });
+  });
+}
 
 app.use('/api/auth', authLimiter, require('./routes/authRoutes'));
 app.use('/api/users', require('./routes/userRoutes'));
