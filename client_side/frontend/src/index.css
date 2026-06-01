@@ -30,6 +30,11 @@
    BASE
 ───────────────────────────────────────────── */
 @layer base {
+  html, body {
+    /* Prevent stray wide elements from causing horizontal scroll on mobile */
+    overflow-x: hidden;
+    max-width: 100%;
+  }
   body {
     @apply text-slate-800 antialiased;
     background-color: var(--bg-page);

@@ -1,26 +1,26 @@
 <template>
   <nav class="bg-white border-b border-gray-100 sticky top-0 z-50 shadow-sm">
     <div class="container-custom">
-      <div class="flex items-center gap-4 h-16">
+      <div class="flex items-center gap-2 sm:gap-4 h-16">
 
         <!-- Back / Forward navigation arrows -->
-        <div class="flex items-center gap-1 flex-shrink-0">
-          <button @click="goBack" title="Go back"
-            class="w-8 h-8 rounded-lg flex items-center justify-center text-gray-500 hover:text-primary-600 hover:bg-gray-100 transition">
+        <div class="flex items-center gap-0.5 sm:gap-1 flex-shrink-0">
+          <button @click="goBack" title="Go back" aria-label="Go back"
+            class="w-8 h-8 rounded-lg flex items-center justify-center text-gray-500 hover:text-primary-600 hover:bg-gray-100 active:scale-90 transition">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
           </button>
-          <button @click="goForward" title="Go forward"
-            class="w-8 h-8 rounded-lg flex items-center justify-center text-gray-500 hover:text-primary-600 hover:bg-gray-100 transition">
+          <button @click="goForward" title="Go forward" aria-label="Go forward"
+            class="w-8 h-8 rounded-lg flex items-center justify-center text-gray-500 hover:text-primary-600 hover:bg-gray-100 active:scale-90 transition">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
           </button>
         </div>
 
         <!-- Logo -->
-        <router-link to="/" class="flex-shrink-0 flex items-center gap-2.5 group">
-          <div class="w-9 h-9 rounded-xl flex items-center justify-center text-white font-bold text-base shadow-sm shrink-0" style="background: var(--brand-gradient)">
+        <router-link to="/" class="flex-shrink-0 flex items-center gap-2 group">
+          <div class="w-8 h-8 sm:w-9 sm:h-9 rounded-xl flex items-center justify-center text-white font-bold text-base shadow-sm shrink-0" style="background: var(--brand-gradient)">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.121 14.121L19 19m-7-7l7-7m-7 7l-2.879 2.879M12 12L9.121 9.121m0 5.758a3 3 0 10-4.243 4.243 3 3 0 004.243-4.243zm0-5.758a3 3 0 10-4.243-4.243 3 3 0 004.243 4.243z"/></svg>
           </div>
-          <span class="font-serif font-bold text-xl tracking-tight brand-text">BestLady</span>
+          <span class="font-serif font-bold text-lg sm:text-xl tracking-tight brand-text">BestLady</span>
           <span class="hidden sm:inline text-[9px] font-bold bg-primary-100 text-primary-700 px-2 py-0.5 rounded-full tracking-wider">AI</span>
         </router-link>
 

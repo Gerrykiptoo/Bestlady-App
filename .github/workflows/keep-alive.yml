@@ -1,0 +1,26 @@
+name: Keep Render Awake
+
+# Pings the live app every 10 minutes so the Render free instance never
+# spins down (free services sleep after 15 min of no traffic, causing a
+# ~50s cold-start delay on the next visit).
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"   # every 10 minutes
+  workflow_dispatch:          # also allow manual run from the Actions tab
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping health endpoint
+        run: |
+          echo "Pinging BestLady to keep it awake..."
+          code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 60 https://bestlady-app.onrender.com/health)
+          echo "Health check returned HTTP $code"
+          # Don't fail the workflow if the app is briefly waking up
+          if [ "$code" = "200" ]; then
+            echo "✅ App is awake and healthy"
+          else
+            echo "⚠️ App returned $code (it may be waking from sleep — that's OK)"
+          fi
