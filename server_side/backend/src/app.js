@@ -69,19 +69,23 @@ const authLimiter = rateLimit({
   message: { message: 'Too many authentication attempts, please try again in 15 minutes.' }
 });
 
-// CORS — allow all configured origins + wildcard ngrok subdomains
+// CORS — allow all configured origins + wildcard ngrok/vercel/render subdomains
 app.use(cors({
   origin: (origin, callback) => {
-    // Allow requests with no origin (mobile apps, curl, Postman)
+    // Allow requests with no origin (mobile apps, curl, Postman, same-origin assets)
     if (!origin) return callback(null, true);
     // Allow any ngrok tunnel (both paid fixed and free rotating)
     if (origin.match(/https?:\/\/.*\.ngrok(-free)?\.(app|dev|io)$/)) return callback(null, true);
-    // Allow any Vercel deployment of this project
+    // Allow any Vercel deployment
     if (origin.match(/https?:\/\/.*\.vercel\.app$/)) return callback(null, true);
+    // Allow any Render deployment (the all-in-one host serves itself)
+    if (origin.match(/https?:\/\/.*\.onrender\.com$/)) return callback(null, true);
     // Allow explicitly listed origins
     if (ALLOWED_ORIGINS.includes(origin)) return callback(null, true);
+    // Do NOT throw — just deny CORS headers. Throwing turns same-origin asset
+    // requests (which carry an Origin header via crossorigin) into 500 errors.
     console.warn('CORS blocked:', origin);
-    callback(new Error(`CORS: origin ${origin} not allowed`));
+    return callback(null, false);
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
