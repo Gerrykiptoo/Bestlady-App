@@ -151,14 +151,29 @@ if (process.env.NODE_ENV !== 'production') {
 // Serve built Vue frontend in production (single process — no separate frontend server)
 // ======================
 if (process.env.NODE_ENV === 'production') {
-  const frontendDist = path.join(__dirname, '../../client_side/frontend/dist');
-  app.use(express.static(frontendDist, { maxAge: '1d' }));
-  // SPA fallback — any non-API route serves index.html
-  app.get('*', (req, res) => {
-    if (!req.path.startsWith('/api') && !req.path.startsWith('/health')) {
+  const fs = require('fs');
+  // The frontend dist lives at different relative depths depending on layout
+  // (local monorepo vs Docker image), so probe known candidates and use the
+  // first one that actually contains index.html.
+  const candidates = [
+    path.join(__dirname, '../../../client_side/frontend/dist'), // local: src→backend→server_side→root
+    path.join(__dirname, '../../client_side/frontend/dist'),    // alt nesting
+    path.join(__dirname, '../client_side/frontend/dist'),       // docker: /app/src→/app
+    path.join(process.cwd(), 'client_side/frontend/dist'),      // cwd fallback
+  ];
+  const frontendDist = candidates.find(p => fs.existsSync(path.join(p, 'index.html')));
+
+  if (frontendDist) {
+    console.log('🖥️  Serving frontend from:', frontendDist);
+    app.use(express.static(frontendDist, { maxAge: '1d' }));
+    // SPA fallback — any non-API route serves index.html
+    app.get('*', (req, res, next) => {
+      if (req.path.startsWith('/api') || req.path.startsWith('/health')) return next();
       res.sendFile(path.join(frontendDist, 'index.html'));
-    }
-  });
+    });
+  } else {
+    console.warn('⚠️  Frontend dist not found — running API-only. Checked:', candidates);
+  }
 }
 
 // ======================
