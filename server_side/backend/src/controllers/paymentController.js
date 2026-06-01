@@ -28,7 +28,9 @@ const initiatePayment = async (req, res) => {
     }
 
     // Verify order belongs to authenticated user
-    if (order.user_id !== req.user.id) {
+    // If a user is logged in, enforce ownership. Public QR payments (no auth)
+    // are allowed — paying an unpaid order only benefits the merchant.
+    if (req.user && order.user_id !== req.user.id && !['admin', 'staff', 'agent'].includes(req.user.role)) {
       return res.status(403).json({ message: 'Not authorized to pay for this order' });
     }
 

@@ -1,14 +1,14 @@
 const express = require('express');
 const router = express.Router();
 const { initiatePayment, mpesaCallback, walletTopupCallback, queryPaymentStatus } = require('../controllers/paymentController');
-const { protect } = require('../middleware/authMiddleware');
+const { protect, optionalProtect } = require('../middleware/authMiddleware');
 
 /**
  * @route   POST /api/payment/stkpush
  * @desc    Initiate M-Pesa STK Push
  * @access  Private (requires authentication)
  */
-router.post('/stkpush', protect, initiatePayment);
+router.post('/stkpush', optionalProtect, initiatePayment);
 
 /**
  * @route   GET /api/payment/status/:checkoutRequestID
