@@ -172,14 +172,20 @@ if (process.env.NODE_ENV === 'production') {
 
   if (frontendDist) {
     console.log('🖥️  Serving frontend from:', frontendDist);
-    app.use(express.static(frontendDist, { maxAge: '1d' }));
-    // SPA fallback — any non-API GET serves index.html.
-    // Use app.use (no path pattern) for Express 5 compatibility — the bare '*'
-    // wildcard in app.get('*') is rejected by path-to-regexp v8.
+    // Serve static assets (JS/CSS/images) with their correct MIME types.
+    app.use(express.static(frontendDist, { maxAge: '1d', index: false }));
+
+    // SPA fallback — serve index.html ONLY for real navigation requests.
+    // Skip: non-GET, /api, /health, /uploads, and any path that looks like a
+    // static file (has a dot, e.g. .js .css .png). This stops asset requests
+    // from ever falling through to the JSON error handler.
     app.use((req, res, next) => {
       if (req.method !== 'GET') return next();
-      if (req.path.startsWith('/api') || req.path.startsWith('/health')) return next();
-      res.sendFile(path.join(frontendDist, 'index.html'));
+      if (req.path.startsWith('/api') || req.path.startsWith('/health') || req.path.startsWith('/uploads')) return next();
+      if (req.path.includes('.')) return next();           // looks like a file → let it 404 cleanly
+      res.sendFile(path.join(frontendDist, 'index.html'), (err) => {
+        if (err) next(err);
+      });
     });
   } else {
     console.warn('⚠️  Frontend dist not found — running API-only. Checked:', candidates);
