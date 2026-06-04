@@ -129,14 +129,23 @@ app.use('/api/content', require('./routes/contentRoutes'));
 app.use('/api/saved', require('./routes/savedItemRoutes'));
 
 // ======================
-// Dev notification test route — POST /api/test/notify
+// Notification test route — POST /api/test/notify
+// In production it requires ?key=<TEST_NOTIFY_KEY> so it can't be abused.
 // ======================
-if (process.env.NODE_ENV !== 'production') {
+{
   const testRouter = require('express').Router();
   const emailService = require('./services/emailService');
   const whatsappService = require('./services/whatsappService');
 
   testRouter.post('/notify', async (req, res) => {
+    // In production, require a secret key to prevent spam abuse
+    if (process.env.NODE_ENV === 'production') {
+      const provided = req.query.key || req.headers['x-test-key'];
+      if (!process.env.TEST_NOTIFY_KEY || provided !== process.env.TEST_NOTIFY_KEY) {
+        return res.status(403).json({ message: 'Forbidden' });
+      }
+    }
+
     const { email, phone } = req.body;
     const results = { email: null, whatsapp: null };
 
