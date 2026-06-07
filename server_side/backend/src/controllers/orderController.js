@@ -9,9 +9,7 @@ const emailService = require('../services/emailService');
 const whatsappService = require('../services/whatsappService');
 const { v4: uuidv4 } = require('uuid');
 
-// Build the public base URL for QR codes. Prefers the actual request host
-// (so QRs always point to wherever the app is deployed), falls back to env,
-// then localhost for local dev. `trust proxy` makes req.protocol = https on Render.
+
 const getBaseUrl = (req) => {
   if (req && req.get && req.get('host')) {
     return `${req.protocol}://${req.get('host')}`;
