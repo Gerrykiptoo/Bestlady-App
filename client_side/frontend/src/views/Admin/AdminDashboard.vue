@@ -292,6 +292,95 @@
       </div>
     </div>
 
+    <!-- ================= ORDERS TAB ================= -->
+    <div v-if="activeTab === 'orders'">
+      <div class="rounded-2xl border overflow-hidden" style="background: #111827; border-color: rgba(139,92,246,0.15);">
+        <div class="px-6 py-5 border-b flex flex-wrap justify-between items-center gap-3" style="border-color: rgba(139,92,246,0.1);">
+          <div>
+            <h3 class="font-serif font-bold text-lg text-white">All Orders &amp; Payments</h3>
+            <p class="text-xs text-slate-500 mt-0.5">{{ allOrders.length }} orders · live platform-wide view</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <select v-model="orderFilter" class="text-sm rounded-lg px-3 py-1.5 outline-none text-slate-300" style="background: rgba(255,255,255,0.06); border: 1px solid rgba(139,92,246,0.2);">
+              <option value="all">All statuses</option>
+              <option value="pending">Pending</option>
+              <option value="paid">Paid</option>
+              <option value="processing">Processing</option>
+              <option value="dispatched">Dispatched</option>
+              <option value="delivered">Delivered</option>
+              <option value="cancelled">Cancelled</option>
+            </select>
+            <button @click="fetchAllOrders" class="text-sm text-violet-400 hover:text-violet-300 font-semibold flex items-center gap-1.5 transition">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+              Refresh
+            </button>
+          </div>
+        </div>
+
+        <!-- Payment summary strip -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-px" style="background: rgba(139,92,246,0.1);">
+          <div class="p-4" style="background: #111827;">
+            <p class="text-xs text-slate-500 uppercase tracking-wider">Total Orders</p>
+            <p class="text-xl font-bold text-white">{{ allOrders.length }}</p>
+          </div>
+          <div class="p-4" style="background: #111827;">
+            <p class="text-xs text-slate-500 uppercase tracking-wider">Paid</p>
+            <p class="text-xl font-bold text-emerald-400">{{ paidOrdersCount }}</p>
+          </div>
+          <div class="p-4" style="background: #111827;">
+            <p class="text-xs text-slate-500 uppercase tracking-wider">Pending Payment</p>
+            <p class="text-xl font-bold text-amber-400">{{ pendingPaymentCount }}</p>
+          </div>
+          <div class="p-4" style="background: #111827;">
+            <p class="text-xs text-slate-500 uppercase tracking-wider">Revenue (paid)</p>
+            <p class="text-xl font-bold text-white">KES {{ formatPrice(paidRevenue) }}</p>
+          </div>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full">
+            <thead style="background: rgba(255,255,255,0.03);">
+              <tr>
+                <th class="px-5 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Order</th>
+                <th class="px-5 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Customer</th>
+                <th class="px-5 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Total</th>
+                <th class="px-5 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Payment</th>
+                <th class="px-5 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Status</th>
+                <th class="px-5 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Date</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="o in filteredAdminOrders" :key="o.id" class="border-t" style="border-color: rgba(255,255,255,0.04);"
+                @mouseover="e => e.currentTarget.style.background='rgba(139,92,246,0.05)'" @mouseleave="e => e.currentTarget.style.background='transparent'">
+                <td class="px-5 py-3.5">
+                  <p class="font-semibold text-slate-200 text-sm">#{{ o.order_number }}</p>
+                  <p class="text-xs text-slate-500">{{ o.OrderItems?.length || 0 }} item(s) · {{ o.payment_method || '—' }}</p>
+                </td>
+                <td class="px-5 py-3.5">
+                  <p class="text-sm text-slate-300">{{ o.User?.business_name || o.User?.username || '—' }}</p>
+                  <p class="text-xs text-slate-500 capitalize">{{ o.User?.tier || '' }}</p>
+                </td>
+                <td class="px-5 py-3.5 font-bold text-white text-sm">KES {{ formatPrice(o.total_amount) }}</td>
+                <td class="px-5 py-3.5">
+                  <span class="text-xs font-bold px-2 py-1 rounded-full capitalize"
+                    :style="['completed','paid'].includes(o.payment_status) ? 'background: rgba(16,185,129,0.12); color:#34d399;' : o.payment_status === 'failed' ? 'background: rgba(239,68,68,0.12); color:#f87171;' : 'background: rgba(245,158,11,0.12); color:#fbbf24;'">
+                    {{ o.payment_status || 'pending' }}
+                  </span>
+                </td>
+                <td class="px-5 py-3.5">
+                  <span class="text-xs font-bold px-2 py-1 rounded-full capitalize text-slate-300" style="background: rgba(255,255,255,0.06);">{{ o.status }}</span>
+                </td>
+                <td class="px-5 py-3.5 text-xs text-slate-500">{{ formatDate(o.createdAt) }}</td>
+              </tr>
+              <tr v-if="filteredAdminOrders.length === 0">
+                <td colspan="6" class="text-center py-14 text-slate-600">No orders found</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
     <!-- ================= ANALYTICS TAB ================= -->
     <div v-if="activeTab === 'analytics'">
       <div class="rounded-2xl border p-6" style="background: #111827; border-color: rgba(139,92,246,0.15);">
@@ -534,6 +623,7 @@ const toast = useToast()
 const tabs = [
   { key: 'overview', label: 'Overview' },
   { key: 'products', label: 'Products' },
+  { key: 'orders', label: 'Orders' },
   { key: 'users', label: 'Users' },
   { key: 'analytics', label: 'Reports' }
 ]
@@ -564,6 +654,36 @@ const productForm = ref({
   retail_price: 0, wholesale_price: 0, unit: 'piece',
   current_stock: 0, reorder_point: 10
 })
+
+// ---------- All Orders (platform-wide) ----------
+const allOrders = ref([])
+const orderFilter = ref('all')
+
+const fetchAllOrders = async () => {
+  try {
+    const { data } = await api.get('/orders?limit=200')
+    allOrders.value = Array.isArray(data) ? data : []
+  } catch (e) {
+    console.error('Failed to load all orders:', e)
+  }
+}
+
+const filteredAdminOrders = computed(() =>
+  orderFilter.value === 'all'
+    ? allOrders.value
+    : allOrders.value.filter(o => o.status === orderFilter.value)
+)
+const paidOrdersCount = computed(() =>
+  allOrders.value.filter(o => ['completed', 'paid'].includes(o.payment_status)).length
+)
+const pendingPaymentCount = computed(() =>
+  allOrders.value.filter(o => !['completed', 'paid'].includes(o.payment_status) && o.payment_status !== 'failed').length
+)
+const paidRevenue = computed(() =>
+  allOrders.value
+    .filter(o => ['completed', 'paid'].includes(o.payment_status))
+    .reduce((s, o) => s + (parseFloat(o.total_amount) || 0), 0)
+)
 
 // ---------- Users ----------
 const users = ref([])
@@ -789,19 +909,22 @@ onMounted(() => {
   fetchCategories()
   fetchUsers()
   fetchAnalytics()
+  fetchAllOrders()
 
   const socket = getSocket()
   if (socket) {
-    socket.on('orderUpdate', fetchAnalytics)
+    socket.on('orderUpdate', () => { fetchAnalytics(); fetchAllOrders() })
     socket.on('walletUpdate', fetchUsers)
     socket.on('onlineCount', ({ count }) => { onlineCount.value = count })
+    // A new order placed by any customer → refresh the live orders list
+    socket.on('newOrder', () => { fetchAnalytics(); fetchAllOrders() })
     // Rider delivered + customer confirmed → refresh and notify
     socket.on('deliveryConfirmed', (data) => {
       toast.success(data.message || 'A delivery was confirmed by a customer')
-      fetchAnalytics()
+      fetchAnalytics(); fetchAllOrders()
     })
   }
-  pollInterval = setInterval(fetchAnalytics, 60000)
+  pollInterval = setInterval(() => { fetchAnalytics(); fetchAllOrders() }, 60000)
 })
 
 onUnmounted(() => {
