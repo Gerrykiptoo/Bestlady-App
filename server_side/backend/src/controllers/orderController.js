@@ -178,21 +178,31 @@ const createOrder = async (req, res) => {
 const getOrders = async (req, res) => {
   try {
     let where = { user_id: req.user.id };
-    
-    // Admin, staff, and agents can see other users' orders if userId is provided
-    if (['admin', 'staff', 'agent'].includes(req.user.role) && req.query.userId) {
+
+    if (['admin', 'staff'].includes(req.user.role)) {
+      // Admin and staff see EVERY order across the platform by default,
+      // or a specific customer's orders when ?userId= is provided.
+      where = req.query.userId ? { user_id: req.query.userId } : {};
+    } else if (req.user.role === 'agent' && req.query.userId) {
+      // Agents can view a specific client's orders
       where = { user_id: req.query.userId };
     }
-    
+
     // Handle status filter: ?status=pending,processing,dispatched
     if (req.query.status) {
       const statuses = req.query.status.split(',').map(s => s.trim());
       where.status = { [Op.in]: statuses };     // ✅ fixed: use Op.in instead of sequelize.Op.in
     }
     
+    // For admin/staff, also include the buyer's details so they know whose order it is
+    const include = [{ model: OrderItem, include: [Product] }];
+    if (['admin', 'staff'].includes(req.user.role)) {
+      include.push({ model: User, attributes: ['id', 'username', 'business_name', 'email', 'phone', 'tier'] });
+    }
+
     const orders = await Order.findAll({
       where,
-      include: [{ model: OrderItem, include: [Product] }],
+      include,
       order: [['createdAt', 'DESC']],
       limit: req.query.limit ? parseInt(req.query.limit) : undefined
     });
