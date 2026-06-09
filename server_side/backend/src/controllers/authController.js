@@ -49,7 +49,20 @@ const register = async (req, res) => {
       refreshToken
     });
   } catch (error) {
-    console.error('❌ Registration error:', error);  // <-- this prints the full error in your terminal
+    console.error('❌ Registration error:', error);
+    if (error.name === 'SequelizeUniqueConstraintError') {
+      const field = error.errors?.[0]?.path || '';
+      if (field.includes('phone')) {
+        return res.status(400).json({ message: 'This phone number is already registered. Please use a different number or log in.' });
+      }
+      if (field.includes('email')) {
+        return res.status(400).json({ message: 'This email is already registered. Please log in instead.' });
+      }
+      return res.status(400).json({ message: 'An account with these details already exists.' });
+    }
+    if (error.name === 'SequelizeValidationError') {
+      return res.status(400).json({ message: error.errors?.[0]?.message || 'Invalid registration details.' });
+    }
     res.status(500).json({ message: 'Server error' });
   }
 };
@@ -190,10 +203,17 @@ const resetPassword = async (req, res) => {
   }
 };
 
+// Logout — JWT is stateless, so the client clears its tokens; this endpoint
+// simply acknowledges the request so the frontend gets a clean 200.
+const logout = async (req, res) => {
+  res.json({ message: 'Logged out successfully' });
+};
+
 module.exports = {
   register,
   login,
   getMe,
   forgotPassword,
-  resetPassword
+  resetPassword,
+  logout
 };

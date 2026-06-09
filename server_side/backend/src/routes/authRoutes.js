@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { body, validationResult } = require('express-validator');
-const { register, login, getMe, forgotPassword, resetPassword } = require('../controllers/authController');
+const { register, login, getMe, forgotPassword, resetPassword, logout } = require('../controllers/authController');
 const { protect } = require('../middleware/authMiddleware');
 
 const validate = (req, res, next) => {
@@ -26,6 +26,7 @@ const loginRules = [
 ];
 
 router.post('/register', registerRules, validate, register);
+router.post('/logout', logout);
 router.post('/login', loginRules, validate, login);
 
 /**
